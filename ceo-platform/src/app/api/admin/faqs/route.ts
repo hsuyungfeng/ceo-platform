@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/admin-auth';
 import { ApiResponse } from '@/types/admin';
-import { faqQuerySchema } from './schema';
+import { faqQuerySchema, faqSchema } from './schema';
 
 // 錯誤訊息常數
 const ERROR_MESSAGES = {
@@ -95,6 +95,89 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         error: ERROR_MESSAGES.SERVER_ERROR,
+      } as ApiResponse,
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    // 驗證管理員權限
+    const adminCheck = await requireAdmin();
+    if ('error' in adminCheck) {
+      return adminCheck.error;
+    }
+
+    // 解析請求體
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '請求體格式錯誤，必須是有效的 JSON',
+        } as ApiResponse,
+        { status: 400 }
+      );
+    }
+
+    // 驗證請求數據
+    const validationResult = faqSchema.safeParse(body);
+    if (!validationResult.success) {
+      const errors = validationResult.error.issues.map(issue => ({
+        field: issue.path.join('.'),
+        message: issue.message,
+      }));
+      
+      return NextResponse.json(
+        {
+          success: false,
+          error: '數據驗證失敗',
+          errors,
+        } as ApiResponse,
+        { status: 400 }
+      );
+    }
+
+    const data = validationResult.data;
+    
+    // 計算最大 sortOrder
+    const maxSortOrder = await prisma.faq.aggregate({
+      _max: {
+        sortOrder: true,
+      },
+    });
+
+    const nextSortOrder = (maxSortOrder._max.sortOrder || 0) + 1;
+
+    // 創建 FAQ
+    const faq = await prisma.faq.create({
+      data: {
+        question: data.question,
+        answer: data.answer,
+        isActive: data.isActive,
+        sortOrder: nextSortOrder,
+      },
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: faq,
+        message: 'FAQ 創建成功',
+      } as ApiResponse,
+      { status: 201 }
+    );
+
+  } catch (error) {
+    console.error('創建 FAQ 錯誤:', error);
+    
+    return NextResponse.json(
+      {
+        success: false,
+        error: '伺服器錯誤，請稍後再試',
       } as ApiResponse,
       { status: 500 }
     );
