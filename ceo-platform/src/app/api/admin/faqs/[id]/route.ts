@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { requireAdmin } from '@/lib/admin-auth';
 import { ApiResponse } from '@/types/admin';
 import { faqUpdateSchema } from '../schema';
@@ -60,6 +61,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if ('error' in adminCheck) {
       return adminCheck.error;
     }
+    const adminUser = adminCheck.user;
 
     // 獲取 FAQ ID
     const { id } = await params;
@@ -83,7 +85,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     let body;
     try {
       body = await request.json();
-    } catch {
+    } catch (error) {
       return NextResponse.json(
         {
           success: false,
@@ -114,12 +116,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const data = validationResult.data;
     
     // 準備更新數據
-    const updateData: {
-      question?: string;
-      answer?: string;
-      isActive?: boolean;
-      sortOrder?: number;
-    } = {};
+    const updateData: Prisma.FaqUpdateInput = {};
     
     if (data.question !== undefined) updateData.question = data.question;
     if (data.answer !== undefined) updateData.answer = data.answer;
@@ -188,6 +185,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if ('error' in adminCheck) {
       return adminCheck.error;
     }
+    const adminUser = adminCheck.user;
 
     // 獲取 FAQ ID
     const { id } = await params;
@@ -207,14 +205,16 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // 硬刪除 FAQ
-    await prisma.faq.delete({
+    // 軟刪除 FAQ (設置為非活躍狀態)
+    const deletedFaq = await prisma.faq.update({
       where: { id },
+      data: { isActive: false },
     });
 
     return NextResponse.json(
       {
         success: true,
+        data: deletedFaq,
         message: 'FAQ 刪除成功',
       } as ApiResponse,
       { status: 200 }
@@ -224,7 +224,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     console.error('刪除 FAQ 錯誤:', error);
     
     // 處理 Prisma 記錄不存在錯誤
-    if (error instanceof Error && error.message.includes('Record to delete not found')) {
+    if (error instanceof Error && error.message.includes('Record to update not found')) {
       return NextResponse.json(
         {
           success: false,
