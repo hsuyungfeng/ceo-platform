@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     let body;
     try {
       body = await request.json();
-    } catch {
+    } catch (error) {
       return NextResponse.json(
         {
           success: false,
@@ -142,6 +142,26 @@ export async function POST(request: NextRequest) {
     }
 
     const data = validationResult.data;
+
+    // 檢查 FAQ 問題是否重複（不區分大小寫）
+    const existingFaq = await prisma.faq.findFirst({
+      where: {
+        question: {
+          equals: data.question,
+          mode: 'insensitive',
+        },
+      },
+    });
+
+    if (existingFaq) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '已存在相同問題的 FAQ',
+        } as ApiResponse,
+        { status: 409 }
+      );
+    }
     
     // 計算最大 sortOrder
     const maxSortOrder = await prisma.faq.aggregate({
@@ -174,10 +194,21 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('創建 FAQ 錯誤:', error);
     
+    // 處理 Prisma 唯一約束錯誤
+    if (error instanceof Error && error.message.includes('Unique constraint')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'FAQ 問題可能已存在',
+        } as ApiResponse,
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       {
         success: false,
-        error: '伺服器錯誤，請稍後再試',
+        error: ERROR_MESSAGES.SERVER_ERROR,
       } as ApiResponse,
       { status: 500 }
     );
