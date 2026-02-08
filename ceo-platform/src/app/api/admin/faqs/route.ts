@@ -4,6 +4,12 @@ import { requireAdmin } from '@/lib/admin-auth';
 import { ApiResponse } from '@/types/admin';
 import { faqQuerySchema } from './schema';
 
+// 錯誤訊息常數
+const ERROR_MESSAGES = {
+  VALIDATION_FAILED: '查詢參數驗證失敗',
+  SERVER_ERROR: '伺服器錯誤，請稍後再試',
+} as const;
+
 export async function GET(request: NextRequest) {
   try {
     // 驗證管理員權限
@@ -14,33 +20,29 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     
-    // 解析查詢參數
-    const queryParams = {
+    // 解析和驗證查詢參數
+    const queryParams = faqQuerySchema.safeParse({
       page: searchParams.get('page'),
       limit: searchParams.get('limit'),
-      search: searchParams.get('search'),
-      isActive: searchParams.get('isActive'),
-    };
-    
-    // 驗證查詢參數
-    const validationResult = faqQuerySchema.safeParse(queryParams);
-    if (!validationResult.success) {
-      const errors = validationResult.error.issues.map(issue => ({
-        field: issue.path.join('.'),
-        message: issue.message,
-      }));
-      
+      search: searchParams.get('search') || undefined,
+      isActive: searchParams.get('isActive') || undefined,
+    });
+
+    if (!queryParams.success) {
       return NextResponse.json(
         {
           success: false,
-          error: '查詢參數驗證失敗',
-          errors,
+          error: ERROR_MESSAGES.VALIDATION_FAILED,
+          errors: queryParams.error.issues.map(issue => ({
+            field: issue.path.join('.'),
+            message: issue.message,
+          })),
         } as ApiResponse,
         { status: 400 }
       );
     }
     
-    const { page, limit, search, isActive } = validationResult.data;
+    const { page, limit, search, isActive } = queryParams.data;
     const skip = (page - 1) * limit;
 
     // 建立查詢條件
@@ -92,7 +94,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: '伺服器錯誤，請稍後再試',
+        error: ERROR_MESSAGES.SERVER_ERROR,
       } as ApiResponse,
       { status: 500 }
     );
