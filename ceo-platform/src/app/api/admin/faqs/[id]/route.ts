@@ -20,6 +20,50 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // 獲取 FAQ ID
     const { id } = await params;
 
+    // 查詢 FAQ 詳情
+    const faq = await prisma.faq.findUnique({
+      where: { id },
+    });
+
+    if (!faq) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'FAQ 不存在',
+        } as ApiResponse,
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: faq,
+    } as ApiResponse);
+
+  } catch (error) {
+    console.error('取得 FAQ 詳情錯誤:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: '伺服器錯誤，請稍後再試',
+      } as ApiResponse,
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH: 更新 FAQ
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  try {
+    // 驗證管理員權限
+    const adminCheck = await requireAdmin();
+    if ('error' in adminCheck) {
+      return adminCheck.error;
+    }
+
+    // 獲取 FAQ ID
+    const { id } = await params;
+
     // 檢查 FAQ 是否存在
     const existingFaq = await prisma.faq.findUnique({
       where: { id },
@@ -136,7 +180,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE: 刪除 FAQ（軟刪除）
+// DELETE: 刪除 FAQ
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     // 驗證管理員權限
@@ -163,23 +207,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // 檢查 FAQ 是否已經被刪除
-    if (!existingFaq.isActive) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'FAQ 已經被刪除',
-        } as ApiResponse,
-        { status: 400 }
-      );
-    }
-
-    // 軟刪除 FAQ（設置 isActive: false）
-    await prisma.faq.update({
+    // 硬刪除 FAQ
+    await prisma.faq.delete({
       where: { id },
-      data: {
-        isActive: false,
-      },
     });
 
     return NextResponse.json(
@@ -194,7 +224,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     console.error('刪除 FAQ 錯誤:', error);
     
     // 處理 Prisma 記錄不存在錯誤
-    if (error instanceof Error && error.message.includes('Record to update not found')) {
+    if (error instanceof Error && error.message.includes('Record to delete not found')) {
       return NextResponse.json(
         {
           success: false,
