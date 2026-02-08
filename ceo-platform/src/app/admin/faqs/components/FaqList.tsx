@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -30,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Edit, Trash2, ChevronUp, ChevronDown, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Edit, Trash2, ChevronUp, ChevronDown, Search, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 
 interface Faq {
   id: string
@@ -50,15 +51,35 @@ interface Pagination {
   hasPrevPage: boolean
 }
 
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value)
+    }, delay)
+
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [value, delay])
+
+  return debouncedValue
+}
+
 export default function FaqList() {
   const [faqs, setFaqs] = useState<Faq[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'sortOrder' | 'createdAt' | 'question'>('sortOrder')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [faqToDelete, setFaqToDelete] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
     limit: 20,
@@ -70,61 +91,114 @@ export default function FaqList() {
 
   useEffect(() => {
     fetchFaqs()
-  }, [pagination.page, pagination.limit, search, statusFilter])
+  }, [pagination.page, pagination.limit, debouncedSearch, statusFilter])
 
-  const fetchFaqs = async () => {
+  const fetchFaqs = useCallback(async () => {
     try {
       setLoading(true)
+      setError(null)
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
       })
       
-      if (search) params.append('search', search)
+      if (debouncedSearch) params.append('search', debouncedSearch)
       if (statusFilter !== 'all') {
         params.append('isActive', statusFilter === 'active' ? 'true' : 'false')
       }
       
       const response = await fetch(`/api/admin/faqs?${params}`)
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          setFaqs(data.data)
-          setPagination(data.pagination)
-        }
+      if (!response.ok) {
+        throw new Error('獲取 FAQ 列表失敗')
+      }
+      
+      const data = await response.json()
+      if (data.success) {
+        setFaqs(data.data)
+        setPagination(data.pagination)
+      } else {
+        throw new Error(data.error || '獲取 FAQ 列表失敗')
       }
     } catch (error) {
       console.error('Failed to fetch FAQs:', error)
+      const errorMessage = error instanceof Error ? error.message : '獲取 FAQ 列表失敗'
+      setError(errorMessage)
+      toast.error('獲取 FAQ 列表失敗', {
+        description: errorMessage,
+      })
     } finally {
       setLoading(false)
     }
-  }
+  }, [pagination.page, pagination.limit, debouncedSearch, statusFilter])
 
   const handleDelete = async (id: string) => {
     try {
+      setDeletingId(id)
       const response = await fetch(`/api/admin/faqs/${id}`, {
         method: 'DELETE',
       })
-      if (response.ok) {
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || '刪除 FAQ 失敗')
+      }
+      
+      const data = await response.json()
+      if (data.success) {
+        toast.success('FAQ 刪除成功')
         fetchFaqs()
         setDeleteDialogOpen(false)
         setFaqToDelete(null)
+      } else {
+        throw new Error(data.error || '刪除 FAQ 失敗')
       }
     } catch (error) {
       console.error('Failed to delete FAQ:', error)
+      const errorMessage = error instanceof Error ? error.message : '刪除 FAQ 失敗'
+      toast.error('刪除失敗', {
+        description: errorMessage,
+      })
+    } finally {
+      setDeletingId(null)
     }
   }
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
+    const action = currentStatus ? '停用' : '啟用'
+    const confirmMessage = currentStatus 
+      ? `確定要停用這個 FAQ 嗎？停用後用戶將無法看到此 FAQ。`
+      : `確定要啟用這個 FAQ 嗎？`
+    
+    if (!confirm(confirmMessage)) {
+      return
+    }
+    
     try {
+      setTogglingId(id)
       const response = await fetch(`/api/admin/faqs/${id}/toggle-status`, {
         method: 'PATCH',
       })
-      if (response.ok) {
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `${action} FAQ 失敗`)
+      }
+      
+      const data = await response.json()
+      if (data.success) {
+        toast.success(`FAQ ${action}成功`)
         fetchFaqs()
+      } else {
+        throw new Error(data.error || `${action} FAQ 失敗`)
       }
     } catch (error) {
       console.error('Failed to toggle FAQ status:', error)
+      const errorMessage = error instanceof Error ? error.message : `${action} FAQ 失敗`
+      toast.error(`${action}失敗`, {
+        description: errorMessage,
+      })
+    } finally {
+      setTogglingId(null)
     }
   }
 
@@ -161,22 +235,35 @@ export default function FaqList() {
     }
   })
 
-  if (loading) {
+  if (loading && faqs.length === 0) {
     return <div className="py-8 text-center">載入中...</div>
+  }
+
+  if (error && faqs.length === 0) {
+    return (
+      <div className="py-8 text-center">
+        <div className="text-red-600 mb-2">載入失敗</div>
+        <div className="text-gray-600 mb-4">{error}</div>
+        <Button onClick={fetchFaqs}>重試</Button>
+      </div>
+    )
   }
 
   return (
     <div>
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input
-            placeholder="搜尋問題或答案..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+         <div className="relative flex-1">
+           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+           {loading && (
+             <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-gray-400" />
+           )}
+           <Input
+             placeholder="搜尋問題或答案..."
+             value={search}
+             onChange={(e) => setSearch(e.target.value)}
+             className="pl-9"
+           />
+         </div>
         <div className="flex items-center gap-4">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
@@ -261,17 +348,20 @@ export default function FaqList() {
                           <Edit className="h-4 w-4" />
                         </Button>
                       </Link>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleToggleStatus(faq.id, faq.isActive)}
-                      >
-                        {faq.isActive ? (
-                          <span className="text-red-600">停用</span>
-                        ) : (
-                          <span className="text-green-600">啟用</span>
-                        )}
-                      </Button>
+                       <Button
+                         variant="ghost"
+                         size="icon"
+                         onClick={() => handleToggleStatus(faq.id, faq.isActive)}
+                         disabled={togglingId === faq.id}
+                       >
+                         {togglingId === faq.id ? (
+                           <Loader2 className="h-4 w-4 animate-spin" />
+                         ) : faq.isActive ? (
+                           <span className="text-red-600">停用</span>
+                         ) : (
+                           <span className="text-green-600">啟用</span>
+                         )}
+                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -349,15 +439,23 @@ export default function FaqList() {
               確定要刪除這個 FAQ 嗎？此操作無法復原。
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => faqToDelete && handleDelete(faqToDelete)}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              刪除
-            </AlertDialogAction>
-          </AlertDialogFooter>
+           <AlertDialogFooter>
+             <AlertDialogCancel disabled={deletingId === faqToDelete}>取消</AlertDialogCancel>
+             <AlertDialogAction
+               onClick={() => faqToDelete && handleDelete(faqToDelete)}
+               disabled={deletingId === faqToDelete}
+               className="bg-red-600 hover:bg-red-700"
+             >
+               {deletingId === faqToDelete ? (
+                 <>
+                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                   刪除中...
+                 </>
+               ) : (
+                 '刪除'
+               )}
+             </AlertDialogAction>
+           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
