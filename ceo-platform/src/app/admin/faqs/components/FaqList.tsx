@@ -30,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Edit, Trash2, ChevronUp, ChevronDown, Search } from 'lucide-react'
+import { Edit, Trash2, ChevronUp, ChevronDown, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface Faq {
   id: string
@@ -41,27 +41,57 @@ interface Faq {
   createdAt: string
 }
 
+interface Pagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
+}
+
 export default function FaqList() {
   const [faqs, setFaqs] = useState<Faq[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [sortBy, setSortBy] = useState<'sortOrder' | 'createdAt'>('sortOrder')
+  const [sortBy, setSortBy] = useState<'sortOrder' | 'createdAt' | 'question'>('sortOrder')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [faqToDelete, setFaqToDelete] = useState<string | null>(null)
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+  })
 
   useEffect(() => {
     fetchFaqs()
-  }, [])
+  }, [pagination.page, search, statusFilter])
 
   const fetchFaqs = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/admin/faqs')
+      const params = new URLSearchParams({
+        page: pagination.page.toString(),
+        limit: pagination.limit.toString(),
+      })
+      
+      if (search) params.append('search', search)
+      if (statusFilter !== 'all') {
+        params.append('isActive', statusFilter === 'active' ? 'true' : 'false')
+      }
+      
+      const response = await fetch(`/api/admin/faqs?${params}`)
       if (response.ok) {
         const data = await response.json()
-        setFaqs(data)
+        if (data.success) {
+          setFaqs(data.data)
+          setPagination(data.pagination)
+        }
       }
     } catch (error) {
       console.error('Failed to fetch FAQs:', error)
@@ -76,7 +106,7 @@ export default function FaqList() {
         method: 'DELETE',
       })
       if (response.ok) {
-        setFaqs(faqs.filter(faq => faq.id !== id))
+        fetchFaqs()
         setDeleteDialogOpen(false)
         setFaqToDelete(null)
       }
@@ -91,38 +121,14 @@ export default function FaqList() {
         method: 'PATCH',
       })
       if (response.ok) {
-        setFaqs(faqs.map(faq => 
-          faq.id === id ? { ...faq, isActive: !currentStatus } : faq
-        ))
+        fetchFaqs()
       }
     } catch (error) {
       console.error('Failed to toggle FAQ status:', error)
     }
   }
 
-  const filteredFaqs = faqs.filter(faq => {
-    const matchesSearch = search === '' || 
-      faq.question.toLowerCase().includes(search.toLowerCase()) ||
-      faq.answer.toLowerCase().includes(search.toLowerCase())
-    
-    const matchesStatus = statusFilter === 'all' || 
-      (statusFilter === 'active' && faq.isActive) ||
-      (statusFilter === 'inactive' && !faq.isActive)
-    
-    return matchesSearch && matchesStatus
-  })
-
-  const sortedFaqs = [...filteredFaqs].sort((a, b) => {
-    if (sortBy === 'sortOrder') {
-      return sortOrder === 'asc' ? a.sortOrder - b.sortOrder : b.sortOrder - a.sortOrder
-    } else {
-      const dateA = new Date(a.createdAt).getTime()
-      const dateB = new Date(b.createdAt).getTime()
-      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA
-    }
-  })
-
-  const handleSort = (column: 'sortOrder' | 'createdAt') => {
+  const handleSort = (column: 'sortOrder' | 'createdAt' | 'question') => {
     if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
     } else {
@@ -130,6 +136,25 @@ export default function FaqList() {
       setSortOrder('asc')
     }
   }
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > pagination.totalPages) return
+    setPagination(prev => ({ ...prev, page }))
+  }
+
+  const sortedFaqs = [...faqs].sort((a, b) => {
+    if (sortBy === 'sortOrder') {
+      return sortOrder === 'asc' ? a.sortOrder - b.sortOrder : b.sortOrder - a.sortOrder
+    } else if (sortBy === 'question') {
+      return sortOrder === 'asc' 
+        ? a.question.localeCompare(b.question)
+        : b.question.localeCompare(a.question)
+    } else {
+      const dateA = new Date(a.createdAt).getTime()
+      const dateB = new Date(b.createdAt).getTime()
+      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA
+    }
+  })
 
   if (loading) {
     return <div className="py-8 text-center">載入中...</div>
@@ -176,7 +201,17 @@ export default function FaqList() {
                   )}
                 </button>
               </TableHead>
-              <TableHead>問題</TableHead>
+              <TableHead>
+                <button
+                  onClick={() => handleSort('question')}
+                  className="flex items-center gap-1 hover:text-gray-900"
+                >
+                  問題
+                  {sortBy === 'question' && (
+                    sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+              </TableHead>
               <TableHead>狀態</TableHead>
               <TableHead>
                 <button
@@ -203,13 +238,8 @@ export default function FaqList() {
               sortedFaqs.map((faq) => (
                 <TableRow key={faq.id}>
                   <TableCell className="font-medium">{faq.sortOrder}</TableCell>
-                  <TableCell>
-                    <div className="max-w-md">
-                      <div className="font-medium">{faq.question}</div>
-                      <div className="mt-1 text-sm text-gray-500 line-clamp-2">
-                        {faq.answer}
-                      </div>
-                    </div>
+                  <TableCell className="max-w-md">
+                    <div className="font-medium">{faq.question}</div>
                   </TableCell>
                   <TableCell>
                     <Badge variant={faq.isActive ? 'default' : 'secondary'}>
@@ -255,6 +285,37 @@ export default function FaqList() {
           </TableBody>
         </Table>
       </div>
+
+      {pagination.totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-between">
+          <div className="text-sm text-gray-500">
+            顯示第 {(pagination.page - 1) * pagination.limit + 1} -{' '}
+            {Math.min(pagination.page * pagination.limit, pagination.total)} 筆，
+            共 {pagination.total.toLocaleString()} 筆
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={!pagination.hasPrevPage}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="text-sm">
+              第 {pagination.page} 頁，共 {pagination.totalPages} 頁
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={!pagination.hasNextPage}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
