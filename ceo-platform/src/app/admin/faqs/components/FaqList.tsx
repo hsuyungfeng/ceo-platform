@@ -70,7 +70,7 @@ export default function FaqList() {
 
   useEffect(() => {
     fetchFaqs()
-  }, [pagination.page, search, statusFilter])
+  }, [pagination.page, pagination.limit, search, statusFilter])
 
   const fetchFaqs = async () => {
     try {
@@ -140,6 +140,11 @@ export default function FaqList() {
   const handlePageChange = (page: number) => {
     if (page < 1 || page > pagination.totalPages) return
     setPagination(prev => ({ ...prev, page }))
+  }
+
+  const handleLimitChange = (newLimit: string) => {
+    const limit = parseInt(newLimit, 10)
+    setPagination(prev => ({ ...prev, limit, page: 1 }))
   }
 
   const sortedFaqs = [...faqs].sort((a, b) => {
@@ -286,33 +291,52 @@ export default function FaqList() {
         </Table>
       </div>
 
-      {pagination.totalPages > 1 && (
+      {pagination.total > 0 && (
         <div className="mt-6 flex items-center justify-between">
           <div className="text-sm text-gray-500">
             顯示第 {(pagination.page - 1) * pagination.limit + 1} -{' '}
             {Math.min(pagination.page * pagination.limit, pagination.total)} 筆，
             共 {pagination.total.toLocaleString()} 筆
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => handlePageChange(pagination.page - 1)}
-              disabled={!pagination.hasPrevPage}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="text-sm">
-              第 {pagination.page} 頁，共 {pagination.totalPages} 頁
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">顯示</span>
+              <Select value={pagination.limit.toString()} onValueChange={handleLimitChange}>
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue placeholder="筆數" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 筆</SelectItem>
+                  <SelectItem value="20">20 筆</SelectItem>
+                  <SelectItem value="50">50 筆</SelectItem>
+                  <SelectItem value="100">100 筆</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-gray-500">/頁</span>
             </div>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => handlePageChange(pagination.page + 1)}
-              disabled={!pagination.hasNextPage}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={!pagination.hasPrevPage}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div className="text-sm">
+                  第 {pagination.page} 頁，共 {pagination.totalPages} 頁
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={!pagination.hasNextPage}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
