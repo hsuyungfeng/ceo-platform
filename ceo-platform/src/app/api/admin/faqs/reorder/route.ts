@@ -3,7 +3,28 @@ import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/admin-auth';
 import { ApiResponse, ReorderFaqSchema } from '@/types/admin';
 
+const ERROR_MESSAGES = {
+  METHOD_NOT_ALLOWED: '此端點僅支援 POST 請求',
+  INVALID_JSON: '請求體格式錯誤，必須是有效的 JSON',
+  VALIDATION_FAILED: '數據驗證失敗',
+  FAQ_NOT_FOUND: '以下 FAQ 不存在: ',
+  DUPLICATE_SORT_ORDER: '排序值必須是唯一的',
+  SERVER_ERROR: '伺服器錯誤，請稍後再試',
+  SUCCESS: 'FAQ 重新排序成功',
+} as const;
+
 export async function POST(request: NextRequest) {
+  // 驗證 HTTP 方法
+  if (request.method !== 'POST') {
+    return NextResponse.json(
+      {
+        success: false,
+        error: ERROR_MESSAGES.METHOD_NOT_ALLOWED,
+      } as ApiResponse,
+      { status: 405 }
+    );
+  }
+
   try {
     // 驗證管理員權限
     const adminCheck = await requireAdmin();
@@ -19,7 +40,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: '請求體格式錯誤，必須是有效的 JSON',
+          error: ERROR_MESSAGES.INVALID_JSON,
+          errors: [{ field: 'body', message: ERROR_MESSAGES.INVALID_JSON }],
         } as ApiResponse,
         { status: 400 }
       );
@@ -36,7 +58,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: '數據驗證失敗',
+          error: ERROR_MESSAGES.VALIDATION_FAILED,
           errors,
         } as ApiResponse,
         { status: 400 }
@@ -58,10 +80,15 @@ export async function POST(request: NextRequest) {
     const missingIds = faqIds.filter(id => !existingIds.has(id));
 
     if (missingIds.length > 0) {
+      const errorMessage = `${ERROR_MESSAGES.FAQ_NOT_FOUND}${missingIds.join(', ')}`;
       return NextResponse.json(
         {
           success: false,
-          error: `以下 FAQ 不存在: ${missingIds.join(', ')}`,
+          error: errorMessage,
+          errors: missingIds.map(id => ({
+            field: 'id',
+            message: `FAQ ID ${id} 不存在`,
+          })),
         } as ApiResponse,
         { status: 404 }
       );
@@ -74,7 +101,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: '排序值必須是唯一的',
+          error: ERROR_MESSAGES.DUPLICATE_SORT_ORDER,
+          errors: [{ field: 'sortOrder', message: ERROR_MESSAGES.DUPLICATE_SORT_ORDER }],
         } as ApiResponse,
         { status: 400 }
       );
@@ -92,7 +120,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'FAQ 重新排序成功',
+      message: ERROR_MESSAGES.SUCCESS,
       data: { updatedCount: items.length },
     } as ApiResponse);
 
@@ -101,7 +129,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: '伺服器錯誤，請稍後再試',
+        error: ERROR_MESSAGES.SERVER_ERROR,
       } as ApiResponse,
       { status: 500 }
     );
