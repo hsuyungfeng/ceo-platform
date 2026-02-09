@@ -1,0 +1,44 @@
+{
+  "name": "@ceo/mobile",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "build": "expo build",
+    "prebuild": "expo prebuild",
+    "eject": "expo eject"
+  },
+  "dependencies": {
+    "@ceo/api-client": "workspace:*",
+    "@ceo/auth": "workspace:*",
+    "@ceo/shared": "workspace:*",
+    "@expo/metro-runtime": "^6.1.2",
+    "@invertase/react-native-apple-authentication": "^2.5.1",
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-community/netinfo": "^11.5.2",
+    "clsx": "^2.1.1",
+    "expo": "~54.0.33",
+    "expo-constants": "^18.0.13",
+    "expo-linking": "^8.0.11",
+    "expo-router": "^6.0.23",
+    "expo-splash-screen": "^31.0.13",
+    "expo-status-bar": "~3.0.9",
+    "lucide-react-native": "^0.563.0",
+    "nativewind": "^4.2.1",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-mmkv": "^4.1.2",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^4.1.18",
+    "zod": "^3.24.2",
+    "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.0",
+    "typescript": "~5.9.2"
+  },
+  "private": true
+}
