@@ -77,8 +77,11 @@ export const useAuthStore = create<AuthStore>()(
 
           const { identityToken, authorizationCode, user } = appleAuthRequestResponse
 
+          // Check if user cancelled the sign-in
           if (!identityToken) {
-            throw new Error('Apple 登入失敗：未收到身份令牌')
+            // User cancelled Apple Sign-In
+            set({ isLoading: false })
+            throw new Error('Apple 登入已取消')
           }
 
           // Send token to backend for validation
@@ -125,8 +128,13 @@ export const useAuthStore = create<AuthStore>()(
           
         } catch (error: any) {
           console.error('Apple Sign-In error:', error)
+          // Don't show error if user cancelled
+          const errorMessage = error.message === 'Apple 登入已取消' 
+            ? error.message 
+            : error.message || 'Apple 登入失敗，請稍後再試';
+          
           set({
-            error: error.message || 'Apple 登入失敗，請稍後再試',
+            error: errorMessage,
             isLoading: false,
           })
           throw error
