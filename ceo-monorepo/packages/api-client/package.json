@@ -1,0 +1,26 @@
+{
+  "name": "@ceo/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ceo/shared": "workspace:*",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19.1.17",
+    "typescript": "^5"
+  },
+  "peerDependencies": {
+    "react": "^19"
+  },
+  "optionalDependencies": {
+    "@react-native-community/netinfo": "^11.0.0",
+    "react-native-mmkv": "^3.0.0"
+  }
+}

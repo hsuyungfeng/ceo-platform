@@ -1,0 +1,52 @@
+# CEO 團購電商平台 - 生產環境
+# 使用方式：docker compose -f docker-compose.prod.yml up -d
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: ceo-app
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://ceo_admin:${DB_PASSWORD}@db:5432/ceo_platform
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NODE_ENV=production
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    container_name: ceo-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ceo_platform
+      POSTGRES_USER: ceo_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ceo_admin -d ceo_platform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nginx:
+    image: nginx:alpine
+    container_name: ceo-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - app
+
+volumes:
+  postgres_data:

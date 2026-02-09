@@ -1,0 +1,84 @@
+### 測試會員列表API
+GET http://localhost:3000/api/admin/users?page=1&limit=10
+Cookie: [管理員登入cookie]
+
+### 測試搜尋會員
+GET http://localhost:3000/api/admin/users?search=公司&page=1&limit=10
+Cookie: [管理員登入cookie]
+
+### 測試狀態篩選
+GET http://localhost:3000/api/admin/users?status=ACTIVE&page=1&limit=10
+Cookie: [管理員登入cookie]
+
+### 測試排序
+GET http://localhost:3000/api/admin/users?sortBy=points&sortOrder=desc&page=1&limit=10
+Cookie: [管理員登入cookie]
+
+### 測試會員詳情API
+GET http://localhost:3000/api/admin/users/[會員ID]
+Cookie: [管理員登入cookie]
+
+### 測試更新會員狀態
+PATCH http://localhost:3000/api/admin/users/[會員ID]
+Content-Type: application/json
+Cookie: [管理員登入cookie]
+
+{
+  "status": "SUSPENDED",
+  "reason": "違反使用條款"
+}
+
+### 測試更新會員資訊
+PATCH http://localhost:3000/api/admin/users/[會員ID]
+Content-Type: application/json
+Cookie: [管理員登入cookie]
+
+{
+  "contactPerson": "張三",
+  "phone": "0912345678"
+}
+
+### 測試點數調整（增加）
+POST http://localhost:3000/api/admin/users/[會員ID]/points
+Content-Type: application/json
+Cookie: [管理員登入cookie]
+
+{
+  "amount": 100,
+  "reason": "活動獎勵",
+  "type": "ADD"
+}
+
+### 測試點數調整（減少）
+POST http://localhost:3000/api/admin/users/[會員ID]/points
+Content-Type: application/json
+Cookie: [管理員登入cookie]
+
+{
+  "amount": 50,
+  "reason": "訂單退款扣除",
+  "type": "SUBTRACT"
+}
+
+### 測試點數調整（設定）
+POST http://localhost:3000/api/admin/users/[會員ID]/points
+Content-Type: application/json
+Cookie: [管理員登入cookie]
+
+{
+  "amount": 500,
+  "reason": "系統調整",
+  "type": "SET"
+}
+
+### 測試獲取點數交易記錄
+GET http://localhost:3000/api/admin/users/[會員ID]/points?page=1&limit=10
+Cookie: [管理員登入cookie]
+
+### 測試獲取操作日誌
+GET http://localhost:3000/api/admin/users/[會員ID]/logs?page=1&limit=10
+Cookie: [管理員登入cookie]
+
+### 測試篩選操作日誌
+GET http://localhost:3000/api/admin/users/[會員ID]/logs?action=POINTS_ADJUST&page=1&limit=10
+Cookie: [管理員登入cookie]

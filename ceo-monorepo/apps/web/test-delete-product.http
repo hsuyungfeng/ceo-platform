@@ -1,0 +1,3 @@
+### Test DELETE API
+DELETE http://localhost:3000/api/admin/products/clq0p3p5v0000v5gq8q9q8q9q
+Authorization: Bearer test-admin-token
