@@ -7,32 +7,35 @@ datasource db {
 }
 
 model User {
-  id                String             @id @default(cuid())
-  email             String             @unique
-  password          String
-  name              String
-  taxId             String             @unique
-  phone             String?
-  fax               String?
-  address           String?
-  contactPerson     String?
-  points            Int                @default(0)
-  role              UserRole           @default(MEMBER)
-  loginAttempts     Int                @default(0)
-  lockedUntil       DateTime?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  emailVerified     Boolean            @default(false)
-  lastLoginAt       DateTime?
-  status            UserStatus         @default(ACTIVE)
-  cartItems         CartItem[]
-  member            Member?
-  oauthAccounts     OAuthAccount[]
-  orders            Order[]
-  pointTransactions PointTransaction[]
-  sessions          Session[]
-  adminLogs         UserLog[]          @relation("AdminLogs")
-  userLogs          UserLog[]          @relation("UserLogs")
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  password           String
+  name               String
+  taxId              String              @unique
+  phone              String?
+  fax                String?
+  address            String?
+  contactPerson      String?
+  points             Int                 @default(0)
+  role               UserRole            @default(MEMBER)
+  loginAttempts      Int                 @default(0)
+  lockedUntil        DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  emailVerified      Boolean             @default(false)
+  lastLoginAt        DateTime?
+  status             UserStatus          @default(ACTIVE)
+  twoFactorEnabled   Boolean             @default(false)
+  twoFactorMethod    TwoFactorMethod?    @default(EMAIL)
+  cartItems          CartItem[]
+  emailVerifications EmailVerification[]
+  member             Member?
+  oauthAccounts      OAuthAccount[]
+  orders             Order[]
+  pointTransactions  PointTransaction[]
+  sessions           Session[]
+  adminLogs          UserLog[]           @relation("AdminLogs")
+  userLogs           UserLog[]           @relation("UserLogs")
 
   @@map("users")
 }
@@ -71,12 +74,11 @@ model OAuthAccount {
   accessToken       String?
   refreshToken      String?
   expiresAt         DateTime?
-  // Apple-specific fields
-  appleUserId       String?   @unique // Apple's unique user identifier
-  identityToken     String?   // Apple ID token
-  authorizationCode String?   // Apple authorization code
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+  appleUserId       String?   @unique
+  authorizationCode String?
+  identityToken     String?
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerId])
@@ -86,22 +88,21 @@ model OAuthAccount {
 }
 
 model TempOAuth {
-  id               String    @id @default(cuid())
-  provider         String
-  providerId       String
-  email            String
-  name             String
-  picture          String?
-  accessToken      String
-  refreshToken     String?
-  tokenExpiresAt   DateTime?
-  // Apple-specific
-  appleUserId      String?
-  identityToken    String?
+  id                String    @id @default(cuid())
+  provider          String
+  providerId        String
+  email             String
+  name              String
+  picture           String?
+  accessToken       String
+  refreshToken      String?
+  tokenExpiresAt    DateTime?
+  data              String
+  createdAt         DateTime  @default(now())
+  expiresAt         DateTime  @default(now())
+  appleUserId       String?
   authorizationCode String?
-  data             String
-  createdAt        DateTime  @default(now())
-  expiresAt        DateTime  @default(now())
+  identityToken     String?
 
   @@unique([provider, providerId])
   @@index([expiresAt])
@@ -270,6 +271,21 @@ model Faq {
   @@map("faqs")
 }
 
+model EmailVerification {
+  id        String                   @id @default(cuid())
+  email     String                   @unique
+  token     String                   @unique
+  expiresAt DateTime
+  purpose   EmailVerificationPurpose @default(VERIFY_EMAIL)
+  userId    String?
+  createdAt DateTime                 @default(now())
+  user      User?                    @relation(fields: [userId], references: [id])
+
+  @@index([email])
+  @@index([token])
+  @@map("email_verifications")
+}
+
 enum UserRole {
   MEMBER
   ADMIN
@@ -304,4 +320,17 @@ enum PointTransactionType {
   ORDER_REFUND
   MANUAL_ADJUST
   SYSTEM_ADJUST
+}
+
+enum TwoFactorMethod {
+  EMAIL
+  APP
+  SMS
+}
+
+enum EmailVerificationPurpose {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+  CHANGE_EMAIL
+  TWO_FACTOR_AUTH
 }
