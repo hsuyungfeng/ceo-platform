@@ -148,19 +148,25 @@ export default function LoginPage() {
                使用 Apple 帳戶登入
              </Button>
              
-             <div className="mt-4 text-center text-sm">
-              <p className="text-gray-600">
-                還沒有帳號？{' '}
-                <Button variant="link" className="p-0 h-auto" onClick={() => router.push('/register')}>
-                  點此註冊
-                </Button>
-              </p>
-              <p className="text-gray-600 mt-2">
-                <Button variant="link" className="p-0 h-auto" onClick={() => router.push('/forgot-password')}>
-                  忘記密碼？
-                </Button>
-              </p>
-            </div>
+              <div className="mt-4 text-center text-sm">
+               <p className="text-gray-600">
+                 還沒有帳號？{' '}
+                 <Button variant="link" className="p-0 h-auto" onClick={() => router.push('/register')}>
+                   點此註冊
+                 </Button>
+               </p>
+               <p className="text-gray-600 mt-2">
+                 <Button variant="link" className="p-0 h-auto" onClick={() => router.push('/forgot-password')}>
+                   忘記密碼？
+                 </Button>
+               </p>
+               <p className="text-gray-600 mt-2">
+                 或使用{' '}
+                 <Button variant="link" className="p-0 h-auto" onClick={() => router.push('/email-login')}>
+                   郵件登入
+                 </Button>
+               </p>
+             </div>
           </CardFooter>
         </form>
       </Card>
