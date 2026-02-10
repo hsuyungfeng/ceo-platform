@@ -39,12 +39,20 @@ export interface RegisterRequest {
   phone?: string;
   password: string;
   confirmPassword: string;
+  requireEmailVerification?: boolean;
 }
 
 export interface LoginRequest {
   taxId: string;
   password: string;
   rememberMe?: boolean;
+}
+
+export interface EmailLoginRequest {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
+  twoFactorCode?: string;
 }
 
 export interface AuthResponse {
@@ -78,4 +86,36 @@ export interface ApiError {
     field: string;
     message: string;
   }>;
+}
+
+export enum EmailVerificationPurpose {
+  VERIFY_EMAIL = 'VERIFY_EMAIL',
+  RESET_PASSWORD = 'RESET_PASSWORD',
+  CHANGE_EMAIL = 'CHANGE_EMAIL',
+  TWO_FACTOR_AUTH = 'TWO_FACTOR_AUTH',
+}
+
+export enum TwoFactorMethod {
+  EMAIL = 'EMAIL',
+  APP = 'APP',
+  SMS = 'SMS',
+}
+
+export interface EmailVerificationRequest {
+  email: string;
+  purpose?: EmailVerificationPurpose;
+}
+
+export interface VerifyEmailRequest {
+  token: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface TwoFactorRequest {
+  code: string;
 }
