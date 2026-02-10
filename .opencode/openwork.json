@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "workspace": {
+    "name": "統購PHP",
+    "createdAt": 1770473329264,
+    "preset": "starter"
+  },
+  "authorizedRoots": [
+    "/Users/hsuyungfeng/Applesoft/統購PHP"
+  ]
+}

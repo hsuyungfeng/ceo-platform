@@ -1,0 +1,310 @@
+# ============================================
+# CEO Platform - CI/CD 工作流程
+# ============================================
+# 自動化測試、構建和部署
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.json'
+      - '**/*.yml'
+      - '**/*.yaml'
+      - '.github/**'
+      - 'docs/**'
+      - 'scripts/**'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # 手動觸發
+
+# 環境變數
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+# 工作流程權限
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ============ 測試階段 ============
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: ceo_platform_test
+          POSTGRES_USER: ceo_admin
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'pnpm'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: latest
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Generate Prisma client
+      run: pnpm db:generate
+
+    - name: Setup test database
+      run: |
+        export DATABASE_URL="postgresql://ceo_admin:test_password@localhost:5432/ceo_platform_test"
+        pnpm db:push
+
+    - name: Run linting
+      run: pnpm lint
+
+    - name: Run type checking
+      run: pnpm typecheck
+
+    - name: Run tests
+      run: |
+        export DATABASE_URL="postgresql://ceo_admin:test_password@localhost:5432/ceo_platform_test"
+        export NEXTAUTH_SECRET="test-secret"
+        export NODE_ENV="test"
+        # 這裡可以添加測試命令，例如: pnpm test
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: |
+          test-results/
+          coverage/
+
+  # ============ 構建階段 ============
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+
+    - name: Generate build report
+      run: |
+        echo "Build completed at $(date)" >> build-report.txt
+        echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" >> build-report.txt
+        echo "Tags: ${{ steps.meta.outputs.tags }}" >> build-report.txt
+
+    - name: Upload build report
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-report
+        path: build-report.txt
+
+  # ============ 部署階段 ============
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Deploy to server
+      env:
+        DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+      run: |
+        # 測試SSH連接
+        ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST "echo 'SSH connection successful'"
+        
+        # 創建部署目錄
+        ssh $DEPLOY_USER@$DEPLOY_HOST "mkdir -p $DEPLOY_PATH"
+        
+        # 同步代碼
+        rsync -avz --delete \
+          --exclude='.git' \
+          --exclude='node_modules' \
+          --exclude='.next' \
+          ./ $DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/
+        
+        # 執行部署腳本
+        ssh $DEPLOY_USER@$DEPLOY_HOST "cd $DEPLOY_PATH && chmod +x scripts/*.sh && ./scripts/deploy.sh production"
+
+    - name: Verify deployment
+      env:
+        DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        APP_URL: ${{ secrets.APP_URL }}
+      run: |
+        # 等待應用啟動
+        sleep 30
+        
+        # 健康檢查
+        curl -f $APP_URL/api/health || exit 1
+        
+        echo "Deployment verified successfully"
+
+    - name: Send deployment notification
+      if: always()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#deployments'
+        username: 'GitHub Actions'
+        icon_emoji: ':rocket:'
+        text: |
+          ${{ job.status == 'success' && '🚀 部署成功!' || '❌ 部署失敗!' }}
+          *應用*: CEO Platform
+          *環境*: Production
+          *分支*: ${{ github.ref }}
+          *提交*: ${{ github.sha }}
+          *觸發者*: ${{ github.actor }}
+        fields: |
+          [
+            {"title": "Repository", "value": "${{ github.repository }}", "short": true},
+            {"title": "Workflow", "value": "${{ github.workflow }}", "short": true},
+            {"title": "Commit Message", "value": "${{ github.event.head_commit.message }}", "short": false}
+          ]
+
+  # ============ 安全掃描 ============
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Run npm audit
+      run: |
+        npm audit --audit-level=high || true
+
+    - name: Run Snyk security scan
+      uses: snyk/actions/node@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high
+
+  # ============ 性能測試 ============
+  performance:
+    name: Performance Test
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build application
+      run: pnpm build
+      env:
+        NODE_ENV: production
+
+    - name: Start application
+      run: |
+        pnpm start &
+        sleep 10
+
+    - name: Run Lighthouse CI
+      uses: treosh/lighthouse-ci-action@v12
+      with:
+        configPath: './lighthouserc.json'
+        uploadArtifacts: true
+        temporaryPublicStorage: true
+
+    - name: Upload performance report
+      uses: actions/upload-artifact@v4
+      with:
+        name: performance-report
+        path: |
+          .lighthouseci/
+          lighthouse-results/

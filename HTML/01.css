@@ -1,0 +1,1136 @@
+@charset "utf-8";
+
+
+
+
+body {
+	SCROLLBAR-FACE-COLOR:#FFFFFF;
+	SCROLLBAR-HIGHLIGHT-COLOR: #00000;
+	SCROLLBAR-SHADOW-COLOR: #2b2b2b;
+	SCROLLBAR-3DLIGHT-COLOR: #464646;
+	SCROLLBAR-ARROW-COLOR: #00000;
+	SCROLLBAR-TRACK-COLOR: #d5d5d5; /*底色*/
+	SCROLLBAR-DARKSHADOW-COLOR: #424242;
+	SCROLLBAR-BASE-COLOR: #00000;
+	background-color: #ffffff;
+	margin-left: 0px;
+	margin-top: 0px;
+	margin-right: 0px;
+	margin-bottom: 0px;
+	/*background-position: 0px 15px;  */  
+    overflow-x:hidden;/*不會出現橫拉把，x改成y的話就不會出現直拉把*/  
+    table-layout: fixed;
+
+}
+
+
+.epaper_bg {
+	background-image: url(images/epaper_rightbg.jpg);
+	background-repeat: no-repeat;
+	background-position: right top;
+}
+.shopping_detail_originalprice_text {
+	font-family: Arial;
+	text-decoration: line-through;
+	font-size: 14px;
+	color: #616161;
+}
+.shopping_detail_icondiv {
+	background-image: url(images/icon_push-1.gif);
+	height: 25px;
+	width: 31px;
+	position: absolute;
+	visibility: visible;
+	z-index: 3;
+	background-repeat: no-repeat;
+	margin-top: -24px;
+	background-position: left;
+	margin-left: 54px;
+}
+.index_main_div {
+	width: 212px;
+	margin-right: 11px;
+	float: left;
+	margin-bottom: 15px;
+}
+.lefticontext01 {
+	font-family: "新細明體";
+	font-size: 13px;
+	color: #FFF;
+	background-image: url(images/product_detail_icon01.jpg);
+	padding-left: 20px;
+	background-repeat: no-repeat;
+	background-position: left center;
+}
+.greentext14 {
+	font-family: Arial;
+	font-size: 14px;
+	color: #055f01;
+}
+
+.airal12 {
+	font-family: Arial;
+	font-size: 12px;
+	color: #000;
+}
+.arrowtext12 {
+	font-family: Arial;
+	font-size: 12px;
+	color: #000;
+	background-image: url(images/product_detail_arrow.jpg);
+	background-repeat: no-repeat;
+	padding-left: 26px;
+}
+
+
+.airal12  a:link      {font-weight:normal; font-size:12px; color:#000; text-decoration:none;}
+.airal12   a:visited {font-weight:normal; font-size:12px; color:#000; text-decoration:none;}
+.airal12   a:active  {font-weight:normal; font-size:12px; color:#000; text-decoration:none;}
+.airal12   a:hover   {font-weight:normal; font-size:12px; color:#000; text-decoration:none;}
+
+
+
+
+.list_main_div {
+	width: 212px;
+	margin-right: 18px;
+	float: left;
+	margin-bottom: 15px;
+}
+
+
+#box {
+	position: relative;
+}
+.winnerline_div {
+	height: 50px;
+	width: 50px;
+	position: absolute;
+	visibility: visible;
+	left: 746px;
+}
+
+
+
+.gray14_arial {
+	font-family: Arial;
+	font-size: 14px;
+	color: #616161;
+}
+
+
+
+
+object{
+display:block;
+}
+.divpic {
+
+}
+
+.text15 {
+	font-family: "微軟正黑體";
+	font-size: 15px;
+	color: #FFFFFF;
+	font-weight: bold;
+}
+.act_share_detail_bobidiv {
+	position: absolute;
+	visibility: visible;
+	height: 127px;
+	width: 780px;
+	margin-top: -79px;
+	margin-left: -63px;
+}
+.myshare_sicontext {
+	font-family: "新細明體";
+	font-size: 12px;
+	color: #000;
+	background-image: url(images/memeber_myshare_icon.jpg);
+	background-repeat: no-repeat;
+	background-position: 0px 7px;
+	padding-left: 10px;
+}
+
+.act_share_tapblack {
+	font-family: "新細明體";
+	font-size: 12px;
+	color: #FFF;
+	background-image: url(images/act_share_tapblackbg.jpg);
+	background-repeat: no-repeat;
+	padding-top: 10px;
+}
+.text01 {
+	font-family: "新細明體";
+	font-size: 12px;
+	line-height: 24px;
+	color: #000;
+	background-image: url(images/about_01.png);
+	background-repeat: no-repeat;
+	padding-left: 35px;
+	padding-top: 0px;
+}
+.text02{
+	font-family: "新細明體";
+	font-size: 12px;
+	line-height: 24px;
+	color: #000;
+	background-image: url(images/about_02.png);
+	background-repeat: no-repeat;
+	padding-left: 35px;
+	padding-top: 0px;
+}
+.text03{
+	font-family: "新細明體";
+	font-size: 12px;
+	line-height: 24px;
+	color: #000;
+	background-image: url(images/about_03.jpg);
+	background-repeat: no-repeat;
+	padding-left: 35px;
+	padding-top: 0px;
+}
+.text04 {
+	font-family: "新細明體";
+	font-size: 12px;
+	line-height: 24px;
+	color: #000;
+	background-image: url(images/about_04.jpg);
+	background-repeat: no-repeat;
+	padding-left: 35px;
+	padding-top: 0px;
+}
+.text05 {
+	font-family: "新細明體";
+	font-size: 12px;
+	line-height: 24px;
+	color: #000;
+	background-image: url(images/about_05.jpg);
+	background-repeat: no-repeat;
+	padding-left: 35px;
+	padding-top: 0px;
+}
+
+
+
+
+.contact_qtext {
+	font-family: "新細明體";
+	font-size: 12px;
+	line-height: 20px;
+	color: #000;
+	background-image: url(images/contact_q.jpg);
+	background-repeat: no-repeat;
+	padding-top: 3px;
+	padding-left: 30px;
+}
+.contact_atext {
+	font-family: "新細明體";
+	font-size: 12px;
+	line-height: 20px;
+	color: #000;
+	background-image: url(images/contact_a.jpg);
+	background-repeat: no-repeat;
+	padding-top: 3px;
+	padding-left: 30px;
+}
+
+
+
+.suppliertap_black {
+	font-family: "新細明體";
+	-webkit-text-size-adjust:none;
+	font-size: 11px;
+	color: #FFF;
+	background-image: url(images/member_act_tapblackbg.jpg);
+	background-repeat: no-repeat;
+	padding-bottom: 8px;
+}
+.shopping_bgtext {
+	font-family: "微軟正黑體";
+	font-size: 14px;
+	color: #FFF;
+	background-image: url(images/shopping_title_bg.jpg);
+	background-repeat: no-repeat;
+	font-weight: bold;
+	padding-bottom: 1px;
+	padding-left: 3px;
+}
+
+
+
+.suppliertap_black  a:link      { font-weight:normal; font-size:11px; color:#FFF; text-decoration:none;}
+.suppliertap_black  a:visited {font-weight:normal; font-size:11px; color:#FFF; text-decoration:none;}
+.suppliertap_black  a:active  {font-weight:normal; font-size:11px; color:#FFF; text-decoration:none;}
+.suppliertap_black  a:hover   {font-weight:normal; font-size:11px; color:#797979; text-decoration:none;}
+
+
+
+.act_share_tapblack   a:link      {font-weight:normal; font-size:12px; color:#FFF; text-decoration:none;}
+.act_share_tapblack   a:visited {font-weight:normal; font-size:12px; color:#FFF; text-decoration:none;}
+.act_share_tapblack    a:active  {font-weight:normal; font-size:12px; color:#FFF; text-decoration:none;}
+.act_share_tapblack    a:hover   {font-weight:normal; font-size:12px; color:#b9b9b9; text-decoration:none;}
+
+
+
+
+.act_share_tapgray {
+	font-family: "新細明體";
+	font-size: 12px;
+	color: #000;
+	background-image: url(images/act_share_tapgraybg.jpg);
+	background-repeat: no-repeat;
+	padding-top: 10px;
+}
+
+
+.act_share_tapgray  a:link      {font-weight:normal; font-size:12px; color:#000; text-decoration:none;}
+.act_share_tapgray   a:visited {font-weight:normal; font-size:12px; color:#000; text-decoration:none;}
+.act_share_tapgray    a:active  {font-weight:normal; font-size:12px; color:#000; text-decoration:none;}
+.act_share_tapgray   a:hover   {font-weight:normal; font-size:12px; color:#747474; text-decoration:none;}
+
+
+
+
+
+.act_share_detail_locat {
+	position: relative;
+	width: 16px;
+}
+
+
+
+
+
+.indexbg00 {
+	background-image: url(images/index_leftbg.jpg);
+	background-repeat: repeat-x;
+	background-position: right top;
+}
+.buletext12 {
+	font-family: Arial;
+	font-size: 12px;
+	color: #3b59bb;
+	font-weight: bold;
+}
+
+
+.buletext12  a:link      {font-weight:bold; font-size:12px; color:#3b59bb; text-decoration:none;}
+.buletext12   a:visited {font-weight:bold; font-size:12px; color:#3b59bb; text-decoration:none;}
+.buletext12   a:active  {font-weight:bold; font-size:12px; color:#3b59bb; text-decoration:none;}
+.buletext12   a:hover   {font-weight:bold; font-size:12px; color:#a8a8a8; text-decoration:none;}
+
+
+
+.qa_garytext11 {
+	font-family: Arial;
+	-webkit-text-size-adjust:none;
+    font-size: 11px;
+	color: #cbcbcb;
+}
+.gary12_hight20 {
+	font-family: "新細明體";
+	font-size: 12px;
+	line-height: 20px;
+	color: #696969;
+}
+.table_bg {
+	background-image: url(images/member_act_itembg.jpg);
+	background-repeat: no-repeat;
+	background-position: left top;
+}
+
+
+.text12_gold {
+	font-family: Arial;
+	font-size: 12px;
+	line-height: 20px;
+	color: #a48035;
+}
+.shoppingcart_tablebg {
+	background-image: url(images/shopping_cart_tabletopbg.jpg);
+	background-repeat: no-repeat;
+	background-position: left top;
+}
+
+
+
+.indexbg00-r {
+	background-image: url(images/index_leftbg.jpg);
+	background-repeat: repeat-x;
+	background-position: left top;
+}
+.shopping_cart_step2_topbg {
+	background-image: url(images/shopping_cart_step2topbg.jpg);
+	background-repeat: no-repeat;
+	background-position: left top;
+}
+.shopping_cart_step2_icontext {
+	background-image: url(images/shopping_cart_step2_icon.jpg);
+	background-repeat: no-repeat;
+	padding-left: 12px;
+	font-family: "新細明體";
+	-webkit-text-size-adjust:none;
+    font-size: 11px;
+	color: #000;
+}
+
+.act_share_icontext {
+	font-family: "新細明體";
+	font-size: 12px;
+	color: #000;
+	background-image: url(images/act_share_detail_lefticon.jpg);
+	background-repeat: no-repeat;
+	padding-left: 20px;
+	line-height: 20px;
+	background-position: left 6px;
+}
+
+
+
+
+.txtbox
+{
+border-top-width :0px;
+border-left-width :0px;
+border-right-width :0px;
+border-bottom-width:1px;
+font-size: 12px;
+color: black;
+background-color: #b5b5b5;
+font-style:normal;
+line-height:normal;
+height:18px;
+font-variant:normal;
+font-weight :normal;
+}
+.txtbox2
+{
+border-top-width :0px;
+border-left-width :0px;
+border-right-width :0px;
+border-bottom-width:1px;
+font-size: 12px;
+color: black;
+background-color: #b5b5b5;
+font-style:normal;
+line-height:normal;
+height:98px;
+font-variant:normal;
+font-weight :normal;
+}
+.prodouct_td_addbg {
+	background-image: url(images/product_detail02_tdbg.jpg);
+	background-repeat: repeat-y;
+	background-position: left top;
+}
+
+.blur {
+	background-image: url(images/product_blur.jpg);
+	background-repeat: repeat-x;
+	background-position: left top;
+}
+.tap_white11 {
+	font-family: "新細明體";
+	-webkit-text-size-adjust:none;
+	font-size: 11px;
+	color: #FFF;
+	background-image: url(images/act_share_detail_tapbg_black.png);
+	background-repeat: no-repeat;
+	padding-top: 8px;
+}
+.tap_white11_memberact {
+	font-family: "新細明體";
+	-webkit-text-size-adjust:none;
+	font-size: 11px;
+	color: #FFF;
+	background-image: url(images/memeber_myshare_tap_black.jpg);
+	background-repeat: no-repeat;
+	padding-top: 8px;
+}
+
+
+.tap_white11_memberact  a:link      { font-weight:normal; font-size:11px; color:#FFF; text-decoration:none;}
+.tap_white11_memberact  a:visited {font-weight:normal; font-size:11px; color:#FFF; text-decoration:none;}
+.tap_white11_memberact  a:active  {font-weight:normal; font-size:11px; color:#FFF; text-decoration:none;}
+.tap_white11_memberact  a:hover   {font-weight:normal; font-size:11px; color:#797979; text-decoration:none;}
+
+
+
+.supplier_activitytap_gray {
+	font-family: "新細明體";
+	-webkit-text-size-adjust:none;
+     font-size: 11px;
+	color: #000;
+	padding-bottom: 7px;
+	background-image: url(images/member_act_tapwhitebg.jpg);
+	background-repeat: no-repeat;
+}
+
+
+
+.supplier_activitytap_gray   a:link      { font-weight:normal; font-size:11px; color:#000; text-decoration:none;}
+.supplier_activitytap_gray   a:visited {font-weight:normal; font-size:11px; color:#000; text-decoration:none;}
+.supplier_activitytap_gray  a:active  {font-weight:normal; font-size:11px; color:#000; text-decoration:none;}
+.supplier_activitytap_gray   a:hover   {font-weight:normal; font-size:11px; color:#797979; text-decoration:none;}
+
+
+
+
+.toptap_red {
+	font-family: "新細明體";
+	font-size: 12px;
+	color: #FFF;
+	background-image: url(images/top_redtap.jpg);
+	padding-top: 2px;
+}
+
+
+.toptap_red a:link      { font-weight:normal; font-size:12px; color:#FFF; text-decoration:none;}
+.toptap_red  a:visited {font-weight:normal; font-size:12px; color:#FFF; text-decoration:none;}
+.toptap_red  a:active  {font-weight:normal; font-size:12px; color:#FFF; text-decoration:none;}
+.toptap_red  a:hover   {font-weight:normal; font-size:12px; color:#fffecd; text-decoration:none;}
+
+
+
+.toptap_gray {
+	font-family: "新細明體";
+	font-size: 12px;
+	color: #000;
+	background-image: url(images/top_graytap.jpg);
+	background-position: 0px 0px;
+	background-repeat: no-repeat;
+	padding-top: 5px;
+}
+
+
+.toptap_gray a:link      { font-weight:normal; font-size:12px; color:#000; text-decoration:none;}
+.toptap_gray  a:visited {font-weight:normal; font-size:12px; color:#000; text-decoration:none;}
+.toptap_gray  a:active  {font-weight:normal; font-size:12px; color:#000; text-decoration:none;}
+.toptap_gray  a:hover   {font-weight:normal; font-size:12px; color:#797979; text-decoration:none;}
+
+
+
+
+
+
+.tap_white11  a:link      { font-weight:normal; font-size:11px; color:#FFF; text-decoration:none;}
+.tap_white11  a:visited {font-weight:normal; font-size:11px; color:#FFF; text-decoration:none;}
+.tap_white11  a:active  {font-weight:normal; font-size:11px; color:#FFF; text-decoration:none;}
+.tap_white11  a:hover   {font-weight:normal; font-size:11px; color:#797979; text-decoration:none;}
+
+
+.tap_black11 {
+	font-family: "新細明體";
+	-webkit-text-size-adjust:none;
+	font-size: 11px;
+	color: #000;
+	background-image: url(images/act_share_detail_tapbg_white.png);
+	background-repeat: no-repeat;
+	padding-top: 8px;
+	padding-left: 18px;
+	background-position: left;
+}
+.tap_black11_memberact {
+	font-family: "新細明體";
+	-webkit-text-size-adjust:none;
+	font-size: 11px;
+	color: #000;
+	background-image: url(images/memeber_myshare_tap_white.jpg);
+	background-repeat: no-repeat;
+	padding-top: 8px;
+	padding-left: 18px;
+	background-position: left;
+}
+
+
+.tap_black11_memberact  a:link      { font-weight:normal; font-size:11px; color:#000; text-decoration:none;}
+.tap_black11_memberact  a:visited {font-weight:normal; font-size:11px; color:#000; text-decoration:none;}
+.tap_black11_memberact a:active  {font-weight:normal; font-size:11px; color:#000; text-decoration:none;}
+.tap_black11_memberact  a:hover   {font-weight:normal; font-size:11px; color:#797979; text-decoration:none;}
+
+
+
+.tap_black11  a:link      { font-weight:normal; font-size:11px; color:#000; text-decoration:none;}
+.tap_black11  a:visited {font-weight:normal; font-size:11px; color:#000; text-decoration:none;}
+.tap_black11 a:active  {font-weight:normal; font-size:11px; color:#000; text-decoration:none;}
+.tap_black11  a:hover   {font-weight:normal; font-size:11px; color:#797979; text-decoration:none;}
+
+
+
+
+.rightbg {
+	background-image: url(images/product_right_midbg.jpg);
+	background-repeat: repeat-x;
+	background-position: left top;
+}
+.leftdown_midbg {
+	background-image: url(images/product_middown_Bg.jpg);
+	background-repeat: repeat-x;
+	background-position: right top;
+}
+.rightdown_midbg {
+	background-image: url(images/product_middown_Bg.jpg);
+	background-repeat: repeat-x;
+	background-position: left top;
+}
+
+.index_leftbg {
+	background-image: url(images/index_leftbg.jpg);
+	background-repeat: repeat-x;
+	background-position: right top;
+}
+.index_rightbg {
+	background-image: url(images/index_rightbg.jpg);
+	background-repeat: repeat-x;
+	background-position: left top;
+}
+.index_div {
+	position: absolute;
+	visibility: visible;
+	z-index: 2;
+	width: 995px;
+	top: 146px;
+	height: 81;
+}
+.graytext16 {
+	font-family: Arial;
+	font-size: 10px;
+	color: #000;
+}
+
+
+.rightbg_top {
+	background-image: url(images/product_detail_rightbg.jpg);
+	background-repeat: repeat-x;
+	background-position: left top;
+}
+.leftbg_top {
+	background-image: url(images/product_detail_rightbg.jpg);
+	background-repeat: repeat-x;
+	background-position: right top;
+}
+.text12_deepgary {
+	font-family: "新細明體";
+	font-size: 12px;
+	line-height: 24px;
+	color: #424242;
+}
+
+
+.text12_deepgary   a:link      { font-weight:normal; font-size:12px; color:#424242; text-decoration:none;}
+.text12_deepgary  a:visited {font-weight:normal; font-size:12px; color:#424242; text-decoration:none;}
+.text12_deepgary   a:active  {font-weight:normal; font-size:12px; color:#424242; text-decoration:none;}
+.text12_deepgary  a:hover   {font-weight:normal; font-size:12px; color:#797979; text-decoration:none;}
+
+
+
+
+
+.text12_linkwhite {
+	font-family: "新細明體";
+	font-size: 12px;
+	color: #000;
+	line-height: 18px;
+}
+
+
+.leftbg_mid {
+	background-image: url(images/about_bg_mid.jpg);
+	background-position: right bottom;
+	background-repeat: repeat-x;
+}
+.rightbg_mid {
+	background-image: url(images/about_bg_mid.jpg);
+	background-position: left bottom;
+	background-repeat: repeat-x;
+}
+
+.album_blur {
+	background-image: url(images/album_blur.jpg);
+	background-repeat: no-repeat;
+	background-position: left top;
+}
+
+.text12_linkwhite    a:hover   {font-weight:normal; font-size:12px; color:#ffffff; text-decoration:none;}
+.text12_linkwhite   a:link      {font-weight:normal; font-size:12px; color:#000; text-decoration:none;}
+.text12_linkwhite   a:visited {font-weight:normal; font-size:12px; color:#000; text-decoration:none;}
+.text12_linkwhite   a:active  {font-weight:normal; font-size:12px; color:#000; text-decoration:none;}
+
+
+
+.stitlebg {
+	background-image: url(images/stitlebg.jpg);
+	background-repeat: repeat-x;
+	background-position: left top;
+}
+.brown_text12 {
+	-webkit-text-size-adjust:none;
+	font-family: "新細明體";
+	font-size: 12px;
+	color: #963;
+}
+.brown02_text12 {
+	font-family: "新細明體";
+	font-size: 12px;
+	color: #977e4a;
+}
+
+
+
+
+
+
+.white12 {
+	font-family: "新細明體";
+	font-size: 12px;
+	color: #FFF;
+}
+
+.white12   a:link      { font-weight:normal; font-size:12px; color:#FFF; text-decoration:none;}
+.white12   a:visited {font-weight:normal; font-size:12px; color:#FFF; text-decoration:none;}
+.white12   a:active  {font-weight:normal; font-size:12px; color:#FFF; text-decoration:none;}
+.white12  a:hover   {font-weight:normal; font-size:12px; color:#fff7b4; text-decoration:none;}
+
+
+.white12_02 {
+	font-family: "新細明體";
+	font-size: 12px;
+	color: #FFF;
+}
+
+.white12_02   a:link      { font-weight:normal; font-size:12px; color:#FFF; text-decoration:none;}
+.white12_02   a:visited {font-weight:normal; font-size:12px; color:#FFF; text-decoration:none;}
+.white12_02   a:active  {font-weight:normal; font-size:12px; color:#FFF; text-decoration:none;}
+.white12_02  a:hover   {font-weight:normal; font-size:12px; color:#545454; text-decoration:none;}
+
+
+
+
+
+.leftbg {
+	background-image: url(images/product_right_midbg.jpg);
+	background-repeat: repeat-x;
+	background-position: right top;
+}
+.text12_airl {
+	font-family: Arial;
+	font-size: 12px;
+	color: #000;
+}
+
+.gary1102 {
+	-webkit-text-size-adjust:none;
+	font-family: "新細明體";
+	font-size: 11px;
+	line-height: 20px;
+	color: #847c7e;
+}
+
+.rightbg_down {
+	background-repeat: repeat-x;
+	background-position: left bottom;
+	background-image: url(images/about_bg_down01.jpg);
+}
+.deepgary {
+	-webkit-text-size-adjust:none;
+	font-family: "新細明體";
+	font-size: 11px;
+	color: #717171;
+}
+.text12_hight24 {
+	font-family: "新細明體";
+	font-size: 12px;
+	line-height: 24px;
+	color: #000;
+}
+
+.text12_hight24     a:link      {font-weight:normal; font-size:12px; color:#000; text-decoration:none;}
+.text12_hight24     a:visited {font-weight:normal; font-size:12px; color:#000; text-decoration:none;}
+.text12_hight24     a:active  {font-weight:normal; font-size:12px; color:#000; text-decoration:none;}
+.text12_hight24     a:hover   {font-weight:normal; font-size:12px; color:#6e6e6e; text-decoration:none;}
+
+
+
+
+.deepgary   a:link      {font-weight:normal; font-size:11px; color:#717171; text-decoration:none;}
+.deepgary   a:visited {font-weight:normal; font-size:11px; color:#717171; text-decoration:none;}
+.deepgary    a:active  {font-weight:normal; font-size:11px; color:#717171; text-decoration:none;}
+.deepgary     a:hover   {font-weight:normal; font-size:11px; color:#171717; text-decoration:none;}
+
+
+
+
+.text12 {
+	font-family: "新細明體";
+	font-size: 12px;
+	color: #000000;
+	line-height: 24px;
+}
+
+.text12  a:link      {
+	font-weight:normal;
+	font-size:12px;
+	color:#000000;
+	text-decoration:none;
+}
+.text12  a:visited {
+	font-weight:normal;
+	font-size:12px;
+	color:#000000;
+	text-decoration:none;
+}
+.text12   a:active  {
+	font-weight:normal;
+	font-size:12px;
+	color:#000000;
+	text-decoration:none;
+}
+.text12   a:hover   {font-weight:normal; font-size:12px; color:#9d9d9d; text-decoration:none;}
+
+
+
+.white11 {
+	-webkit-text-size-adjust:none;
+	font-family: "新細明體";
+	font-size: 11px;
+	color: #FFFFFF;
+}
+
+
+.white11  a:link      {font-weight:normal; font-size:11px; color:#FFFFFF; text-decoration:none;}
+.white11   a:visited {font-weight:normal; font-size:11px; color:#FFFFFF; text-decoration:none;}
+.white11   a:active  {font-weight:normal; font-size:11px; color:#FFFFFF; text-decoration:none;}
+.white11     a:hover   {font-weight:normal; font-size:11px; color:#9f9f9f; text-decoration:none;}
+
+
+.gary10_airl {
+	-webkit-text-size-adjust:none;
+	font-family: Arial;
+	font-size: 10px;
+	color: #686868;
+}
+
+.gary10_airl  a:link      {font-weight:normal; font-size:10px; color:#686868; text-decoration:none;}
+.gary10_airl  a:visited {font-weight:normal; font-size:10px; color:#686868; text-decoration:none;}
+.gary10_airl   a:active  {font-weight:normal; font-size:10px; color:#686868; text-decoration:none;}
+.gary10_airl   a:hover   {font-weight:normal; font-size:10px; color:#171717; text-decoration:none;}
+.act_whitetext11 {
+	font-family: "新細明體";
+	-webkit-text-size-adjust:none;
+	font-size: 11px;
+	line-height: 16px;
+	color: #FFF;
+	padding-left: 4px;
+}
+
+
+
+.black11_airl {
+	-webkit-text-size-adjust:none;
+	font-family: Arial;
+	font-size: 12px;
+	color: #000000;
+}
+
+.black11_airl   a:hover   {font-weight:normal; font-size:12px; color:#000000; text-decoration:none;}
+.black11_airl   a:link      {font-weight:normal; font-size:11px; color:#000000; text-decoration:none;}
+.black11_airl   a:visited {font-weight:normal; font-size:11px; color:#000000; text-decoration:none;}
+.black11_airl   a:active  {font-weight:normal; font-size:11px; color:#000000; text-decoration:none;}
+
+
+
+
+
+
+.gary1102 {
+	-webkit-text-size-adjust:none;
+	font-family: "新細明體";
+	font-size: 11px;
+	color: #6d6d6d;
+	line-height: 18px;
+}
+
+.gary_airl11 {
+	-webkit-text-size-adjust:none;
+	font-family: Arial;
+	font-size: 11px;
+	color: #6d6d6d;
+	line-height: 14px;
+}
+
+
+.gary_arial18 {
+	font-family: Arial;
+	font-size: 18px;
+	color: #585858;
+}
+
+.white16_arial {
+	font-family: Arial;
+	font-size: 16px;
+	color: #FFF;
+}
+.white12_arial {
+	font-family: Arial;
+	font-size: 12px;
+	color: #FFF;
+}
+
+
+
+
+.contact_righttopbg {
+	background-image: url(images/contact_03.jpg);
+	background-repeat: repeat-x;
+	background-position: left top;
+}
+.black11 {
+	-webkit-text-size-adjust:none;
+	font-family: "新細明體";
+	font-size: 11px;
+	color: #24282b;
+	line-height: 18px;
+}
+
+
+.black11 a:link      { font-weight:normal; font-size:11px; color:#24282b; text-decoration:none;}
+.black11 a:visited {font-weight:normal; font-size:11px; color:#24282b; text-decoration:none;}
+.black11  a:active  {font-weight:normal; font-size:11px; color:#24282b; text-decoration:none;}
+.black11  a:hover   {font-weight:normal; font-size:11px; color:#797979; text-decoration:none;}
+
+
+.gary11 {
+	-webkit-text-size-adjust:none;
+	font-family: "新細明體";
+	font-size: 11px;
+	color: #585858;
+	line-height: 18px;
+}
+.redtext16 {
+	font-family: Arial;
+	font-size: 16px;
+	color: #b8001b;
+	font-weight: bold;
+}
+
+
+.gary11   a:link      { font-weight:normal; font-size:11px; color:#909090; text-decoration:none;}
+.gary11   a:visited {font-weight:normal; font-size:11px; color:#909090; text-decoration:none;}
+.gary11   a:active  {font-weight:normal; font-size:11px; color:#909090; text-decoration:none;}
+.gary11   a:hover   {font-weight:normal; font-size:11px; color:#aba6a7; text-decoration:none;}
+
+
+.green_text12 {
+	font-family: "新細明體";
+	font-size: 12px;
+	color: #2f9d97;
+}
+
+.green_text12  a:link      {font-weight:bold; font-size:13px; color:#2f9d97; text-decoration:none;}
+.green_text12  a:visited {font-weight:bold; font-size:13px; color:#2f9d97; text-decoration:none;}
+.green_text12  a:active  {font-weight:bold; font-size:13px; color:#2f9d97; text-decoration:none;}
+.green_text12  a:hover   {
+	font-weight:bold;
+	font-size:12px;
+	color:#767676;
+	text-decoration:none;
+}
+
+
+.green_text12_02  {
+	font-family: "新細明體";
+	font-size: 12px;
+	color: #2f9d97;
+	}
+
+
+.green_text12_02  a:link      {font-weight:normal; font-size:12px; color:#2f9d97; text-decoration:none;}
+.green_text12_02  a:visited {font-weight:normal; font-size:12px; color:#2f9d97; text-decoration:none;}
+.green_text12_02  a:active  {font-weight:normal; font-size:12px; color:#2f9d97; text-decoration:none;}
+.green_text12_02  a:hover   {font-weight:normal;	font-size:12px;	color:#767676;	text-decoration:none;}
+
+
+.gary_airl {
+	-webkit-text-size-adjust:none;
+	font-family: Arial;
+	font-size: 11px;
+	color: #686868;
+}
+
+.gary_airl  a:link      {font-weight:normal; font-size:11px; color:#686868; text-decoration:none;}
+.gary_airl   a:visited {font-weight:normal; font-size:11px; color:#686868; text-decoration:none;}
+.gary_airl   a:active  {font-weight:normal; font-size:11px; color:#686868; text-decoration:none;}
+.gary_airl    a:hover   {font-weight:normal; font-size:11px; color:#727272; text-decoration:none;}
+
+
+.rightdown_bg {
+	background-image: url(images/product_downbg.jpg);
+	background-repeat: repeat-x;
+	background-position: left top;
+}
+.leftdown_bg {
+	background-image: url(images/product_downbg.jpg);
+	background-repeat: repeat-x;
+	background-position: right top;
+}
+
+
+
+
+
+
+.gary12 {
+	font-family: "新細明體";
+	font-size: 12px;
+	color: #696969;
+}
+
+
+.gary12  a:link      {font-weight:normal; font-size:12px; color:#696969; text-decoration:none;}
+.gary12  a:visited {font-weight:normal; font-size:12px; color:#696969; text-decoration:none;}
+.gary12   a:active  {font-weight:normal; font-size:12px; color:#696969; text-decoration:none;}
+.gary12   a:hover   {font-weight:normal; font-size:12px; color:#b9b9b9; text-decoration:none;}
+
+
+
+
+input.smallInput{
+	background:#d5d5d5;
+	border-bottom-color:#eeeeee;
+	border-bottom-width:1px;
+	border-top-width:0px;
+	border-left-width:0px;
+	border-right-width:0px;
+	solid :#eeeeee;
+	color: #000000;
+	FONT-SIZE: 11px;
+	FONT-STYLE: normal;
+	FONT-VARIANT: normal;
+	FONT-WEIGHT: normal;
+	HEIGHT: 13px;
+	LINE-HEIGHT: normal;
+	font-family: "新細明體";
+}
+
+textarea.bigInput{
+background:#eeeeee; 
+border-bottom-color:#eeeeee;
+border-bottom-width:1px;
+border-top-width:0px;
+border-left-width:0px;
+border-right-width:0px;
+SCROLLBAR-FACE-COLOR: #eeeeee;           /*設定軸面顏色*/
+SCROLLBAR-HIGHLIGHT-COLOR:#eeeeee;    /*設定軸面三角左邊顏色*/
+SCROLLBAR-SHADOW-COLOR: #eeeeee;       /*設定軸面三角右邊顏色*/ 
+SCROLLBAR-3DLIGHT-COLOR: #eeeeee;     /*設定左立體邊顏色*/
+SCROLLBAR-DARKSHADOW-COLOR: #eeeeee;     /*設定右立體面顏色*/
+ SCROLLBAR-ARROW-COLOR: #eeeeee;              /*設定箭頭的顏色*/
+SCROLLBAR-TRACK-COLOR: #eeeeee;              /*設定軸軌的顏色*/
+
+
+}
+.contact_lefttopbg {
+	background-image: url(images/contact_01.jpg);
+	background-repeat: repeat-x;
+	background-position: right top;
+}
+.contact_rightdownbg {
+	background-image: url(images/contact_58.jpg);
+	background-repeat: repeat-x;
+	background-position: left top;
+}
+.white24_arial {
+	font-family: Arial;
+	font-size: 24px;
+	font-weight: bold;
+	color: #FFF;
+}
+
+.contact_leftdownbg {
+	background-image: url(images/contact_57.jpg);
+	background-repeat: repeat-x;
+	background-position: right top;
+}
+
+
+.leftbg_down {
+	background-image: url(images/about_bg_down01.jpg);
+	background-repeat: repeat-x;
+	background-position: right top;
+}
+.textgreen02 {
+	font-family: Arial;
+	font-size: 16px;
+	color: #f2ff61;
+}
+
+.leftbg02_down {
+	background-image: url(images/about_down02.jpg);
+	background-repeat: repeat-x;
+	background-position: right top;
+}
+.orgtext16 {
+	font-family: Arial;
+	font-size: 13px;
+	color: #e05f00;
+}
+
+.redtext12_arial {
+	font-family: Arial;
+	font-size: 12px;
+	color: #cc0000;
+}
+.rightbg02_down {
+	background-image: url(images/about_down02.jpg);
+	background-repeat: repeat-x;
+	background-position: left top;
+}
+.shopping_detail_sale {
+	height: 92px;
+	width: 375px;
+	position: absolute;
+	visibility: visible;
+	z-index: 2;
+	top: 355px;
+}
+.act_person_div {
+	width: 50px;
+	height: 80px;
+	margin-right: 30px;
+	left: 0px;
+	top: 0px;
+	float: left;
+}
+.act_winner_div {
+	width: 50px;
+	height: 80px;
+	left: 0px;
+	top: 0px;
+	float: left;
+	z-index: 1;
+}
+#indexpic {
+	width: 120px;
+	position: absolute;
+	visibility: visible;
+	z-index: 2;
+}
+
+ul{
+	list-style:none; 
+	margin:0px; 
+	padding:0px;
+}
+li{
+	margin:0px; 
+	padding:0px;
+	height:33px;
+}
+
+
+
+.title_a
+{
+	font-size: 14px; font-weight: bold;
+}

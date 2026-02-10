@@ -1,0 +1,71 @@
+### 測試管理員訂單 API
+
+### 1. 獲取管理員訂單列表
+GET http://localhost:3000/api/admin/orders
+Authorization: Bearer <管理員token>
+
+### 2. 獲取管理員訂單列表（帶查詢參數）
+GET http://localhost:3000/api/admin/orders?page=1&limit=10&status=PENDING
+Authorization: Bearer <管理員token>
+
+### 3. 搜尋訂單
+GET http://localhost:3000/api/admin/orders?search=20250208
+Authorization: Bearer <管理員token>
+
+### 4. 獲取訂單詳情
+GET http://localhost:3000/api/admin/orders/<訂單ID>
+Authorization: Bearer <管理員token>
+
+### 5. 更新訂單狀態為 CONFIRMED
+PATCH http://localhost:3000/api/admin/orders/<訂單ID>
+Authorization: Bearer <管理員token>
+Content-Type: application/json
+
+{
+  "status": "CONFIRMED",
+  "adminNote": "訂單已確認"
+}
+
+### 6. 更新訂單狀態為 SHIPPED
+PATCH http://localhost:3000/api/admin/orders/<訂單ID>
+Authorization: Bearer <管理員token>
+Content-Type: application/json
+
+{
+  "status": "SHIPPED",
+  "adminNote": "訂單已出貨"
+}
+
+### 7. 更新訂單狀態為 COMPLETED
+PATCH http://localhost:3000/api/admin/orders/<訂單ID>
+Authorization: Bearer <管理員token>
+Content-Type: application/json
+
+{
+  "status": "COMPLETED",
+  "adminNote": "訂單已完成"
+}
+
+### 8. 取消訂單
+PATCH http://localhost:3000/api/admin/orders/<訂單ID>
+Authorization: Bearer <管理員token>
+Content-Type: application/json
+
+{
+  "status": "CANCELLED",
+  "adminNote": "訂單已取消"
+}
+
+### 9. 刪除訂單（軟刪除）
+DELETE http://localhost:3000/api/admin/orders/<訂單ID>
+Authorization: Bearer <管理員token>
+
+### 10. 測試無效狀態變更（從 COMPLETED 到 PENDING）
+PATCH http://localhost:3000/api/admin/orders/<已完成訂單ID>
+Authorization: Bearer <管理員token>
+Content-Type: application/json
+
+{
+  "status": "PENDING",
+  "adminNote": "嘗試無效狀態變更"
+}

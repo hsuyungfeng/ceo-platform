@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>管理員系統 &rsaquo; Log In</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel='stylesheet'  href='css/login.css' type='text/css' media='all' />
+<script type="text/javascript" src="../scripts/jquery-1.6.1rc1.min.js"></script>
+<script type="text/javascript" src="../scripts/public.js"></script>
+<script type="text/javascript">
+$(function(){
+	$("form").submit(function(){
+	var re=true;
+	if(re){re=isnull("uid","管理員帳號",0,1,20);}
+	if(re){re=isnull("pwd","管理員密碼",0,1,20);}
+	if (!re){
+		alert(err_msg)
+		return false;
+	}
+	return true;
+	});
+});
+</script>
+</head>
+<body class="login">
+ 
+<div id="login">
+ 
+<form name="loginform" id="loginform" action="checklogin.php" method="post">
+	<p>
+		<label>管理員帳號：<br />
+		<input type="text" name="uid" id="uid" class="input" size="20" tabindex="10" />
+		</label>
+	</p>
+	<p>
+		<label>管理員密碼：<br />
+		<input type="password" name="pwd" id="pwd" class="input" value="" size="20" tabindex="20" /></label>
+	</p>
+	<p class="forgetmenot"><input type="submit" name="mg-submit" id="mg-submit" class="button-primary" value="Log In" tabindex="100" /></p>
+	<p class="submit">
+		
+	</p>
+</form>
+ 
+<p id="nav">
+ 
+<p id="backtoblog"><a href="../" >&larr; Back to 網站首頁</a></p>
+</div>
+ 
+</body>
+</html>

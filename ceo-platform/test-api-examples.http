@@ -1,0 +1,137 @@
+### 管理員商品 API 測試示例
+
+### 1. 創建商品
+POST http://localhost:3000/api/admin/products
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "高級辦公椅",
+  "subtitle": "人體工學設計，舒適耐用",
+  "description": "這是一款專為長時間辦公設計的高級人體工學椅，採用高品質網布和記憶棉，提供卓越的支撐和舒適度。",
+  "image": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7",
+  "unit": "張",
+  "spec": "尺寸：60x60x110cm\n材質：網布、記憶棉、鋁合金\n顏色：黑色、灰色\n承重：150kg",
+  "isFeatured": true,
+  "startDate": "2026-02-08T00:00:00Z",
+  "endDate": "2026-02-28T23:59:59Z",
+  "priceTiers": [
+    {
+      "minQty": 1,
+      "price": 2999
+    },
+    {
+      "minQty": 5,
+      "price": 2799
+    },
+    {
+      "minQty": 10,
+      "price": 2599
+    },
+    {
+      "minQty": 20,
+      "price": 2399
+    }
+  ]
+}
+
+### 2. 獲取管理員商品列表
+GET http://localhost:3000/api/admin/products?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### 3. 獲取特定商品詳情（管理員版本）
+GET http://localhost:3000/api/admin/products/{{productId}}
+Authorization: Bearer {{adminToken}}
+
+### 4. 更新商品
+PATCH http://localhost:3000/api/admin/products/{{productId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "高級人體工學辦公椅（升級版）",
+  "isFeatured": false,
+  "priceTiers": [
+    {
+      "minQty": 1,
+      "price": 2899
+    },
+    {
+      "minQty": 5,
+      "price": 2699
+    },
+    {
+      "minQty": 10,
+      "price": 2499
+    },
+    {
+      "minQty": 20,
+      "price": 2299
+    },
+    {
+      "minQty": 50,
+      "price": 2099
+    }
+  ]
+}
+
+### 5. 刪除商品（軟刪除）
+DELETE http://localhost:3000/api/admin/products/{{productId}}
+Authorization: Bearer {{adminToken}}
+
+### 6. 測試錯誤場景：未授權訪問
+GET http://localhost:3000/api/admin/products
+# 不提供 Authorization header
+
+### 7. 測試錯誤場景：普通會員訪問
+GET http://localhost:3000/api/admin/products
+Authorization: Bearer {{memberToken}}
+
+### 8. 測試錯誤場景：無效數據
+POST http://localhost:3000/api/admin/products
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "",
+  "unit": "",
+  "priceTiers": []
+}
+
+### 9. 測試錯誤場景：重複的價格階梯
+POST http://localhost:3000/api/admin/products
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "測試商品",
+  "unit": "個",
+  "priceTiers": [
+    {
+      "minQty": 1,
+      "price": 100
+    },
+    {
+      "minQty": 1,
+      "price": 90
+    }
+  ]
+}
+
+### 10. 測試錯誤場景：無效的時間範圍
+POST http://localhost:3000/api/admin/products
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "測試商品",
+  "unit": "個",
+  "startDate": "2026-02-28T00:00:00Z",
+  "endDate": "2026-02-08T00:00:00Z",
+  "priceTiers": [
+    {
+      "minQty": 1,
+      "price": 100
+    }
+  ]
+}

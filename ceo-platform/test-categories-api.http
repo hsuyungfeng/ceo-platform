@@ -1,0 +1,73 @@
+### 1. 獲取分類樹
+GET http://localhost:3000/api/admin/categories
+Authorization: Bearer <admin-token>
+
+### 2. 創建頂級分類
+POST http://localhost:3000/api/admin/categories
+Content-Type: application/json
+Authorization: Bearer <admin-token>
+
+{
+  "name": "電子產品",
+  "parentId": null,
+  "sortOrder": 0,
+  "isActive": true
+}
+
+### 3. 創建子分類
+POST http://localhost:3000/api/admin/categories
+Content-Type: application/json
+Authorization: Bearer <admin-token>
+
+{
+  "name": "手機",
+  "parentId": "<parent-category-id>",
+  "sortOrder": 0,
+  "isActive": true
+}
+
+### 4. 獲取分類詳情
+GET http://localhost:3000/api/admin/categories/<category-id>
+Authorization: Bearer <admin-token>
+
+### 5. 更新分類
+PATCH http://localhost:3000/api/admin/categories/<category-id>
+Content-Type: application/json
+Authorization: Bearer <admin-token>
+
+{
+  "name": "更新後的分類名稱",
+  "isActive": false
+}
+
+### 6. 重新排序分類
+PATCH http://localhost:3000/api/admin/categories/<category-id>/reorder
+Content-Type: application/json
+Authorization: Bearer <admin-token>
+
+{
+  "newSortOrder": 1
+}
+
+### 7. 移動分類
+PATCH http://localhost:3000/api/admin/categories/<category-id>/move
+Content-Type: application/json
+Authorization: Bearer <admin-token>
+
+{
+  "newParentId": "<new-parent-id>"
+}
+
+### 8. 批量操作
+PATCH http://localhost:3000/api/admin/categories
+Content-Type: application/json
+Authorization: Bearer <admin-token>
+
+{
+  "ids": ["<category-id-1>", "<category-id-2>"],
+  "operation": "activate"
+}
+
+### 9. 刪除分類（軟刪除）
+DELETE http://localhost:3000/api/admin/categories/<category-id>
+Authorization: Bearer <admin-token>
