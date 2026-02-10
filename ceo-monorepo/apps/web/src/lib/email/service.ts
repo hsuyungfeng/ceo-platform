@@ -19,11 +19,11 @@ export class EmailService {
       return data;
     } catch (error) {
       console.error('Email service error:', error);
-      // 開發環境：記錄但不拋出錯誤
-      if (process.env.NODE_ENV === 'development') {
-        console.log('開發環境模擬發送郵件到:', to);
+      // 開發環境或測試環境：記錄但不拋出錯誤
+      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+        console.log(`${process.env.NODE_ENV}環境模擬發送郵件到:`, to);
         console.log('郵件內容:', html);
-        return { id: 'dev-mock-id' };
+        return { id: `${process.env.NODE_ENV}-mock-id` };
       }
       throw error;
     }
