@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { trackVerificationAttempt, resetVerificationAttempts } from '@/lib/email-verification';
+import { logger } from '@/lib/logger';
 
 const verifySchema = z.object({
   token: z.string().min(1, '驗證碼不能為空'),
@@ -19,6 +21,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!verification) {
+      logger.warn({ token }, '驗證失敗：無效的驗證連結');
       return NextResponse.json(
         { error: '無效的驗證連結' },
         { status: 400 }
@@ -27,9 +30,22 @@ export async function POST(request: NextRequest) {
 
     // 檢查是否過期
     if (verification.expiresAt < new Date()) {
+      // Track failed attempt
+      try {
+        await trackVerificationAttempt(verification.email);
+      } catch (attemptError) {
+        logger.warn({ email: verification.email, token }, '驗證失敗：驗證碼已過期');
+        return NextResponse.json(
+          { error: '驗證嘗試次數過多，請稍後再試' },
+          { status: 429 }
+        );
+      }
+
       await prisma.emailVerification.delete({
         where: { id: verification.id },
       });
+
+      logger.warn({ email: verification.email, token }, '驗證失敗：驗證碼已過期');
       return NextResponse.json(
         { error: '驗證連結已過期' },
         { status: 400 }
@@ -61,13 +77,21 @@ export async function POST(request: NextRequest) {
       where: { id: verification.id },
     });
 
+    // Reset attempts on successful verification
+    await resetVerificationAttempts(verification.email);
+
+    logger.info(
+      { email: verification.email, purpose: verification.purpose, userId: verification.userId },
+      '郵件驗證成功'
+    );
+
     return NextResponse.json({
       message: '郵件驗證成功',
       purpose: verification.purpose,
       userId: verification.userId,
     });
   } catch (error) {
-    console.error('Verify email error:', error);
+    logger.error({ err: error }, '郵件驗證失敗');
     return NextResponse.json(
       { error: '郵件驗證失敗' },
       { status: 500 }

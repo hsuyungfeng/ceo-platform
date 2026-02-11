@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { emailService } from '@/lib/email/service';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
+import { emailRateLimiter } from '@/lib/rate-limiter';
+import { logger } from '@/lib/logger';
 
 const sendVerifySchema = z.object({
   email: z.string().email('請輸入有效的電子郵件'),
@@ -11,9 +13,33 @@ const sendVerifySchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  let body: any;
   try {
-    const body = await request.json();
+    body = await request.json();
     const { email, purpose = 'VERIFY_EMAIL' } = sendVerifySchema.parse(body);
+
+    // Get client IP for rate limiting
+    const ip =
+      request.headers.get('x-forwarded-for') ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
+
+    // Check rate limiting
+    const rateLimit = emailRateLimiter.check(`send-verify:${ip}`);
+    if (!rateLimit.allowed) {
+      const resetIn = Math.ceil((rateLimit.resetTime - Date.now()) / 1000);
+      logger.warn(
+        { email, ip, resetIn },
+        '驗證碼發送頻率限制'
+      );
+      return NextResponse.json(
+        {
+          error: `發送過於頻繁，請在 ${resetIn} 秒後重試`,
+          retryAfter: resetIn,
+        },
+        { status: 429 }
+      );
+    }
 
     // 檢查用戶是否存在
     const user = await prisma.user.findUnique({
@@ -56,12 +82,17 @@ export async function POST(request: NextRequest) {
       await emailService.sendResetPasswordEmail(email, token, user?.name);
     }
 
+    logger.info(
+      { email, ip, purpose, remaining: rateLimit.remaining },
+      '驗證碼發送成功'
+    );
+
     return NextResponse.json({
       message: '驗證郵件已發送',
       expiresAt: verification.expiresAt,
     });
   } catch (error) {
-    console.error('Send verification error:', error);
+    logger.error({ err: error, email: body.email }, '發送驗證碼錯誤');
     return NextResponse.json(
       { error: '發送驗證郵件失敗' },
       { status: 500 }

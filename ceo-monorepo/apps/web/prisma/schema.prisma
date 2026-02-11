@@ -286,6 +286,15 @@ model EmailVerification {
   @@map("email_verifications")
 }
 
+model EmailVerificationAttempt {
+  email     String   @id
+  attempts  Int      @default(1)
+  updatedAt DateTime @updatedAt
+
+  @@index([updatedAt])
+  @@map("email_verification_attempts")
+}
+
 enum UserRole {
   MEMBER
   ADMIN
