@@ -1,137 +1,105 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { encode } from 'next-auth/jwt';
-import { validateTokenForRefresh } from '@/lib/auth-helper';
+import { jwtManager } from '@/lib/jwt-manager';
+import { logger } from '@/lib/logger';
+import { z } from 'zod';
+
+/**
+ * Request schema for token refresh
+ */
+const refreshSchema = z.object({
+  refreshToken: z.string().min(1, '刷新令牌不能為空'),
+});
 
 /**
  * POST /api/auth/refresh
- * 
- * Refresh JWT token endpoint for Mobile App API
- * 
- * Accepts Bearer Token in Authorization header, validates it with grace period,
- * and issues a new token with 30-day expiration.
- * 
- * Request:
- * - Authorization: Bearer <old-token>
- * 
- * Response (success):
- * {
- *   "message": "Token refreshed successfully",
- *   "token": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiUnpzM1BLUWdJa3RxaDVLZmd0WktxOWFrVmFabDFWeWswdS1lby1ONmEwSFNwM2hybFhnZW1ZZXY3R3JxYV84dFFLcXgtVkdnaWg3Q3h3TU9SaTlUMkEifQ...",
- *   "expiresAt": "2026-03-11T10:30:00.000Z"
- * }
- * 
- * Response (error):
- * {
- *   "error": "Invalid or expired token"
- * }
+ * Refresh access token using refresh token
  */
 export async function POST(request: NextRequest) {
   try {
-    // Get Authorization header
-    const authHeader = request.headers.get('authorization');
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const body = await request.json();
+    const { refreshToken } = refreshSchema.parse(body);
+
+    // Verify refresh token
+    const decoded = jwtManager.verifyRefreshToken(refreshToken);
+
+    if (!decoded) {
+      logger.warn({ token: refreshToken.substring(0, 20) + '...' }, '無效的刷新令牌');
       return NextResponse.json(
-        { error: '未提供有效的 Authorization header。請使用 Bearer Token 格式' },
+        { error: '無效的刷新令牌' },
         { status: 401 }
       );
     }
 
-    // Extract token
-    const token = authHeader.substring(7);
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Token 不能為空' },
-        { status: 401 }
-      );
-    }
+    // Generate new token pair
+    const tokenPair = jwtManager.generateTokenPair(decoded.userId, decoded.email);
 
-    // Validate token with grace period using our helper
-    const validationResult = await validateTokenForRefresh(token);
-    
-    if (!validationResult) {
+    if (!tokenPair) {
+      logger.error({ userId: decoded.userId }, '無法生成新令牌對');
       return NextResponse.json(
-        { error: 'Token 無效或已過期' },
-        { status: 401 }
-      );
-    }
-
-    const { decoded, user } = validationResult;
-
-    // Check NEXTAUTH_SECRET
-    if (!process.env.NEXTAUTH_SECRET) {
-      console.error('NEXTAUTH_SECRET 未設定');
-      return NextResponse.json(
-        { error: '伺服器設定錯誤，請聯絡管理員' },
+        { error: '令牌刷新失敗' },
         { status: 500 }
       );
     }
 
-    // Prepare new token payload (30 days expiration)
-    const now = Math.floor(Date.now() / 1000);
-    const newExp = now + (30 * 24 * 60 * 60); // 30 days from now
-    
-    const tokenPayload = {
-      id: user.id,
-      taxId: user.taxId,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-      emailVerified: user.emailVerified,
-      iat: now,
-      exp: newExp,
-    };
+    logger.info({ userId: decoded.userId, email: decoded.email }, '令牌刷新成功');
 
-    // Generate new JWT token
-    const newToken = await encode({
-      token: tokenPayload,
-      secret: process.env.NEXTAUTH_SECRET,
-      salt: 'next-auth.session-token',
-    });
-
-    // Calculate expiration date for response
-    const expiresAt = new Date(newExp * 1000).toISOString();
-
-    return NextResponse.json(
-      {
-        message: 'Token 刷新成功',
-        token: newToken,
-        expiresAt: expiresAt,
-      },
-      { status: 200 }
-    );
-
+    return NextResponse.json(tokenPair);
   } catch (error) {
-    console.error('Token 刷新錯誤:', error);
+    if (error instanceof z.ZodError) {
+      logger.warn({ errors: error.errors }, '刷新請求驗證失敗');
+      return NextResponse.json(
+        { error: '無效的請求' },
+        { status: 400 }
+      );
+    }
+
+    logger.error({ err: error }, '令牌刷新錯誤');
     return NextResponse.json(
-      { error: '伺服器錯誤，請稍後再試' },
+      { error: '令牌刷新失敗' },
       { status: 500 }
     );
   }
 }
 
 /**
- * Handle other HTTP methods
+ * GET /api/auth/refresh
+ * Get current token info (for debugging)
  */
-export async function GET() {
-  return NextResponse.json(
-    { error: '此端點僅支援 POST 方法。請使用 POST 請求並提供 Bearer Token' },
-    { status: 405 }
-  );
-}
+export async function GET(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get('authorization');
 
-export async function PUT() {
-  return NextResponse.json(
-    { error: '此端點僅支援 POST 方法。請使用 POST 請求並提供 Bearer Token' },
-    { status: 405 }
-  );
-}
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: '缺少授權頭' },
+        { status: 401 }
+      );
+    }
 
-export async function DELETE() {
-  return NextResponse.json(
-    { error: '此端點僅支援 POST 方法。請使用 POST 請求並提供 Bearer Token' },
-    { status: 405 }
-  );
+    const token = authHeader.slice(7);
+    const payload = jwtManager.decodeToken(token);
+
+    if (!payload) {
+      return NextResponse.json(
+        { error: '無效的令牌' },
+        { status: 401 }
+      );
+    }
+
+    const remaining = jwtManager.getTokenRemainingTime(token);
+
+    return NextResponse.json({
+      userId: payload.userId,
+      email: payload.email,
+      type: payload.type,
+      expiresIn: remaining,
+      isExpired: remaining <= 0,
+    });
+  } catch (error) {
+    logger.error({ err: error }, '令牌信息檢索錯誤');
+    return NextResponse.json(
+      { error: '無法檢索令牌信息' },
+      { status: 500 }
+    );
+  }
 }
