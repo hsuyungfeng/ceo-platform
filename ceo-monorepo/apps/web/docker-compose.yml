@@ -17,6 +17,8 @@ volumes:
     driver: local
   postgres-backup:
     driver: local
+  redis-data:
+    driver: local
 
 # 服務定義
 services:
@@ -64,9 +66,13 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       # 資料庫配置
       DATABASE_URL: postgresql://ceo_admin:${DB_PASSWORD:-ChangeThisPassword123!}@postgres:5432/ceo_platform_production
+      # Redis配置（用於速率限制和緩存）
+      REDIS_URL: redis://:${REDIS_PASSWORD:-ChangeThisPassword123!}@redis:6379
       # NextAuth配置
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-development-secret-change-in-production}
@@ -114,23 +120,24 @@ services:
       timeout: 10s
       retries: 3
 
-  # ============ Redis 緩存（可選） ============
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: ceo-redis
-  #   restart: unless-stopped
-  #   command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-ChangeThisPassword123!}
-  #   volumes:
-  #     - redis-data:/data
-  #   ports:
-  #     - "6379:6379"
-  #   networks:
-  #     - ceo-network
-  #   healthcheck:
-  #     test: ["CMD", "redis-cli", "ping"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
+  # ============ Redis 緩存及速率限制 ============
+  redis:
+    image: redis:7-alpine
+    container_name: ceo-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-ChangeThisPassword123!} --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - ceo-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-ChangeThisPassword123!}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 # ============================================
 # 部署命令:
@@ -139,6 +146,12 @@ services:
 # 3. 啟動服務: docker-compose up -d
 # 4. 查看日誌: docker-compose logs -f
 # 5. 停止服務: docker-compose down
+#
+# 環境變數（在 .env.production 中設置）:
+# - DB_PASSWORD: PostgreSQL 密碼（建議強密碼）
+# - REDIS_PASSWORD: Redis 密碼（建議強密碼）
+# - NEXTAUTH_URL: 應用 URL（如 https://example.com）
+# - NEXTAUTH_SECRET: NextAuth 加密密鑰（使用 openssl rand -base64 32 生成）
 #
 # 備份命令:
 # docker-compose exec postgres pg_dump -U ceo_admin ceo_platform_production > backup_$(date +%Y%m%d_%H%M%S).sql
