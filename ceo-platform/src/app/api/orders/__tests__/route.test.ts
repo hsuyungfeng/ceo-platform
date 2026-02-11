@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '../route'
@@ -40,9 +41,9 @@ vi.mock('@/lib/logger', () => ({
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const mockAuth = auth as any
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const mockPrisma = prisma as any
 
 function createRequest(url: string, options?: any) {
