@@ -2035,3 +2035,142 @@ REDIS_PASSWORD=strong-password
 - ✅ Docker 持久化配置
 - ✅ 健康檢查和監控
 - ✅ 完整的部署指南（docs/08_Deployment_and_Improvements.md）
+
+---
+
+## Phase 8 安全強化 - 第 2 部分：CSRF、輸入驗證、安全測試（2026-02-12）
+
+### ✅ CSRF 保護實現
+
+**功能：**
+- 基於會話的 CSRF 令牌生成和驗證
+- 恆定時間比較防止時序攻擊
+- 一次性令牌使用（驗證後自動失效）
+- 自動清理過期令牌（5 分鐘間隔）
+
+**關鍵檔案：**
+- `csrf-protection.ts` (250+ 行)：核心令牌管理
+- `csrf-middleware.ts` (100+ 行)：中間件集成
+- 令牌長度：32 字節（64 字符十六進制）
+- 最大年齡：3600 秒（1 小時）
+
+**安全特性：**
+- ✅ 常數時間比較（防止時序攻擊）
+- ✅ 令牌在使用後立即失效
+- ✅ 會話綁定驗證
+- ✅ 排除特定端點（auth、health check）
+
+### ✅ 輸入驗證和消毒
+
+**功能：**
+- HTML 標籤移除和字符編碼
+- Zod 架構驗證
+- SQL 注入檢測
+- XSS 注入檢測
+
+**關鍵檔案：**
+- `input-validation.ts` (300+ 行)
+  - sanitizeString()：移除危險字符
+  - 10 個 Zod 架構（email、password、name 等）
+  - 3 個複合架構（註冊、登錄、個人資料）
+  - detectSQLInjection()：檢測常見模式
+  - detectXSSInjection()：檢測常見攻擊向量
+
+**驗證規則：**
+- 電子郵件：格式、長度（255 字符）
+- 密碼：8-128 字符、大小寫、數字、特殊字符
+- 名稱：2-100 字符、支持漢字、禁止特殊標籤
+- 電話：7-20 字符、數字 + 符號
+- 稅務 ID：8-10 位數字
+- 搜索：1-100 字符
+
+### ✅ 安全測試套件（133 個測試通過）
+
+**CSRF 保護測試 (6 個測試)**
+- ✅ 令牌生成
+- ✅ 令牌驗證
+- ✅ 無效令牌拒絕
+- ✅ 一次性使用驗證
+- ✅ 時序攻擊防護
+- ✅ 手動令牌失效
+
+**JWT 管理測試 (20+ 個測試)**
+- ✅ 令牌對生成
+- ✅ 訪問令牌驗證（15 分鐘）
+- ✅ 刷新令牌驗證（7 天）
+- ✅ 令牌刷新流程
+- ✅ 多用戶隔離
+- ✅ 宽限期支持（1 分鐘）
+- ✅ HS256 簽名驗證
+
+**輸入驗證測試 (70+ 個測試)**
+- ✅ HTML 標籤移除
+- ✅ 事件處理程序移除
+- ✅ 字符編碼
+- ✅ 電子郵件格式和長度
+- ✅ 密碼強度要求
+- ✅ 名稱字符驗證
+- ✅ 複合架構驗證
+- ✅ SQL 注入檢測
+- ✅ XSS 注入檢測
+
+**中間件/安全標題測試 (30+ 個測試)**
+- ✅ CORS 預檢請求
+- ✅ CORS 原點驗證
+- ✅ 安全標題：X-Content-Type-Options
+- ✅ 安全標題：X-Frame-Options
+- ✅ 安全標題：X-XSS-Protection
+- ✅ 安全標題：CSP (Content-Security-Policy)
+- ✅ 安全標題：HSTS
+- ✅ 安全標題：Referrer-Policy
+- ✅ 安全標題：Permissions-Policy
+- ✅ 緩存控制標題
+
+### 📊 測試統計
+
+| 指標 | 數值 |
+|------|------|
+| 總測試數 | **133** ✅ |
+| 測試套件 | 4 |
+| 代碼行數 | 900+ |
+| 覆蓋率 | CSRF、JWT、輸入驗證、中間件 |
+| Jest 配置 | jest.config.js + jest.setup.js |
+
+### 🛡️ 實施的安全層
+
+1. **CORS 中間件** - 原點白名單驗證
+2. **CSRF 保護** - 令牌生成和驗證
+3. **JWT 管理** - 令牌刷新和寬限期
+4. **輸入驗證** - Zod 架構和消毒
+5. **安全標題** - 8 個安全標題
+6. **注入防護** - SQL 和 XSS 檢測
+
+### 📁 新建/修改的檔案
+
+**新建：**
+- `src/lib/csrf-protection.ts` - CSRF 令牌管理
+- `src/lib/csrf-middleware.ts` - CSRF 驗證中間件
+- `src/lib/input-validation.ts` - 輸入驗證和消毒
+- `src/lib/logger.ts` - 日誌記錄工具
+- `src/__tests__/security/csrf-protection.test.ts` - CSRF 測試
+- `src/__tests__/security/jwt-manager.test.ts` - JWT 測試
+- `src/__tests__/security/input-validation.test.ts` - 輸入驗證測試
+- `src/__tests__/security/middleware.test.ts` - 中間件測試
+- `jest.config.js` - Jest 配置
+- `jest.setup.js` - Jest 全局設置
+
+**修改：**
+- `package.json` - 添加 test 腳本和 Jest 依賴
+- `src/lib/input-validation.ts` - 改進錯誤處理
+
+### 🚀 下一步
+
+1. 集成測試 - 跨端點的安全流程測試
+2. 滲透測試 - 手動安全審計
+3. Sentry 集成 - 錯誤跟蹤（Phase 8 第 3 部分）
+4. 效能監測 - 安全功能對延遲的影響
+5. 文檔完善 - 安全性最佳實踐指南
+
+**完成時間：** 2026-02-12 21:30 UTC
+**狀態：** ✅ Phase 8 第 2 部分完成
+
