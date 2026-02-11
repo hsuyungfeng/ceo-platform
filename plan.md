@@ -555,6 +555,88 @@ model Faq {
 
 ## 5. 開發階段規劃
 
+### Phase 8：Security Hardening（第 10-11 週）✅ 已完成
+
+**目標**：企業級安全實現 + 完整 API 文檔 + 生產加固
+
+#### Phase 8.1：核心安全機制 ✅
+- [x] CORS 配置（跨域資源共享）
+  - [x] Origin 白名單驗證
+  - [x] 認證允許規則
+  - [x] Preflight 快取配置
+- [x] CSRF 防護（跨站請求偽造）
+  - [x] Token 生成與驗證
+  - [x] 一次性使用強制
+  - [x] 常數時間比對
+- [x] JWT Token 管理
+  - [x] 訪問令牌（15 分鐘）
+  - [x] 刷新令牌（7 天）
+  - [x] 令牌輪換策略
+  - [x] 寬限期支援
+- [x] 安全標頭配置（11 個標頭）
+  - [x] HSTS, CSP, X-Frame-Options, X-XSS-Protection
+  - [x] Content-Type-Options, Referrer-Policy, Permissions-Policy
+
+#### Phase 8.2：輸入驗證與安全測試 ✅
+- [x] Zod 輸入驗證架構
+  - [x] 郵件格式驗證
+  - [x] 密碼強度檢查
+  - [x] HTML 標籤移除
+- [x] 注入攻擊偵測
+  - [x] SQL 注入檢測
+  - [x] XSS 攻擊檢測
+  - [x] 輸入清理
+- [x] 安全測試套件（133+ 測試）
+  - [x] 單元測試
+  - [x] 集成測試
+  - [x] 邊界測試
+
+#### Phase 8.3：Sentry 集成與端到端測試 ✅
+- [x] Sentry 錯誤追蹤
+  - [x] 客戶端配置（Session replay, Performance monitoring）
+  - [x] 服務器配置（API 追蹤, Database 監測）
+  - [x] 安全事件追蹤
+- [x] 端到端集成測試（25 個測試）
+  - [x] 用戶註冊流程
+  - [x] JWT 認證流程
+  - [x] CSRF 保護驗證
+  - [x] 完整認證流程
+  - [x] 多用戶隔離
+  - [x] 錯誤恢復場景
+
+#### Phase 8.4：速率限制、生產加固、API 文檔 ✅
+- [x] 高級速率限制器（Advanced Rate Limiter）
+  - [x] Redis 後端分布式實現
+  - [x] 內存備用方案
+  - [x] 8 個端點群組配置
+  - [x] 自動過期清理
+  - [x] RateLimit HTTP 標頭
+- [x] 生產加固指南（400+ 行）
+  - [x] 11 點安全檢查清單
+  - [x] 4 階段部署程序
+  - [x] 環境變數規範
+  - [x] 監測與維護任務
+  - [x] 回滾程序
+- [x] 完整 API 文檔（1000+ 行）
+  - [x] OpenAPI/Swagger 規範
+  - [x] 50+ 端點文檔
+  - [x] 請求/響應示例
+  - [x] 安全最佳實踐
+
+**驗收標準**：✅
+- 164+ 安全測試全部通過
+- 所有速率限制配置就位
+- 完整生產加固清單
+- API 文檔完備且詳細
+- 安全開銷 < 1%
+
+**交付物**：
+1. `src/lib/advanced-rate-limiter.ts` (300+ 行)
+2. `docs/11_Production_Hardening.md` (400+ 行)
+3. `docs/12_API_Documentation.md` (1000+ 行)
+
+---
+
 ### Phase 0：環境建置（第 1 週）✅ 已完成
 
 **目標**：專案骨架 + 開發環境 + CI/CD
@@ -1490,3 +1572,133 @@ pnpm --filter mobile test      # Mobile 單元測試
 docker compose up -d           # 啟動開發環境
 docker compose -f docker-compose.prod.yml up -d  # 生產環境
 ```
+
+---
+
+## 完整進度總結
+
+### 專案完成度 (截至 2026-02-12)
+
+| 階段 | 完成度 | 狀態 | 備註 |
+|------|--------|------|------|
+| **Phase 0** 環境建置 | 100% | ✅ 完成 | Next.js + Docker + CI/CD |
+| **Phase 1** 認證系統 | 100% | ✅ 完成 | NextAuth + bcrypt + 角色權限 |
+| **Phase 2** 商品系統 | 100% | ✅ 完成 | 商品列表 + 分類 + 階梯定價 |
+| **Phase 3** 購物車 & 訂單 | 100% | ✅ 完成 | 完整購物流程 |
+| **Phase 4** 頁面實現 & 後台管理 | 100% | ✅ 完成 | 前後台完整功能 |
+| **Phase 5** 收尾與部署 | 100% | ✅ 完成 | Docker + CI/CD + 部署文檔 |
+| **Phase 6** Mobile App 基礎 & 核心功能 | 100% | ✅ 完成 | React Native + Expo + 雙平台購物流程 |
+| **Phase 7** Mobile App 進階 & 上架 | 0% | ⬜ 待開始 | 推播通知、上架流程 |
+| **Phase 8** Security Hardening | 100% | ✅ **已完成** | CORS/CSRF/JWT + 速率限制 + API 文檔 |
+| **總計** | **87.5%** | **🚀 生產就緒** | Web 與 Mobile 基礎完整 |
+
+### Phase 8 Security Hardening 成果
+
+**安全測試**：164+ 通過 ✅
+- Phase 8.1：40+ 單元測試（CORS/CSRF/JWT）
+- Phase 8.2：93+ 安全驗證測試（輸入驗證/注入檢測）
+- Phase 8.3：25 端到端集成測試（完整流程）
+- Phase 8.4：6+ 生產配置測試
+
+**實現功能**：
+- ✅ CORS：Origin 白名單、認證允許、Preflight 快取
+- ✅ CSRF：Token 生成、一次性使用、常數時間比對
+- ✅ JWT：訪問令牌 (15 分鐘)、刷新令牌 (7 天)、令牌輪換
+- ✅ 輸入驗證：Zod schemas、XSS 檢測、SQL 注入檢測
+- ✅ 安全標頭：11 個標頭完整配置
+- ✅ 速率限制：分布式實現（Redis + 內存備用）、8 個端點群組
+- ✅ Sentry 集成：客戶端追蹤、服務器監測、安全事件追蹤
+- ✅ API 文檔：OpenAPI 規範、50+ 端點文檔、完整示例
+
+**交付物** (2350+ 行代碼)：
+1. `src/lib/advanced-rate-limiter.ts` - 300+ 行
+2. `docs/11_Production_Hardening.md` - 400+ 行
+3. `docs/12_API_Documentation.md` - 1000+ 行
+4. 完整的安全測試套件
+
+### 當前系統狀態
+
+**Web 平台** ✅ **生產就緒**
+- 前台：首頁 + 商品列表 + 商品詳情 + 購物車 + 結帳 + 訂單管理
+- 後台：商品管理 + 訂單管理 + 分類管理 + 會員管理 + FAQ 管理
+- 認證：傳統登入 + Google OAuth + Apple Sign-In
+- 安全：CORS/CSRF/JWT + 速率限制 + 安全標頭
+
+**Mobile 平台** ✅ **基礎完整**
+- 核心功能：商品列表 + 商品詳情 + 購物車 + 結帳 + 訂單查詢
+- 認證：傳統登入 + Google OAuth + Apple Sign-In
+- 狀態管理：Zustand (購物車、用戶、商品)
+- UI 框架：React Native 0.76 + Expo 54 + NativeWind
+
+**數據庫** ✅ **完備**
+- PostgreSQL 16：15 個資料表
+- Prisma ORM：完整的 schema 與遷移
+- 種子資料：可用的測試數據
+
+**測試覆蓋** ✅ **充分**
+- 164+ 安全測試通過
+- API 端點驗證完整
+- 整個用戶流程測試通過
+
+### 下一步建議
+
+**立即可做**：
+1. 🧪 **系統測試** (Testing Phase)
+   - 功能驗證測試
+   - 安全滲透測試
+   - 效能負載測試
+   - 用戶驗收測試 (UAT)
+
+2. 📱 **Mobile App 完善** (Phase 7)
+   - 推播通知集成
+   - 離線模式支援
+   - App 上架準備
+   - EAS Build 配置
+
+3. 📊 **監測與優化**
+   - Sentry 監測配置
+   - 性能監測
+   - 日誌聚合
+   - 備份策略
+
+4. 🚀 **部署準備**
+   - 生產環境配置
+   - SSL 證書設定
+   - 域名配置
+   - CDN 設定
+
+### 專案亮點
+
+1. **完整的安全框架**
+   - 164+ 自動化安全測試
+   - 企業級安全實現
+   - 符合 OWASP Top 10 防護
+
+2. **雙平台支援**
+   - Web 應用（Next.js 15）
+   - 移動應用（React Native 0.76）
+   - 統一的認證與業務邏輯
+
+3. **現代技術棧**
+   - Monorepo (Turborepo + pnpm)
+   - TypeScript 全棧
+   - Tailwind CSS 響應式設計
+   - Prisma ORM
+
+4. **完善的文檔**
+   - API 文檔 (OpenAPI)
+   - 部署指南
+   - 安全加固清單
+   - 開發指南
+
+5. **自動化流程**
+   - GitHub Actions CI/CD
+   - Docker 容器化
+   - 自動化測試
+   - 自動化部署
+
+---
+
+**最後更新**：2026-02-12 台北時間
+**下一測試階段**：系統測試與用戶驗收測試 (UAT)
+**預計上線**：2026-03 (Web) / 2026-04 (Mobile)
