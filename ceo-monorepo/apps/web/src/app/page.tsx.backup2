@@ -1,0 +1,10 @@
+// This is the main home page
+// We'll render the shop home page directly
+import dynamic from 'next/dynamic';
+
+// Dynamically import the shop page to avoid potential circular references
+const ShopPage = dynamic(() => import('./(shop)/page'));
+
+export default function Home() {
+  return <ShopPage />;
+}

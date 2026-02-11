@@ -1,0 +1,379 @@
+import NextAuth from 'next-auth';
+import Credentials from 'next-auth/providers/credentials';
+import Google from 'next-auth/providers/google';
+import Apple from 'next-auth/providers/apple';
+import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
+import { z } from 'zod';
+
+// 登入驗證 schema
+const credentialsSchema = z.object({
+  taxId: z.string().length(8, '統一編號必須是8位數字').regex(/^\d+$/, '統一編號必須是數字'),
+  password: z.string().min(1, '密碼不能為空'),
+});
+
+export const { handlers, signIn, signOut, auth } = NextAuth({
+  providers: [
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+      authorization: {
+        params: {
+          prompt: 'consent',
+          access_type: 'offline',
+          response_type: 'code',
+          scope: 'openid email profile',
+        },
+      },
+      async profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name || '',
+          email: profile.email || '',
+          image: profile.picture,
+          emailVerified: profile.email_verified === true || profile.email_verified === 'true',
+          taxId: '', // 將在 signIn callback 中設定
+          role: 'MEMBER', // 預設角色
+          status: 'ACTIVE', // 預設狀態
+        };
+      },
+    }),
+    Apple({
+      clientId: process.env.APPLE_CLIENT_ID || '',
+      clientSecret: process.env.APPLE_CLIENT_SECRET || '',
+      authorization: {
+        params: {
+          scope: 'name email',
+          response_mode: 'form_post',
+        },
+      },
+      async profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name || '',
+          email: profile.email || '',
+          emailVerified: profile.email_verified === true || profile.email_verified === 'true',
+          taxId: '', // Will be set in signIn callback
+          role: 'MEMBER',
+          status: 'ACTIVE',
+        };
+      },
+    }),
+    Credentials({
+      name: 'credentials',
+      credentials: {
+        taxId: { label: '統一編號', type: 'text' },
+        password: { label: '密碼', type: 'password' },
+      },
+      async authorize(credentials) {
+        try {
+          // 驗證輸入資料
+          const validatedCredentials = credentialsSchema.safeParse(credentials);
+          if (!validatedCredentials.success) {
+            console.error('憑證驗證失敗:', validatedCredentials.error);
+            return null;
+          }
+
+          const { taxId, password } = validatedCredentials.data;
+
+          // 查找使用者
+          const user = await prisma.user.findUnique({
+            where: { taxId },
+          });
+
+          if (!user) {
+            console.error('使用者不存在:', taxId);
+            return null;
+          }
+
+          // 檢查使用者狀態
+          if (user.status !== 'ACTIVE') {
+            console.error('帳號非啟用狀態:', user.status);
+            return null;
+          }
+
+          // 驗證密碼
+          const isPasswordValid = await bcrypt.compare(password, user.password);
+          if (!isPasswordValid) {
+            console.error('密碼驗證失敗');
+            return null;
+          }
+
+          // 回傳使用者資料（排除密碼）
+          return {
+            id: user.id,
+            name: user.name,
+            taxId: user.taxId,
+            email: user.email,
+            role: user.role,
+            status: user.status,
+            emailVerified: user.emailVerified,
+          };
+        } catch (error) {
+          console.error('授權錯誤:', error);
+          return null;
+        }
+      },
+    }),
+  ],
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30天
+  },
+  callbacks: {
+    async signIn({ user, account, profile }) {
+      // 處理 Google OAuth 登入
+      if (account?.provider === 'google') {
+        try {
+          const { email, name, sub: providerId, picture } = profile as any;
+          
+          // 檢查是否已有 OAuth 帳戶連結
+          const existingOAuthAccount = await prisma.oAuthAccount.findUnique({
+            where: {
+              provider_providerId: {
+                provider: 'google',
+                providerId,
+              },
+            },
+            include: {
+              user: true,
+            },
+          });
+
+          if (existingOAuthAccount) {
+            // 已有連結帳戶，更新使用者資訊
+            user.id = existingOAuthAccount.user.id;
+            user.name = existingOAuthAccount.user.name;
+            user.email = existingOAuthAccount.user.email;
+            user.taxId = existingOAuthAccount.user.taxId;
+            user.role = existingOAuthAccount.user.role;
+            user.status = existingOAuthAccount.user.status;
+            user.emailVerified = existingOAuthAccount.user.emailVerified;
+
+            // 更新 OAuth 帳戶資訊
+            await prisma.oAuthAccount.update({
+              where: { id: existingOAuthAccount.id },
+              data: {
+                name,
+                picture,
+                accessToken: account.access_token,
+                refreshToken: account.refresh_token,
+                expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
+                updatedAt: new Date(),
+              },
+            });
+
+            return true;
+          }
+
+          // 檢查是否已有相同 email 的使用者
+          const existingUser = await prisma.user.findUnique({
+            where: { email },
+          });
+
+          if (existingUser) {
+            // 連結現有使用者帳戶
+            await prisma.oAuthAccount.create({
+              data: {
+                provider: 'google',
+                providerId,
+                userId: existingUser.id,
+                email,
+                name,
+                picture,
+                accessToken: account.access_token,
+                refreshToken: account.refresh_token,
+                expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
+              },
+            });
+
+            user.id = existingUser.id;
+            user.name = existingUser.name;
+            user.email = existingUser.email;
+            user.taxId = existingUser.taxId;
+            user.role = existingUser.role;
+            user.status = existingUser.status;
+            user.emailVerified = existingUser.emailVerified;
+
+            return true;
+          }
+
+          // 新使用者 - 需要兩階段註冊流程
+          // 儲存 OAuth 資料到暫存，等待使用者補齊企業資料
+          const tempOAuthData = {
+            provider: 'google',
+            providerId,
+            email,
+            name,
+            picture,
+            accessToken: account.access_token,
+            refreshToken: account.refresh_token,
+            expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
+          };
+
+          // 將 OAuth 資料儲存到暫存表（1小時後過期）
+          const tempOAuth = await prisma.tempOAuth.create({
+            data: {
+              provider: 'google',
+              providerId,
+              email,
+              name: name || '',
+              picture: picture || '',
+              accessToken: account.access_token || '',
+              refreshToken: account.refresh_token || '',
+              tokenExpiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
+              data: JSON.stringify(tempOAuthData),
+              expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1小時後過期
+            },
+          });
+
+          // 重定向到 OAuth 註冊頁面，帶上暫存 ID
+          return `/register/oauth?id=${tempOAuth.id}`;
+        } catch (error: any) {
+           console.error('Google OAuth 登入錯誤:', error);
+          return false;
+        }
+      }
+
+      // 處理 Apple OAuth 登入
+      if (account?.provider === 'apple') {
+        try {
+          const { email, sub: providerId, name } = profile as any;
+          
+          // 檢查是否已有 OAuth 帳戶連結
+          const existingOAuthAccount = await prisma.oAuthAccount.findUnique({
+            where: {
+              provider_providerId: {
+                provider: 'apple',
+                providerId,
+              },
+            },
+            include: {
+              user: true,
+            },
+          });
+
+          if (existingOAuthAccount) {
+            // 已有連結帳戶，更新使用者資訊
+            user.id = existingOAuthAccount.user.id;
+            user.name = existingOAuthAccount.user.name;
+            user.email = existingOAuthAccount.user.email;
+            user.taxId = existingOAuthAccount.user.taxId;
+            user.role = existingOAuthAccount.user.role;
+            user.status = existingOAuthAccount.user.status;
+            user.emailVerified = existingOAuthAccount.user.emailVerified;
+
+            // 更新 OAuth 帳戶資訊
+            await prisma.oAuthAccount.update({
+              where: { id: existingOAuthAccount.id },
+              data: {
+                name,
+                accessToken: account.access_token,
+                refreshToken: account.refresh_token,
+                expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
+                updatedAt: new Date(),
+              },
+            });
+
+            return true;
+          }
+
+          // 檢查是否已有相同 email 的使用者
+          const existingUser = await prisma.user.findUnique({
+            where: { email },
+          });
+
+          if (existingUser) {
+            // 連結現有使用者帳戶
+            await prisma.oAuthAccount.create({
+              data: {
+                provider: 'apple',
+                providerId,
+                userId: existingUser.id,
+                email,
+                name,
+                accessToken: account.access_token,
+                refreshToken: account.refresh_token,
+                expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
+              },
+            });
+
+            user.id = existingUser.id;
+            user.name = existingUser.name;
+            user.email = existingUser.email;
+            user.taxId = existingUser.taxId;
+            user.role = existingUser.role;
+            user.status = existingUser.status;
+            user.emailVerified = existingUser.emailVerified;
+
+            return true;
+          }
+
+          // 新使用者 - 需要兩階段註冊流程
+          // 儲存 OAuth 資料到暫存，等待使用者補齊企業資料
+          const tempOAuthData = {
+            provider: 'apple',
+            providerId,
+            email,
+            name,
+            accessToken: account.access_token,
+            refreshToken: account.refresh_token,
+            expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
+          };
+
+          // 將 OAuth 資料儲存到暫存表（1小時後過期）
+          const tempOAuth = await prisma.tempOAuth.create({
+            data: {
+              provider: 'apple',
+              providerId,
+              email,
+              name: name || '',
+              accessToken: account.access_token || '',
+              refreshToken: account.refresh_token || '',
+              tokenExpiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
+              data: JSON.stringify(tempOAuthData),
+              expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1小時後過期
+            },
+          });
+
+          // 重定向到 OAuth 註冊頁面，帶上暫存 ID
+          return `/register/oauth?id=${tempOAuth.id}`;
+        } catch (error: any) {
+          console.error('Apple OAuth 登入錯誤:', error);
+          return false;
+        }
+      }
+
+      // 其他 provider 或 credentials 登入
+      return true;
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.taxId = user.taxId;
+        token.role = user.role;
+        token.status = user.status;
+        token.emailVerified = user.emailVerified;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user && token) {
+        session.user.id = token.id as string;
+        session.user.taxId = token.taxId as string;
+        session.user.role = token.role as string;
+        session.user.status = token.status as string;
+        session.user.emailVerified = token.emailVerified as boolean;
+      }
+      return session;
+    },
+  },
+  pages: {
+    signIn: '/login',
+    signOut: '/',
+    error: '/login',
+    newUser: '/register/oauth', // OAuth 新使用者註冊頁面
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true,
+});

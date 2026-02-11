@@ -1,0 +1,37 @@
+### 測試 FAQ 管理 API
+
+### 1. 獲取 FAQ 列表（基本）
+GET http://localhost:3000/api/admin/faqs
+Authorization: Bearer <管理員token>
+
+### 2. 獲取 FAQ 列表（帶分頁）
+GET http://localhost:3000/api/admin/faqs?page=1&limit=10
+Authorization: Bearer <管理員token>
+
+### 3. 搜尋 FAQ
+GET http://localhost:3000/api/admin/faqs?search=如何
+Authorization: Bearer <管理員token>
+
+### 4. 篩選活躍的 FAQ
+GET http://localhost:3000/api/admin/faqs?isActive=true
+Authorization: Bearer <管理員token>
+
+### 5. 篩選非活躍的 FAQ
+GET http://localhost:3000/api/admin/faqs?isActive=false
+Authorization: Bearer <管理員token>
+
+### 6. 組合查詢：搜尋 + 分頁 + 篩選
+GET http://localhost:3000/api/admin/faqs?page=1&limit=5&search=付款&isActive=true
+Authorization: Bearer <管理員token>
+
+### 7. 測試無效參數（頁碼為0）
+GET http://localhost:3000/api/admin/faqs?page=0
+Authorization: Bearer <管理員token>
+
+### 8. 測試無效參數（限制超過最大值）
+GET http://localhost:3000/api/admin/faqs?limit=200
+Authorization: Bearer <管理員token>
+
+### 9. 測試無效參數（布林值格式錯誤）
+GET http://localhost:3000/api/admin/faqs?isActive=yes
+Authorization: Bearer <管理員token>
