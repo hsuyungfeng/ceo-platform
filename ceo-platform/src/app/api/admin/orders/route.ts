@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/admin-auth';
 import { OrderQuerySchema, ApiResponse } from '@/types/admin';
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -162,7 +163,7 @@ export async function GET(request: NextRequest) {
     } as ApiResponse);
 
   } catch (error) {
-    console.error('取得管理員訂單列表錯誤:', error);
+    logger.error({ err: error }, '取得管理員訂單列表錯誤');
     return NextResponse.json(
       {
         success: false,

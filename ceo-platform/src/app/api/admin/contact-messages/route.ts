@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/admin-auth';
 import { ApiResponse } from '@/types/admin';
 import { contactMessageQuerySchema } from './schema';
+import { logger } from '@/lib/logger'
 
 // GET: 獲取聯絡訊息列表
 export async function GET(request: NextRequest) {
@@ -115,7 +116,7 @@ export async function GET(request: NextRequest) {
     } as ApiResponse);
 
   } catch (error) {
-    console.error('取得聯絡訊息列表錯誤:', error);
+    logger.error({ err: error }, '取得聯絡訊息列表錯誤');
     return NextResponse.json(
       {
         success: false,

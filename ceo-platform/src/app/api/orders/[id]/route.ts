@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger'
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -89,7 +90,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json(formattedOrder);
 
   } catch (error) {
-    console.error('取得訂單詳情錯誤:', error);
+    logger.error({ err: error }, '取得訂單詳情錯誤');
     return NextResponse.json(
       { error: '伺服器錯誤，請稍後再試' },
       { status: 500 }
@@ -181,7 +182,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     });
 
   } catch (error) {
-    console.error('取消訂單錯誤:', error);
+    logger.error({ err: error }, '取消訂單錯誤');
     return NextResponse.json(
       { error: '伺服器錯誤，請稍後再試' },
       { status: 500 }

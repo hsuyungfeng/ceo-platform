@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { logger } from '@/lib/logger'
 
 // 註冊請求驗證 schema
 const registerSchema = z.object({
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('註冊錯誤:', error);
+    logger.error({ err: error }, '註冊錯誤');
     return NextResponse.json(
       { error: '伺服器錯誤，請稍後再試' },
       { status: 500 }

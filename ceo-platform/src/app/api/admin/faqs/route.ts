@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/admin-auth';
 import { ApiResponse } from '@/types/admin';
 import { faqQuerySchema, faqSchema } from './schema';
+import { logger } from '@/lib/logger'
 
 // 錯誤訊息常數
 const ERROR_MESSAGES = {
@@ -90,7 +91,7 @@ export async function GET(request: NextRequest) {
     } as ApiResponse);
 
   } catch (error) {
-    console.error('取得 FAQ 列表錯誤:', error);
+    logger.error({ err: error }, '取得 FAQ 列表錯誤');
     return NextResponse.json(
       {
         success: false,
@@ -192,7 +193,7 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('創建 FAQ 錯誤:', error);
+    logger.error({ err: error }, '創建 FAQ 錯誤');
     
     // 處理 Prisma 唯一約束錯誤
     if (error instanceof Error && error.message.includes('Unique constraint')) {

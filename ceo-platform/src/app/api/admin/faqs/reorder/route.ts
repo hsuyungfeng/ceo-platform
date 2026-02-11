@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/admin-auth';
 import { ApiResponse, ReorderFaqSchema } from '@/types/admin';
+import { logger } from '@/lib/logger'
 
 const ERROR_MESSAGES = {
   METHOD_NOT_ALLOWED: '此端點僅支援 POST 請求',
@@ -125,7 +126,7 @@ export async function POST(request: NextRequest) {
     } as ApiResponse);
 
   } catch (error) {
-    console.error('重新排序 FAQ 錯誤:', error);
+    logger.error({ err: error }, '重新排序 FAQ 錯誤');
     return NextResponse.json(
       {
         success: false,

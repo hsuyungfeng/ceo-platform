@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -73,7 +74,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(formattedProducts);
 
   } catch (error) {
-    console.error('取得熱門商品錯誤:', error);
+    logger.error({ err: error }, '取得熱門商品錯誤');
     return NextResponse.json(
       { error: '伺服器錯誤，請稍後再試' },
       { status: 500 }

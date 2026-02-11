@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 import { z } from 'zod';
+import { logger } from '@/lib/logger'
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -124,7 +125,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     });
 
   } catch (error) {
-    console.error('更新購物車錯誤:', error);
+    logger.error({ err: error }, '更新購物車錯誤');
     return NextResponse.json(
       { error: '伺服器錯誤，請稍後再試' },
       { status: 500 }
@@ -172,7 +173,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     });
 
   } catch (error) {
-    console.error('刪除購物車錯誤:', error);
+    logger.error({ err: error }, '刪除購物車錯誤');
     return NextResponse.json(
       { error: '伺服器錯誤，請稍後再試' },
       { status: 500 }

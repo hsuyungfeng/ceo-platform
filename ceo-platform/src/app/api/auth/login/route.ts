@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { signIn } from '@/auth';
+import { logger } from '@/lib/logger'
 
 // 登入請求驗證 schema
 const loginSchema = z.object({
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
       );
 
     } catch (authError) {
-      console.error('NextAuth 登入錯誤:', authError);
+      logger.error({ err: authError }, 'NextAuth 登入錯誤');
       return NextResponse.json(
         { error: '認證系統錯誤，請稍後再試' },
         { status: 500 }
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('登入錯誤:', error);
+    logger.error({ err: error }, '登入錯誤');
     return NextResponse.json(
       { error: '伺服器錯誤，請稍後再試' },
       { status: 500 }

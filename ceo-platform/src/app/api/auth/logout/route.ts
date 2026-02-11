@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { signOut } from '@/auth';
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('登出錯誤:', error);
+    logger.error({ err: error }, '登出錯誤');
     return NextResponse.json(
       { error: '登出失敗，請稍後再試' },
       { status: 500 }

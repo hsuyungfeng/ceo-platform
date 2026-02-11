@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/admin-auth';
-import { 
+import {
   UpdateCategorySchema,
   ReorderCategorySchema,
   MoveCategorySchema,
   ApiResponse,
   CategoryDetail
 } from '@/types/admin';
+import { logger } from '@/lib/logger'
 
 // 獲取分類詳情
 export async function GET(
@@ -80,7 +81,7 @@ export async function GET(
     } as ApiResponse);
 
   } catch (error) {
-    console.error('獲取分類詳情錯誤:', error);
+    logger.error({ err: error }, '獲取分類詳情錯誤');
     return NextResponse.json(
       {
         success: false,
@@ -288,7 +289,7 @@ export async function PATCH(
     } as ApiResponse);
 
   } catch (error) {
-    console.error('更新分類錯誤:', error);
+    logger.error({ err: error }, '更新分類錯誤');
     
     return NextResponse.json(
       {
@@ -371,7 +372,7 @@ export async function DELETE(
     } as ApiResponse);
 
   } catch (error) {
-    console.error('刪除分類錯誤:', error);
+    logger.error({ err: error }, '刪除分類錯誤');
     return NextResponse.json(
       {
         success: false,

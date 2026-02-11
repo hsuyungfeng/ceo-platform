@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/admin-auth';
 import { AdjustPointsSchema, ApiResponse } from '@/types/admin';
+import { logger } from '@/lib/logger'
 
 export async function POST(
   request: NextRequest,
@@ -142,7 +143,7 @@ export async function POST(
     } as ApiResponse, { status: 201 });
 
   } catch (error) {
-    console.error('調整點數錯誤:', error);
+    logger.error({ err: error }, '調整點數錯誤');
     return NextResponse.json(
       {
         success: false,
@@ -221,7 +222,7 @@ export async function GET(
     } as ApiResponse);
 
   } catch (error) {
-    console.error('取得點數交易記錄錯誤:', error);
+    logger.error({ err: error }, '取得點數交易記錄錯誤');
     return NextResponse.json(
       {
         success: false,

@@ -1,0 +1,1 @@
+cd ceo-platform && npx lint-staged

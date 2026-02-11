@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/admin-auth';
 import { UpdateProductSchema, ApiResponse } from '@/types/admin';
+import { logger } from '@/lib/logger'
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -268,7 +269,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     );
 
   } catch (error) {
-    console.error('更新商品錯誤:', error);
+    logger.error({ err: error }, '更新商品錯誤');
     
     // 處理 Prisma 唯一約束錯誤
     if (error instanceof Error && error.message.includes('Unique constraint')) {
@@ -381,7 +382,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     );
 
   } catch (error) {
-    console.error('刪除商品錯誤:', error);
+    logger.error({ err: error }, '刪除商品錯誤');
     
     // 處理 Prisma 記錄不存在錯誤
     if (error instanceof Error && error.message.includes('Record to update not found')) {
@@ -530,7 +531,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     } as ApiResponse);
 
   } catch (error) {
-    console.error('取得管理員商品詳情錯誤:', error);
+    logger.error({ err: error }, '取得管理員商品詳情錯誤');
     return NextResponse.json(
       {
         success: false,

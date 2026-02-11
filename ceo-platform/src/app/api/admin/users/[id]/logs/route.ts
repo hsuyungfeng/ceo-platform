@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/admin-auth';
 import { ApiResponse } from '@/types/admin';
+import { logger } from '@/lib/logger'
 
 export async function GET(
   request: NextRequest,
@@ -92,7 +93,7 @@ export async function GET(
     } as ApiResponse);
 
   } catch (error) {
-    console.error('取得操作日誌錯誤:', error);
+    logger.error({ err: error }, '取得操作日誌錯誤');
     return NextResponse.json(
       {
         success: false,

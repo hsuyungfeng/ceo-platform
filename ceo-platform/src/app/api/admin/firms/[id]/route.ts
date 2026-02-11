@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin-auth'
 import prisma from '@/lib/prisma'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 // 廠商更新驗證
 const updateFirmSchema = z.object({
@@ -56,7 +57,7 @@ export async function GET(
     return NextResponse.json(firm)
 
   } catch (error) {
-    console.error('獲取廠商詳情錯誤:', error)
+    logger.error({ err: error }, '獲取廠商詳情錯誤')
     return NextResponse.json(
       { error: '伺服器錯誤' },
       { status: 500 }
@@ -120,7 +121,7 @@ export async function PATCH(
     return NextResponse.json(updatedFirm)
 
   } catch (error) {
-    console.error('更新廠商錯誤:', error)
+    logger.error({ err: error }, '更新廠商錯誤')
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -189,7 +190,7 @@ export async function DELETE(
     )
 
   } catch (error) {
-    console.error('刪除廠商錯誤:', error)
+    logger.error({ err: error }, '刪除廠商錯誤')
     return NextResponse.json(
       { error: '伺服器錯誤' },
       { status: 500 }

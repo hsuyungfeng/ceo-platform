@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { logger } from '@/lib/logger'
 
 // 查詢參數驗證 schema
 const querySchema = z.object({
@@ -19,13 +20,13 @@ export async function GET(request: NextRequest) {
     
     // 解析和驗證查詢參數
     const queryParams = {
-      page: searchParams.get('page'),
-      limit: searchParams.get('limit'),
-      search: searchParams.get('search'),
-      categoryId: searchParams.get('categoryId'),
-      featured: searchParams.get('featured'),
-      sortBy: searchParams.get('sortBy'),
-      order: searchParams.get('order'),
+      page: searchParams.get('page') ?? undefined,
+      limit: searchParams.get('limit') ?? undefined,
+      search: searchParams.get('search') ?? undefined,
+      categoryId: searchParams.get('categoryId') ?? undefined,
+      featured: searchParams.get('featured') ?? undefined,
+      sortBy: searchParams.get('sortBy') ?? undefined,
+      order: searchParams.get('order') ?? undefined,
     };
 
     const validationResult = querySchema.safeParse(queryParams);
@@ -138,7 +139,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('取得商品列表錯誤:', error);
+    logger.error({ err: error }, '取得商品列表錯誤');
     return NextResponse.json(
       { error: '伺服器錯誤，請稍後再試' },
       { status: 500 }

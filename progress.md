@@ -1290,6 +1290,92 @@ apps/mobile/
 
 ---
 
+### 2026-02-26（Day 21 - 郵件認證系統 Phase 1 完成）
+
+**完成項目**
+- [x] **郵件認證系統 Phase 1：基礎架構完整實現** ✅ **100% 完成**
+  - [x] **Task 1.1：資料庫 Schema 擴充**
+    - [x] 新增 5 個郵件驗證相關資料表：
+      - `EmailVerificationToken` - 郵件驗證令牌
+      - `PasswordResetToken` - 密碼重設令牌  
+      - `TwoFactorToken` - 兩因素驗證令牌
+      - `EmailLoginToken` - 郵件登入令牌
+      - `EmailAuthAuditLog` - 郵件驗證審計日誌
+    - [x] 更新 `User` 模型，新增郵件驗證相關欄位：
+      - `twoFactorEnabled` - 兩因素驗證啟用狀態
+      - `twoFactorMethod` - 兩因素驗證方法
+      - `emailLoginEnabled` - 郵件登入啟用狀態
+      - `lastEmailSentAt` - 最後發送郵件時間
+      - `emailSentCount` - 郵件發送計數
+    - [x] 新增 3 個枚舉類型：
+      - `EmailTokenType` - 郵件令牌類型
+      - `TwoFactorTokenType` - 兩因素令牌類型
+      - `EmailAuthAction` - 郵件驗證操作類型
+  - [x] **Task 1.2：郵件服務設置**
+    - [x] 建立完整的郵件服務架構在 `src/lib/email/`
+    - [x] 實現 `EmailService` 類別，支援：
+      - 郵件驗證郵件發送
+      - 密碼重設郵件發送
+      - 兩因素驗證郵件發送
+      - 郵件登入連結發送
+    - [x] 創建美觀的中文郵件模板（HTML + 純文字版本）
+    - [x] 配置 Resend 郵件服務整合
+  - [x] **Task 1.3：令牌管理服務**
+    - [x] 建立 `TokenService` 類別，提供：
+      - 安全令牌生成（隨機字串、數字驗證碼、TOTP 密鑰）
+      - 各類令牌的創建與驗證
+      - 令牌過期清理功能
+      - 郵件發送速率限制檢查
+      - 審計日誌記錄
+  - [x] **Task 1.4：環境配置**
+    - [x] 更新所有環境配置文件：
+      - `.env.example` - 開發環境範例
+      - `.env.local` - 本地開發配置
+      - `.env.production.example` - 生產環境範例
+    - [x] 新增郵件驗證相關環境變數：
+      - Resend API 金鑰配置
+      - 郵件發送者資訊
+      - 速率限制設定
+      - 令牌過期時間設定
+  - [x] **Task 1.5：初始遷移**
+    - [x] 成功將 Prisma schema 同步到資料庫
+    - [x] 生成了更新的 Prisma Client
+    - [x] 資料庫現在包含完整的郵件驗證資料表結構
+
+**技術特色實現**
+1. **安全性設計**：
+   - 令牌雜湊儲存
+   - 速率限制保護（每小時5次，每天20次）
+   - 審計日誌追蹤
+   - 令牌過期機制（24h/1h/10m/15m）
+
+2. **使用者體驗**：
+   - 美觀的中文郵件模板
+   - 清晰的錯誤訊息
+   - 安全資訊提示
+   - 響應式郵件設計
+
+3. **可擴展性**：
+   - 模組化服務架構
+   - 支援多種驗證方式
+   - 易於配置的環境變數
+   - 完整的類型定義
+
+**工作環境**
+- 使用 `git worktree` 創建隔離開發環境：`.worktrees/email-auth/`
+- 分支：`feature/email-auth`
+- 所有代碼在隔離環境中開發，不影響主分支
+
+**明日計劃（2026-02-27 - Day 22）**
+- **開始 Phase 2：核心 API 實現**
+  - Task 2.1：郵件驗證 API（發送驗證郵件、驗證令牌）
+  - Task 2.2：郵件登入 API（發送登入連結、驗證登入令牌）
+  - Task 2.3：密碼重設 API（發送重設郵件、驗證重設令牌、更新密碼）
+  - Task 2.4：兩因素驗證 API（發送 2FA 郵件、驗證 2FA 令牌）
+  - Task 2.5：用戶設定 API（啟用/停用郵件登入、啟用/停用 2FA）
+
+---
+
 ## Phase 7：Mobile App 進階 + 上架（第 14-16 週）
 
 ### 2026-0X-XX（Day X - 計劃）
@@ -1430,3 +1516,282 @@ apps/mobile/
 ### Monorepo
 - [Turborepo 文件](https://turbo.build/repo/docs)
 - [pnpm Workspaces](https://pnpm.io/workspaces)
+
+---
+
+## 檔案結構清理與最佳化（2026-02-11）
+
+### 清理背景
+在完成 6 個架構改善（Logger、Tests、CI/CD、Hooks、.gitignore、Zod 修復）後，對整個專案進行了全面的檔案清理和目錄結構整理。
+
+### 第一階段：安全刪除（節省 ~888 MB）
+
+#### 已刪除檔案/目錄
+1. **web/** - 舊版前端目錄
+   - 大小：888 MB
+   - 狀態：已完全被 ceo-platform/ 取代
+   - 驗證：無任何內部代碼參考
+   - 刪除方式：`rm -rf web/`
+
+2. **ceo-platform/src/middleware.ts.backup** - 授權繞過風險備份
+   - 大小：< 1 KB
+   - 風險：備份檔案中包含允許所有路徑的註釋
+   - 刪除方式：`rm ceo-platform/src/middleware.ts.backup`
+
+3. **.DS_Store** - macOS 系統檔案（多處）
+   - 大小：< 1 MB
+   - 刪除方式：`find . -name ".DS_Store" -delete`
+
+### 第二階段：歸檔舊版資料（節省 ~29 MB）
+
+#### 已歸檔目錄
+
+1. **HTML/** → HTML_legacy_backup_20260211.tar.gz
+   - 原始大小：29 MB
+   - 檔案數：699 個
+   - PHP 檔案：138 個
+   - 年代：2014 年遺留 PHP 系統
+   - 歸檔指令：
+     ```bash
+     tar -czf HTML_legacy_backup_20260211.tar.gz HTML/
+     rm -rf HTML/
+     ```
+
+2. **DB/** → DB_legacy_backup_20260211.tar.gz
+   - 原始大小：124 KB
+   - 內容：betterch_ceo.sql（2014 年資料庫 dump）
+   - 歸檔指令：
+     ```bash
+     tar -czf DB_legacy_backup_20260211.tar.gz DB/
+     rm -rf DB/
+     ```
+
+### 第三階段：Docker 配置整合
+
+#### 已刪除（推薦方案 B：集中式 Docker 配置）
+1. **ceo-platform/Dockerfile** - 根目錄配置（已移至 docker/ 子目錄）
+2. **ceo-platform/docker-compose.yml** - 根目錄配置（已移至 docker/ 子目錄）
+
+#### 保留
+- **ceo-platform/docker/** 目錄中的所有 Docker 配置文件
+- 包含：Dockerfile、docker-compose.yml、nginx 配置等
+
+### 第四階段：文件結構整理
+
+#### 新建 docs/ 目錄
+在專案根目錄 `/統購PHP/docs/` 下創建了文件管理目錄，統一組織所有文檔：
+
+```
+/統購PHP/
+├── docs/
+│   ├── 01_Progress.md          # 進度紀錄（本檔案）
+│   ├── 02_Plan.md              # 整體規劃文件
+│   ├── 03_ClaudePlan.md        # Claude 架構改善審計
+│   └── [更多文檔將添加於此]
+├── ceo-platform/               # 主要開發目錄
+│   ├── src/
+│   ├── public/
+│   ├── docker/                 # Docker 統一配置
+│   ├── prisma/
+│   ├── .github/
+│   └── package.json
+├── .github/                     # GitHub 工作流程（通用）
+├── .git/
+├── .gitignore
+└── README.md
+```
+
+### 第五階段：.gitignore 優化
+
+#### 已完成的規則更新
+在根目錄 `.gitignore` 中添加：
+```
+# 系統檔案
+.DS_Store
+Thumbs.db
+
+# 建構產物
+ceo-platform/.next/
+ceo-platform/node_modules/
+ceo-platform/dist/
+.turbo/
+
+# 環境與配置
+.env.local
+.env.*.local
+.idea/
+.vscode/
+
+# 歸檔檔案
+*.tar.gz
+HTML_legacy_backup_*
+DB_legacy_backup_*
+
+# 測試與覆蓋率
+coverage/
+.nyc_output/
+test-results/
+
+# 日誌
+*.log
+npm-debug.log*
+```
+
+### 磁碟空間節省統計
+
+| 項目 | 大小 | 狀態 |
+|------|------|------|
+| web/ 刪除 | 888 MB | ✅ 完成 |
+| HTML/ 歸檔 | 29 MB | ✅ 完成 |
+| DB/ 歸檔 | 124 KB | ✅ 完成 |
+| 系統檔案 | < 1 MB | ✅ 完成 |
+| **總計立即節省** | **~888 MB** | **✅ 已達成** |
+| **備份後額外節省** | **~29 MB** | **✅ 已達成** |
+
+### 未完成的清理項目（暫時保留）
+
+#### Phase 6 Worktrees（~5.8 GB，19 個未合併提交）
+- **.worktrees/phase6/** - Mobile 應用與 Monorepo 架構
+  - 狀態：**暫不刪除** - 包含重要的開發功能
+  - 包含：
+    - Email 驗證系統
+    - Apple Sign-In 整合
+    - Mobile app 實作
+    - Monorepo 結構（Turborepo + 共用套件）
+  - 決定：待決定是否合併至主分支後才刪除
+
+- **.worktrees/email-auth/** - Email 身份驗證分支
+  - 狀態：**暫不刪除** - 正在開發中
+  - 決定：完成開發後評估是否合併
+
+### 後續最佳化（可選）
+
+#### Phase 7：Git 垃圾回收
+預計可再節省 100-200 MB：
+```bash
+git gc --aggressive
+git prune
+```
+
+#### Phase 8：Worktree 清理（待決定）
+當確認 Phase 6 分支已完成或不需要時：
+```bash
+# 刪除 worktree
+git worktree remove .worktrees/phase6
+git worktree remove .worktrees/email-auth
+
+# 移除目錄
+rm -rf .worktrees/
+```
+預計節省：~5.8 GB
+
+### 架構改善總結（自 2026-02-10 起）
+
+#### 已實現的 6 個改善
+
+1. **✅ Logger 整合** - Pino 結構化日誌系統
+   - 32 個 API 路由檔案已遷移至 logger.error()
+   - 支援開發模式彩色輸出，生產模式 JSON 結構化日誌
+   - 可配置日誌級別
+
+2. **✅ 單元測試框架** - Vitest + React Testing Library
+   - 3 個 API 路由測試檔案（orders、cart、products）
+   - 15 個測試用例，全部通過（100% 成功率）
+   - 支援 TypeScript、模擬依賴、DOM 測試
+
+3. **✅ CI/CD 整合** - GitHub Actions 自動測試
+   - .github/workflows/ci.yml 已啟用 `pnpm test`
+   - 每次 push/PR 時自動執行單元測試
+
+4. **✅ Pre-commit Hooks** - Husky + Lint-staged
+   - 根目錄 .husky/pre-commit 配置完成
+   - 自動對 staged 檔案執行 eslint --fix
+
+5. **✅ .gitignore 擴充** - 從 1 行到 46 行
+   - 涵蓋 node_modules、環境檔案、系統檔案、建構產物等
+   - 避免意外提交敏感資訊
+
+6. **✅ Zod Schema 修復** - 查詢參數驗證
+   - 修復 searchParams.get() 返回 null 導致驗證失敗的問題
+   - products/route.ts 和 orders/route.ts 已應用修復
+
+#### 代碼品質提升
+
+| 指標 | 改善前 | 改善後 | 進度 |
+|------|--------|--------|------|
+| 日誌系統 | console.error (56 次) | logger.error (56 次) | ✅ 100% |
+| 測試覆蓋 | 0 個測試 | 15 個測試 | ✅ 100% |
+| CI/CD 自動化 | 未啟用 | 已啟用 | ✅ 100% |
+| 提交前檢查 | 無 | Husky 鉤子 | ✅ 100% |
+| 代碼品質工具 | ESLint 僅手動 | ESLint 自動化 | ✅ 100% |
+
+### 新增檔案清單
+
+```
+新建檔案：
+├── ceo-platform/vitest.config.ts
+├── ceo-platform/src/lib/logger.ts
+├── ceo-platform/src/__tests__/setup.ts
+├── ceo-platform/src/app/api/orders/__tests__/route.test.ts
+├── ceo-platform/src/app/api/cart/__tests__/route.test.ts
+├── ceo-platform/src/app/api/products/__tests__/route.test.ts
+├── .husky/pre-commit
+├── docs/ (目錄)
+├── docs/01_Progress.md (本檔案的副本)
+├── docs/02_Plan.md
+├── docs/03_ClaudePlan.md
+├── HTML_legacy_backup_20260211.tar.gz
+└── DB_legacy_backup_20260211.tar.gz
+```
+
+### 修改的核心檔案
+
+```
+修改檔案（32 個 API 路由）：
+├── ceo-platform/src/app/api/*/route.ts
+│   ├── 已遷移 console.error → logger.error
+│   ├── 已新增 import { logger } from '@/lib/logger'
+│   └── 共 56 個 logger.error 調用
+├── ceo-platform/src/app/api/products/route.ts
+│   └── 已修復查詢參數驗證（? ?? undefined）
+├── ceo-platform/src/app/api/orders/route.ts
+│   └── 已修復查詢參數驗證（? ?? undefined）
+├── ceo-platform/package.json
+│   ├── 新增 test、test:watch、test:coverage 腳本
+│   ├── 新增 vitest、pino、husky、lint-staged 依賴
+│   └── 新增 lint-staged 配置
+├── ceo-platform/.github/workflows/ci.yml
+│   └── 已啟用 pnpm test（第 92 行）
+└── .gitignore (根目錄)
+    └── 從 1 行擴充至 46 行規則
+```
+
+### 下一步規劃
+
+#### 立即可執行（可選最佳化）
+1. 執行 `git gc --aggressive` 進一步壓縮 git 歷史（~100-200 MB）
+2. 監控測試覆蓋率，逐步增加至 50%+
+
+#### 待決定（重大決策）
+1. **Phase 6 分支合併決策**
+   - 檢查 feature/phase6-mobile-app 內容
+   - 評估 Email 驗證與 Apple Sign-In 是否完成
+   - 決定是否合併至 main（若合併可節省 5.8 GB）
+
+2. **Worktree 清理時機**
+   - 若合併 Phase 6：執行 `git worktree remove .worktrees/phase6`
+   - 若合併 Email-auth：執行 `git worktree remove .worktrees/email-auth`
+   - 預期節省空間：5.8 GB
+
+3. **生產環境部署前檢查清單**
+   - [ ] 所有單元測試通過
+   - [ ] CI/CD 管道運行成功
+   - [ ] 代碼覆蓋率達到預期
+   - [ ] 日誌系統在生產環境測試成功
+   - [ ] Pre-commit hooks 正常工作
+
+### 完成時間
+- 開始時間：2026-02-10
+- 完成時間：2026-02-11
+- 總耗時：~2 小時
+- 團隊：Claude（架構改善 + 清理執行）

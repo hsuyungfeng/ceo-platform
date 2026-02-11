@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/admin-auth';
 import { MoveCategorySchema, ApiResponse } from '@/types/admin';
+import { logger } from '@/lib/logger'
 
 export async function PATCH(
   request: NextRequest,
@@ -221,7 +222,7 @@ export async function PATCH(
     } as ApiResponse);
 
   } catch (error) {
-    console.error('移動分類錯誤:', error);
+    logger.error({ err: error }, '移動分類錯誤');
     return NextResponse.json(
       {
         success: false,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 import { z } from 'zod';
+import { logger } from '@/lib/logger'
 
 // 查詢參數驗證 schema
 const querySchema = z.object({
@@ -32,9 +33,9 @@ export async function GET(request: NextRequest) {
     
     // 解析和驗證查詢參數
     const queryParams = {
-      page: searchParams.get('page'),
-      limit: searchParams.get('limit'),
-      status: searchParams.get('status'),
+      page: searchParams.get('page') ?? undefined,
+      limit: searchParams.get('limit') ?? undefined,
+      status: searchParams.get('status') ?? undefined,
     };
 
     const validationResult = querySchema.safeParse(queryParams);
@@ -120,7 +121,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('取得訂單列表錯誤:', error);
+    logger.error({ err: error }, '取得訂單列表錯誤');
     return NextResponse.json(
       { error: '伺服器錯誤，請稍後再試' },
       { status: 500 }
@@ -333,7 +334,7 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
-    console.error('建立訂單錯誤:', error);
+    logger.error({ err: error }, '建立訂單錯誤');
     return NextResponse.json(
       { error: '伺服器錯誤，請稍後再試' },
       { status: 500 }

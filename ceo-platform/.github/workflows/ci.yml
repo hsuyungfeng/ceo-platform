@@ -89,7 +89,7 @@ jobs:
         export DATABASE_URL="postgresql://ceo_admin:test_password@localhost:5432/ceo_platform_test"
         export NEXTAUTH_SECRET="test-secret"
         export NODE_ENV="test"
-        # 這裡可以添加測試命令，例如: pnpm test
+        pnpm test
 
     - name: Upload test results
       if: always()

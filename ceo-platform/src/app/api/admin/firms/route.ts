@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin-auth'
 import prisma from '@/lib/prisma'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 // 廠商列表查詢參數驗證
 const listQuerySchema = z.object({
@@ -86,7 +87,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('獲取廠商列表錯誤:', error)
+    logger.error({ err: error }, '獲取廠商列表錯誤')
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(firm, { status: 201 })
 
   } catch (error) {
-    console.error('創建廠商錯誤:', error)
+    logger.error({ err: error }, '創建廠商錯誤')
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

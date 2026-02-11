@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/admin-auth';
-import { 
-  CreateCategorySchema, 
+import {
+  CreateCategorySchema,
   UpdateCategorySchema,
   BatchCategoryOperationSchema,
   ApiResponse,
-  CategoryWithChildren 
+  CategoryWithChildren
 } from '@/types/admin';
+import { logger } from '@/lib/logger'
 
 // 構建分類樹的輔助函數
 function buildCategoryTree(
@@ -78,7 +79,7 @@ export async function GET(request: NextRequest) {
     } as ApiResponse);
 
   } catch (error) {
-    console.error('獲取分類樹錯誤:', error);
+    logger.error({ err: error }, '獲取分類樹錯誤');
     return NextResponse.json(
       {
         success: false,
@@ -222,7 +223,7 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('創建分類錯誤:', error);
+    logger.error({ err: error }, '創建分類錯誤');
     
     return NextResponse.json(
       {
@@ -328,7 +329,7 @@ export async function PATCH(request: NextRequest) {
     } as ApiResponse);
 
   } catch (error) {
-    console.error('批量操作分類錯誤:', error);
+    logger.error({ err: error }, '批量操作分類錯誤');
     return NextResponse.json(
       {
         success: false,

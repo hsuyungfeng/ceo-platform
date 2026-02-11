@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/admin-auth';
 import { CreateProductSchema, ApiResponse } from '@/types/admin';
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -196,7 +197,7 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('創建商品錯誤:', error);
+    logger.error({ err: error }, '創建商品錯誤');
     
     // 處理 Prisma 唯一約束錯誤
     if (error instanceof Error && error.message.includes('Unique constraint')) {
@@ -326,7 +327,7 @@ export async function GET(request: NextRequest) {
     } as ApiResponse);
 
   } catch (error) {
-    console.error('取得管理員商品列表錯誤:', error);
+    logger.error({ err: error }, '取得管理員商品列表錯誤');
     return NextResponse.json(
       {
         success: false,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/admin-auth';
 import { UpdateUserStatusSchema, UpdateUserInfoSchema, ApiResponse } from '@/types/admin';
+import { logger } from '@/lib/logger'
 
 export async function GET(
   request: NextRequest,
@@ -86,7 +87,7 @@ export async function GET(
     } as ApiResponse);
 
   } catch (error) {
-    console.error('取得會員詳情錯誤:', error);
+    logger.error({ err: error }, '取得會員詳情錯誤');
     return NextResponse.json(
       {
         success: false,
@@ -227,7 +228,7 @@ export async function PATCH(
     } as ApiResponse);
 
   } catch (error) {
-    console.error('更新會員錯誤:', error);
+    logger.error({ err: error }, '更新會員錯誤');
     return NextResponse.json(
       {
         success: false,

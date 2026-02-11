@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/admin-auth';
 import { ApiResponse } from '@/types/admin';
+import { logger } from '@/lib/logger'
 
 // GET: 獲取儀表板統計數據
 export async function GET(request: NextRequest) {
@@ -266,7 +267,7 @@ export async function GET(request: NextRequest) {
     } as ApiResponse);
 
   } catch (error) {
-    console.error('獲取儀表板統計數據錯誤:', error);
+    logger.error({ err: error }, '獲取儀表板統計數據錯誤');
     return NextResponse.json(
       {
         success: false,

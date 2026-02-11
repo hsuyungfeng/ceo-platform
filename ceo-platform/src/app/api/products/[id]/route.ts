@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger'
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -124,7 +125,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('取得商品詳情錯誤:', error);
+    logger.error({ err: error }, '取得商品詳情錯誤');
     return NextResponse.json(
       { error: '伺服器錯誤，請稍後再試' },
       { status: 500 }
