@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -103,11 +104,12 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
               {mockOrder.items.map((item) => (
                 <div key={item.id} className="flex items-center justify-between pb-4 border-b">
                   <div className="flex items-center">
-                    <div className="w-16 h-16 bg-gray-200 mr-4">
-                      <img 
+                    <div className="w-16 h-16 bg-gray-200 mr-4 relative">
+                      <Image 
                         src={item.image} 
                         alt={item.name} 
-                        className="w-full h-full object-contain"
+                        fill
+                        className="object-contain"
                       />
                     </div>
                     <div>

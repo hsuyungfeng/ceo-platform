@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -289,10 +290,12 @@ export default function ProductsPage() {
                   {products.map((product) => (
                     <Card key={product.id} className="overflow-hidden">
                       <div className="relative h-48 bg-gray-200">
-                        <img 
+                        <Image 
                           src={product.image} 
                           alt={product.name} 
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                         />
                         {product.featured && (
                           <Badge className="absolute top-2 left-2 bg-red-500">熱門</Badge>

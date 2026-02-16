@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -329,11 +330,13 @@ export default function AdminDashboard() {
                   <div key={product.productId} className="flex items-center justify-between border-b pb-3 last:border-0">
                     <div className="flex items-center gap-3">
                       {product.productImage ? (
-                        <div className="h-10 w-10 rounded-md bg-gray-100 overflow-hidden">
-                          <img
+                        <div className="h-10 w-10 rounded-md bg-gray-100 overflow-hidden relative">
+                          <Image
                             src={product.productImage}
                             alt={product.productName}
-                            className="h-full w-full object-cover"
+                            fill
+                            className="object-cover"
+                            unoptimized
                           />
                         </div>
                       ) : (

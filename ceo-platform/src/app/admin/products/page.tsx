@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -78,11 +79,15 @@ export default async function ProductsPage() {
                   <TableCell className="font-medium">
                     <div className="flex items-center">
                       {product.image && (
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="mr-3 h-10 w-10 rounded object-cover"
-                        />
+                        <div className="mr-3 h-10 w-10 rounded overflow-hidden relative">
+                          <Image
+                            src={product.image}
+                            alt={product.name}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        </div>
                       )}
                       <div>
                         <div>{product.name}</div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -166,10 +167,13 @@ export default function CheckoutPage() {
                   cartItems.map((item) => (
                     <div key={item.id} className="flex items-center">
                       <div className="w-16 h-16 bg-gray-200 mr-4">
-                        <img 
+                        <Image 
                           src={item.image || '/placeholder-product.jpg'} 
                           alt={item.name} 
+                          width={64}
+                          height={64}
                           className="w-full h-full object-contain"
+                          unoptimized
                         />
                       </div>
                       <div className="flex-1">

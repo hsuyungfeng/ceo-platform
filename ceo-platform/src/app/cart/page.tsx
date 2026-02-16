@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -161,10 +162,13 @@ export default function CartPage() {
                 <Card key={item.id}>
                   <div className="flex">
                     <div className="w-24 h-24 bg-gray-200 m-4 flex-shrink-0">
-                      <img 
+                      <Image 
                         src={item.image} 
                         alt={item.name} 
+                        width={96}
+                        height={96}
                         className="w-full h-full object-contain"
+                        unoptimized
                       />
                     </div>
                     

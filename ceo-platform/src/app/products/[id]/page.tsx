@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -227,11 +228,13 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         <Card className="overflow-hidden">
           <div className="md:flex">
             <div className="md:w-1/2">
-              <div className="h-96 bg-gray-200">
-                <img 
+              <div className="h-96 bg-gray-200 relative">
+                <Image 
                   src={product.image || '/placeholder-product.jpg'} 
                   alt={product.name} 
-                  className="w-full h-full object-contain"
+                  fill
+                  className="object-contain"
+                  sizes="(max-width: 768px) 100vw, 50vw"
                 />
               </div>
             </div>

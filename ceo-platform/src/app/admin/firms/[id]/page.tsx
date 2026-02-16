@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import {
   Card,
   CardContent,
@@ -78,7 +79,7 @@ export default function FirmDetailPage() {
   const [firm, setFirm] = useState<Firm | null>(null)
   const [loading, setLoading] = useState(true)
   const [productsLoading, setProductsLoading] = useState(false)
-  const [products, setProducts] = useState<any[]>([])
+  const [products, setProducts] = useState<Product[]>([])
   const [productsPage, setProductsPage] = useState(1)
   const [hasMoreProducts, setHasMoreProducts] = useState(true)
 
@@ -435,11 +436,13 @@ export default function FirmDetailPage() {
                         </TableCell>
                         <TableCell>
                           {product.image ? (
-                            <div className="h-10 w-10 rounded-md border overflow-hidden">
-                              <img
+                            <div className="h-10 w-10 rounded-md border overflow-hidden relative">
+                              <Image
                                 src={product.image}
                                 alt={product.name}
-                                className="h-full w-full object-cover"
+                                fill
+                                className="object-cover"
+                                unoptimized
                               />
                             </div>
                           ) : (

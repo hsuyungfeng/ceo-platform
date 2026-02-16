@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -266,10 +267,13 @@ export default function OrdersPage() {
                       <div key={item.id} className="flex items-center justify-between">
                         <div className="flex items-center">
                           <div className="w-12 h-12 bg-gray-200 mr-3">
-                            <img 
+                            <Image 
                               src={item.image || '/placeholder-product.jpg'} 
                               alt={item.name} 
+                              width={48}
+                              height={48}
                               className="w-full h-full object-contain"
+                              unoptimized
                             />
                           </div>
                           <span>{item.name}</span>

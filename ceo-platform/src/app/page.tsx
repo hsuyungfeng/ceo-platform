@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -61,10 +62,12 @@ export default function HomePage() {
             {featuredProducts.map((product) => (
               <Card key={product.id} className="overflow-hidden">
                 <div className="relative h-48 bg-gray-200">
-                  <img
+                  <Image
                     src={product.image}
                     alt={product.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                   />
                 </div>
                 <CardHeader>
@@ -97,10 +100,12 @@ export default function HomePage() {
             {latestProducts.map((product) => (
               <Card key={product.id}>
                 <div className="relative h-48 bg-gray-200">
-                  <img
+                  <Image
                     src={product.image}
                     alt={product.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                   />
                 </div>
                 <CardHeader>
