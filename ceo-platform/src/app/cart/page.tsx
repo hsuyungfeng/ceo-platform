@@ -1,55 +1,142 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Trash2, Plus, Minus, CreditCard } from 'lucide-react';
+import { Trash2, Plus, Minus, CreditCard, Loader2 } from 'lucide-react';
 
-// Mock data for cart items
-const mockCartItems = [
-  { id: 1, productId: 1, name: '醫療口罩', price: 150, quantity: 3, image: '/placeholder-product.jpg', unit: '盒' },
-  { id: 2, productId: 3, name: '血壓計', price: 2450, quantity: 1, image: '/placeholder-product.jpg', unit: '台' },
-  { id: 3, productId: 5, name: '體溫槍', price: 1200, quantity: 2, image: '/placeholder-product.jpg', unit: '支' },
-];
+interface CartItem {
+  id: number;
+  productId: number;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+  unit: string;
+}
 
 export default function CartPage() {
   const router = useRouter();
-  const [cartItems, setCartItems] = useState(mockCartItems);
-  const [quantities, setQuantities] = useState<Record<number, number>>(() => {
-    const initialQuantities: Record<number, number> = {};
-    mockCartItems.forEach(item => {
-      initialQuantities[item.id] = item.quantity;
-    });
-    return initialQuantities;
-  });
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [updatingItemId, setUpdatingItemId] = useState<number | null>(null);
+  const [removingItemId, setRemovingItemId] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetchCartItems();
+  }, []);
+
+  const fetchCartItems = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/cart');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch cart items');
+      }
+      
+      const data = await response.json();
+      setCartItems(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateQuantity = async (itemId: number, newQuantity: number) => {
+    if (newQuantity < 1) newQuantity = 1;
+    
+    try {
+      setUpdatingItemId(itemId);
+      
+      const response = await fetch(`/api/cart/${itemId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ quantity: newQuantity }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update quantity');
+      }
+      
+      const updatedItem = await response.json();
+      
+      setCartItems(prev => 
+        prev.map(item => item.id === itemId ? updatedItem : item)
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update quantity');
+    } finally {
+      setUpdatingItemId(null);
+    }
+  };
+
+  const removeItem = async (itemId: number) => {
+    try {
+      setRemovingItemId(itemId);
+      
+      const response = await fetch(`/api/cart/${itemId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to remove item');
+      }
+      
+      setCartItems(prev => prev.filter(item => item.id !== itemId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to remove item');
+    } finally {
+      setRemovingItemId(null);
+    }
+  };
 
   // Calculate totals
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * quantities[item.id]), 0);
-  const shipping = subtotal > 0 ? 150 : 0; // Fixed shipping cost
+  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const shipping = subtotal > 0 ? 150 : 0;
   const total = subtotal + shipping;
-
-  const updateQuantity = (itemId: number, newQuantity: number) => {
-    if (newQuantity < 1) newQuantity = 1;
-    setQuantities(prev => ({
-      ...prev,
-      [itemId]: newQuantity
-    }));
-  };
-
-  const removeItem = (itemId: number) => {
-    setCartItems(prev => prev.filter(item => item.id !== itemId));
-    setQuantities(prev => {
-      const newQuantities = { ...prev };
-      delete newQuantities[itemId];
-      return newQuantities;
-    });
-  };
 
   const handleCheckout = () => {
     router.push('/checkout');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4">
+          <h1 className="text-3xl font-bold mb-8">購物車</h1>
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <span className="ml-2 text-gray-600">載入中...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4">
+          <h1 className="text-3xl font-bold mb-8">購物車</h1>
+          <div className="text-center py-12">
+            <p className="text-red-500 text-lg mb-4">{error}</p>
+            <Button onClick={fetchCartItems}>
+              重試
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -90,32 +177,43 @@ export default function CartPage() {
                         <div className="flex justify-between items-center">
                           <div>
                             <p className="text-red-600 font-bold">${item.price}/{item.unit}</p>
-                            <p className="text-sm text-gray-500">小計: ${item.price * quantities[item.id]}</p>
+                            <p className="text-sm text-gray-500">小計: ${item.price * item.quantity}</p>
                           </div>
                           
                           <div className="flex items-center">
                             <Button
                               variant="outline"
                               size="icon"
-                              onClick={() => updateQuantity(item.id, quantities[item.id] - 1)}
+                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              disabled={updatingItemId === item.id}
                             >
-                              <Minus className="h-4 w-4" />
+                              {updatingItemId === item.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Minus className="h-4 w-4" />
+                              )}
                             </Button>
                             
                             <Input
                               type="number"
                               min="1"
-                              value={quantities[item.id]}
+                              value={item.quantity}
                               onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
                               className="w-16 mx-2 text-center"
+                              disabled={updatingItemId === item.id}
                             />
                             
                             <Button
                               variant="outline"
                               size="icon"
-                              onClick={() => updateQuantity(item.id, quantities[item.id] + 1)}
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              disabled={updatingItemId === item.id}
                             >
-                              <Plus className="h-4 w-4" />
+                              {updatingItemId === item.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Plus className="h-4 w-4" />
+                              )}
                             </Button>
                           </div>
                         </div>
@@ -126,8 +224,13 @@ export default function CartPage() {
                           variant="destructive"
                           size="sm"
                           onClick={() => removeItem(item.id)}
+                          disabled={removingItemId === item.id}
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
+                          {removingItemId === item.id ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 mr-2" />
+                          )}
                           移除
                         </Button>
                       </CardFooter>

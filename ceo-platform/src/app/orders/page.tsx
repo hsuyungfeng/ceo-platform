@@ -1,48 +1,58 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
-// Mock data for orders
-const mockOrders = [
-  { 
-    id: 1, 
-    orderNo: '20260207-0001', 
-    status: 'COMPLETED', 
-    totalAmount: 1250, 
-    date: '2026-02-07',
-    items: [
-      { id: 1, name: '醫療口罩', quantity: 3, price: 150, image: '/placeholder-product.jpg' },
-      { id: 2, name: '酒精乾洗手', quantity: 2, price: 280, image: '/placeholder-product.jpg' }
-    ]
-  },
-  { 
-    id: 2, 
-    orderNo: '20260206-0002', 
-    status: 'SHIPPED', 
-    totalAmount: 2450, 
-    date: '2026-02-06',
-    items: [
-      { id: 3, name: '血壓計', quantity: 1, price: 2450, image: '/placeholder-product.jpg' }
-    ]
-  },
-  { 
-    id: 3, 
-    orderNo: '20260205-0003', 
-    status: 'PENDING', 
-    totalAmount: 8500, 
-    date: '2026-02-05',
-    items: [
-      { id: 4, name: '輪椅', quantity: 1, price: 8500, image: '/placeholder-product.jpg' }
-    ]
-  }
-];
+interface OrderItem {
+  id: number;
+  name: string;
+  quantity: number;
+  price: number;
+  image: string;
+}
+
+interface Order {
+  id: number;
+  orderNo: string;
+  status: 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED';
+  totalAmount: number;
+  createdAt: string;
+  items: OrderItem[];
+}
+
+interface Pagination {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+}
+
+interface OrdersResponse {
+  orders: Order[];
+  pagination: Pagination;
+}
 
 export default function OrdersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<Pagination>({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 10
+  });
+  const [cancellingOrderId, setCancellingOrderId] = useState<number | null>(null);
+  
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
+  const statusFilter = searchParams.get('status') || '';
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -66,19 +76,180 @@ export default function OrdersPage() {
     }
   };
 
+  const fetchOrders = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const params = new URLSearchParams();
+      params.append('page', currentPage.toString());
+      params.append('limit', '10');
+      if (statusFilter) {
+        params.append('status', statusFilter);
+      }
+      
+      const response = await fetch(`/api/orders?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch orders');
+      }
+      
+      const data: OrdersResponse = await response.json();
+      setOrders(data.orders);
+      setPagination(data.pagination);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      toast.error('無法載入訂單資料');
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, statusFilter]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
+
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('page', page.toString());
+    if (statusFilter) {
+      params.set('status', statusFilter);
+    }
+    router.push(`/orders?${params.toString()}`);
+  };
+
+  const handleStatusFilter = (status: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (status) {
+      params.set('status', status);
+    } else {
+      params.delete('status');
+    }
+    params.set('page', '1');
+    router.push(`/orders?${params.toString()}`);
+  };
+
+  const handleCancelOrder = async (orderId: number) => {
+    if (!confirm('確定要取消此訂單嗎？')) {
+      return;
+    }
+    
+    setCancellingOrderId(orderId);
+    
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'CANCELLED' }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to cancel order');
+      }
+      
+      toast.success('訂單已取消');
+      fetchOrders();
+    } catch (err) {
+      toast.error('取消訂單失敗，請稍後再試');
+    } finally {
+      setCancellingOrderId(null);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('zh-TW');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4">
+          <h1 className="text-3xl font-bold mb-8">我的訂單</h1>
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4">
+          <h1 className="text-3xl font-bold mb-8">我的訂單</h1>
+          <div className="text-center py-12">
+            <p className="text-red-500 text-lg mb-4">載入訂單時發生錯誤</p>
+            <Button onClick={fetchOrders}>重新載入</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
         <h1 className="text-3xl font-bold mb-8">我的訂單</h1>
         
+        {/* Status Filter */}
+        <div className="mb-6">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={statusFilter === '' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleStatusFilter('')}
+            >
+              全部
+            </Button>
+            <Button
+              variant={statusFilter === 'PENDING' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleStatusFilter('PENDING')}
+            >
+              待處理
+            </Button>
+            <Button
+              variant={statusFilter === 'CONFIRMED' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleStatusFilter('CONFIRMED')}
+            >
+              已確認
+            </Button>
+            <Button
+              variant={statusFilter === 'SHIPPED' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleStatusFilter('SHIPPED')}
+            >
+              已出貨
+            </Button>
+            <Button
+              variant={statusFilter === 'COMPLETED' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleStatusFilter('COMPLETED')}
+            >
+              已完成
+            </Button>
+            <Button
+              variant={statusFilter === 'CANCELLED' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleStatusFilter('CANCELLED')}
+            >
+              已取消
+            </Button>
+          </div>
+        </div>
+        
         <div className="space-y-6">
-          {mockOrders.map((order) => (
+          {orders.map((order) => (
             <Card key={order.id}>
               <CardHeader className="pb-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between">
                   <div>
                     <CardTitle>訂單編號: {order.orderNo}</CardTitle>
-                    <CardDescription>訂購日期: {order.date}</CardDescription>
+                    <CardDescription>訂購日期: {formatDate(order.createdAt)}</CardDescription>
                   </div>
                   <div className="mt-2 sm:mt-0">
                     <Badge variant={getStatusVariant(order.status)}>
@@ -96,7 +267,7 @@ export default function OrdersPage() {
                         <div className="flex items-center">
                           <div className="w-12 h-12 bg-gray-200 mr-3">
                             <img 
-                              src={item.image} 
+                              src={item.image || '/placeholder-product.jpg'} 
                               alt={item.name} 
                               className="w-full h-full object-contain"
                             />
@@ -125,8 +296,10 @@ export default function OrdersPage() {
                       <Button 
                         variant="destructive" 
                         size="sm"
+                        onClick={() => handleCancelOrder(order.id)}
+                        disabled={cancellingOrderId === order.id}
                       >
-                        取消訂單
+                        {cancellingOrderId === order.id ? '取消中...' : '取消訂單'}
                       </Button>
                     )}
                   </div>
@@ -136,7 +309,44 @@ export default function OrdersPage() {
           ))}
         </div>
         
-        {mockOrders.length === 0 && (
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-8">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              上一頁
+            </Button>
+            
+            <div className="flex gap-1">
+              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  variant={page === currentPage ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handlePageChange(page)}
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === pagination.totalPages}
+            >
+              下一頁
+            </Button>
+          </div>
+        )}
+        
+        {/* Empty State */}
+        {orders.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg">您還沒有任何訂單</p>
             <Button 

@@ -6,29 +6,53 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, SlidersHorizontal } from 'lucide-react';
+import { Search, Filter, SlidersHorizontal, Loader2, AlertCircle } from 'lucide-react';
 
-// Mock data for products
-const mockProducts = [
-  { id: 1, name: '醫療口罩', price: 150, originalPrice: 200, discount: 25, image: '/placeholder-product.jpg', category: '醫療耗材', firm: '健康醫療器材', featured: true },
-  { id: 2, name: '酒精乾洗手', price: 280, originalPrice: 350, discount: 20, image: '/placeholder-product.jpg', category: '衛生用品', firm: '潔淨生活', featured: true },
-  { id: 3, name: '血壓計', price: 2450, originalPrice: 2900, discount: 15, image: '/placeholder-product.jpg', category: '醫療設備', firm: '精密儀器', featured: true },
-  { id: 4, name: '血糖儀', price: 1800, originalPrice: 2200, discount: 18, image: '/placeholder-product.jpg', category: '檢測設備', firm: '健康科技', featured: true },
-  { id: 5, name: '體溫槍', price: 1200, originalPrice: 1500, discount: 20, image: '/placeholder-product.jpg', category: '檢測設備', firm: '智慧醫療', featured: false },
-  { id: 6, name: '輪椅', price: 8500, originalPrice: 10000, discount: 15, image: '/placeholder-product.jpg', category: '輔具', firm: '康復器材', featured: false },
-  { id: 7, name: '拐杖', price: 650, originalPrice: 800, discount: 19, image: '/placeholder-product.jpg', category: '輔具', firm: '康復器材', featured: false },
-  { id: 8, name: '病床', price: 15000, originalPrice: 18000, discount: 17, image: '/placeholder-product.jpg', category: '醫療家具', firm: '醫院設備', featured: false },
-];
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+  originalPrice: number;
+  discount: number;
+  image: string;
+  category: string;
+  firm: string;
+  featured: boolean;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  level: number;
+  children: Category[];
+}
+
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+interface ProductsResponse {
+  data: Product[];
+  pagination: Pagination;
+}
 
 export default function ProductsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  const [products, setProducts] = useState(mockProducts);
-  const [filteredProducts, setFilteredProducts] = useState(mockProducts);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState('featured');
+  const [pagination, setPagination] = useState<Pagination | null>(null);
 
   // Extract search term from URL params
   useEffect(() => {
@@ -38,45 +62,89 @@ export default function ProductsPage() {
     }
   }, [searchParams]);
 
-  // Filter and sort products
+  // Fetch categories on mount
   useEffect(() => {
-    let result = [...mockProducts];
-    
-    // Apply search filter
-    if (searchTerm) {
-      result = result.filter(product => 
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    // Apply category filter
-    if (selectedCategory) {
-      result = result.filter(product => product.category === selectedCategory);
-    }
-    
-    // Apply sorting
-    switch (sortOption) {
-      case 'price-low':
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-high':
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case 'name':
-        result.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case 'featured':
-      default:
-        result.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
-        break;
-    }
-    
-    setFilteredProducts(result);
-  }, [searchTerm, selectedCategory, sortOption]);
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/categories');
+        if (!response.ok) {
+          throw new Error('Failed to fetch categories');
+        }
+        const data: Category[] = await response.json();
+        setCategories(data);
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      }
+    };
 
-  // Extract unique categories
-  const categories = Array.from(new Set(mockProducts.map(p => p.category)));
+    fetchCategories();
+  }, []);
+
+  // Fetch products when filters change
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const params = new URLSearchParams();
+        
+        if (searchTerm) {
+          params.set('search', searchTerm);
+        }
+        
+        if (selectedCategoryId) {
+          params.set('categoryId', selectedCategoryId);
+        }
+        
+        // Map sort options to API params
+        let sortBy = 'featured';
+        let order: 'asc' | 'desc' = 'desc';
+        
+        switch (sortOption) {
+          case 'price-low':
+            sortBy = 'price';
+            order = 'asc';
+            break;
+          case 'price-high':
+            sortBy = 'price';
+            order = 'desc';
+            break;
+          case 'name':
+            sortBy = 'name';
+            order = 'asc';
+            break;
+          case 'featured':
+          default:
+            sortBy = 'featured';
+            order = 'desc';
+            break;
+        }
+        
+        params.set('sortBy', sortBy);
+        params.set('order', order);
+        params.set('page', '1');
+        params.set('limit', '20');
+
+        const response = await fetch(`/api/products?${params.toString()}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch products');
+        }
+
+        const data: ProductsResponse = await response.json();
+        setProducts(data.data);
+        setPagination(data.pagination);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [searchTerm, selectedCategoryId, sortOption]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +154,20 @@ export default function ProductsPage() {
       router.push('?');
     }
   };
+
+  // Flatten categories for display (all levels)
+  const flattenCategories = (cats: Category[], level = 0): { category: Category; level: number }[] => {
+    const result: { category: Category; level: number }[] = [];
+    cats.forEach(cat => {
+      result.push({ category: cat, level });
+      if (cat.children && cat.children.length > 0) {
+        result.push(...flattenCategories(cat.children, level + 1));
+      }
+    });
+    return result;
+  };
+
+  const flattenedCategories = flattenCategories(categories);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -105,20 +187,21 @@ export default function ProductsPage() {
                 <h3 className="font-medium mb-2">分類</h3>
                 <div className="space-y-2">
                   <Button
-                    variant={selectedCategory === null ? "secondary" : "ghost"}
+                    variant={selectedCategoryId === null ? "secondary" : "ghost"}
                     className="w-full justify-start"
-                    onClick={() => setSelectedCategory(null)}
+                    onClick={() => setSelectedCategoryId(null)}
                   >
-                    全部 ({mockProducts.length})
+                    全部 ({pagination?.total || 0})
                   </Button>
-                  {categories.map(category => (
+                  {flattenedCategories.map(({ category, level }) => (
                     <Button
-                      key={category}
-                      variant={selectedCategory === category ? "secondary" : "ghost"}
+                      key={category.id}
+                      variant={selectedCategoryId === String(category.id) ? "secondary" : "ghost"}
                       className="w-full justify-start"
-                      onClick={() => setSelectedCategory(category)}
+                      style={{ paddingLeft: `${(level + 1) * 0.75 + 1}rem` }}
+                      onClick={() => setSelectedCategoryId(String(category.id))}
                     >
-                      {category}
+                      {category.name}
                     </Button>
                   ))}
                 </div>
@@ -176,49 +259,83 @@ export default function ProductsPage() {
               </div>
             </form>
             
-            {/* Products grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredProducts.map((product) => (
-                <Card key={product.id} className="overflow-hidden">
-                  <div className="relative h-48 bg-gray-200">
-                    <img 
-                      src={product.image} 
-                      alt={product.name} 
-                      className="w-full h-full object-cover"
-                    />
-                    {product.featured && (
-                      <Badge className="absolute top-2 left-2 bg-red-500">熱門</Badge>
-                    )}
-                  </div>
-                  <CardHeader>
-                    <CardTitle className="text-lg">{product.name}</CardTitle>
-                    <CardDescription>
-                      <div>{product.category}</div>
-                      <div className="text-xs text-gray-500">{product.firm}</div>
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <span className="text-red-600 font-bold">${product.price}</span>
-                        <span className="line-through text-gray-500 ml-2 text-sm">${product.originalPrice}</span>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        onClick={() => router.push(`/products/${product.id}`)}
-                      >
-                        詳情
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            
-            {filteredProducts.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-500">沒有找到符合條件的商品</p>
+            {/* Loading state */}
+            {loading && (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+                <span className="ml-2 text-gray-500">載入中...</span>
               </div>
+            )}
+
+            {/* Error state */}
+            {!loading && error && (
+              <div className="flex flex-col justify-center items-center py-12 text-red-500">
+                <AlertCircle className="h-8 w-8 mb-2" />
+                <p>{error}</p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => window.location.reload()}
+                >
+                  重新載入
+                </Button>
+              </div>
+            )}
+
+            {/* Products grid */}
+            {!loading && !error && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {products.map((product) => (
+                    <Card key={product.id} className="overflow-hidden">
+                      <div className="relative h-48 bg-gray-200">
+                        <img 
+                          src={product.image} 
+                          alt={product.name} 
+                          className="w-full h-full object-cover"
+                        />
+                        {product.featured && (
+                          <Badge className="absolute top-2 left-2 bg-red-500">熱門</Badge>
+                        )}
+                      </div>
+                      <CardHeader>
+                        <CardTitle className="text-lg">{product.name}</CardTitle>
+                        <CardDescription>
+                          <div>{product.category}</div>
+                          <div className="text-xs text-gray-500">{product.firm}</div>
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="text-red-600 font-bold">${product.price}</span>
+                            <span className="line-through text-gray-500 ml-2 text-sm">${product.originalPrice}</span>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            onClick={() => router.push(`/products/${product.id}`)}
+                          >
+                            詳情
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+                
+                {products.length === 0 && (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500">沒有找到符合條件的商品</p>
+                  </div>
+                )}
+
+                {/* Pagination info */}
+                {pagination && products.length > 0 && (
+                  <div className="mt-6 text-center text-gray-500 text-sm">
+                    顯示 {products.length} 筆商品，共 {pagination.total} 筆
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

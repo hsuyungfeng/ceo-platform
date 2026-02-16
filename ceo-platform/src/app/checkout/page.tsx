@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,39 +8,141 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CreditCard, MapPin, User, Phone, Mail } from 'lucide-react';
+import { CreditCard, MapPin, User, Phone, Mail, Loader2, AlertCircle } from 'lucide-react';
 
-// Mock data for cart items
-const mockCartItems = [
-  { id: 1, name: '醫療口罩', price: 150, quantity: 3, image: '/placeholder-product.jpg', unit: '盒' },
-  { id: 2, name: '血壓計', price: 2450, quantity: 1, image: '/placeholder-product.jpg', unit: '台' },
-];
+interface CartItem {
+  id: number;
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+  unit: string;
+}
+
+interface UserProfile {
+  name: string;
+  taxId: string;
+  email: string;
+  phone: string;
+  billingAddress: string;
+  shippingAddress: string;
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
   const [orderNote, setOrderNote] = useState('');
   const [sameAsBilling, setSameAsBilling] = useState(true);
-  
-  // Mock user data
-  const userData = {
-    name: '王大明',
-    taxId: '12345678',
-    email: 'user@example.com',
-    phone: '0912-345-678',
-    billingAddress: '台北市中山區南京東路一段123號',
-    shippingAddress: '台北市中山區南京東路一段123號',
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [userData, setUserData] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    fetchCartItems();
+    fetchUserProfile();
+  }, []);
+
+  const fetchCartItems = async () => {
+    try {
+      const response = await fetch('/api/cart');
+      if (!response.ok) {
+        throw new Error('Failed to fetch cart items');
+      }
+      const data = await response.json();
+      setCartItems(data.items || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch cart items');
+    }
+  };
+
+  const fetchUserProfile = async () => {
+    try {
+      const response = await fetch('/api/user/profile');
+      if (!response.ok) {
+        throw new Error('Failed to fetch user profile');
+      }
+      const data = await response.json();
+      setUserData(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch user profile');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Calculate totals
-  const subtotal = mockCartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shipping = subtotal > 0 ? 150 : 0; // Fixed shipping cost
+  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const shipping = subtotal > 0 ? 150 : 0;
   const total = subtotal + shipping;
 
-  const handlePlaceOrder = () => {
-    // Process order
-    alert('訂單已送出！訂單編號：' + new Date().getTime());
-    router.push('/orders');
+  const handlePlaceOrder = async () => {
+    if (cartItems.length === 0) {
+      setError('購物車是空的，無法下單');
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const orderData = {
+        items: cartItems.map(item => ({
+          productId: item.productId || String(item.id),
+          quantity: item.quantity
+        })),
+        note: orderNote
+      };
+
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create order');
+      }
+
+      const result = await response.json();
+      setSuccess(true);
+      
+      // Redirect to orders page after successful order
+      router.push('/orders');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to place order');
+      setSubmitting(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4 flex items-center justify-center h-96">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <span className="ml-2 text-gray-600">載入中...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !userData) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center h-96 text-red-600">
+            <AlertCircle className="h-6 w-6 mr-2" />
+            <span>{error}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -56,25 +158,31 @@ export default function CheckoutPage() {
               </CardHeader>
               
               <CardContent className="space-y-4">
-                {mockCartItems.map((item) => (
-                  <div key={item.id} className="flex items-center">
-                    <div className="w-16 h-16 bg-gray-200 mr-4">
-                      <img 
-                        src={item.image} 
-                        alt={item.name} 
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium">{item.name}</h3>
-                      <p className="text-sm text-gray-600">數量: {item.quantity} {item.unit}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">${item.price * item.quantity}</p>
-                      <p className="text-sm text-gray-600">${item.price}/{item.unit}</p>
-                    </div>
+                {cartItems.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    購物車是空的
                   </div>
-                ))}
+                ) : (
+                  cartItems.map((item) => (
+                    <div key={item.id} className="flex items-center">
+                      <div className="w-16 h-16 bg-gray-200 mr-4">
+                        <img 
+                          src={item.image || '/placeholder-product.jpg'} 
+                          alt={item.name} 
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium">{item.name}</h3>
+                        <p className="text-sm text-gray-600">數量: {item.quantity} {item.unit || '件'}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">${item.price * item.quantity}</p>
+                        <p className="text-sm text-gray-600">${item.price}/{item.unit || '件'}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
                 
                 <div className="pt-4 border-t">
                   <div className="flex justify-between mb-2">
@@ -102,6 +210,13 @@ export default function CheckoutPage() {
               </CardHeader>
               
               <CardContent className="space-y-6">
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-center text-red-600">
+                    <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+                    <span className="text-sm">{error}</span>
+                  </div>
+                )}
+                
                 {/* Contact Information */}
                 <div>
                   <h3 className="text-lg font-medium mb-3 flex items-center">
@@ -111,19 +226,19 @@ export default function CheckoutPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="name">姓名</Label>
-                      <Input id="name" defaultValue={userData.name} />
+                      <Input id="name" defaultValue={userData?.name || ''} />
                     </div>
                     <div>
                       <Label htmlFor="taxId">統一編號</Label>
-                      <Input id="taxId" defaultValue={userData.taxId} />
+                      <Input id="taxId" defaultValue={userData?.taxId || ''} />
                     </div>
                     <div>
                       <Label htmlFor="email">電子郵件</Label>
-                      <Input id="email" type="email" defaultValue={userData.email} />
+                      <Input id="email" type="email" defaultValue={userData?.email || ''} />
                     </div>
                     <div>
                       <Label htmlFor="phone">電話</Label>
-                      <Input id="phone" defaultValue={userData.phone} />
+                      <Input id="phone" defaultValue={userData?.phone || ''} />
                     </div>
                   </div>
                 </div>
@@ -137,7 +252,7 @@ export default function CheckoutPage() {
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="billing-address">地址</Label>
-                      <Input id="billing-address" defaultValue={userData.billingAddress} />
+                      <Input id="billing-address" defaultValue={userData?.billingAddress || ''} />
                     </div>
                   </div>
                 </div>
@@ -164,7 +279,7 @@ export default function CheckoutPage() {
                     <div className="space-y-4">
                       <div>
                         <Label htmlFor="shipping-address">地址</Label>
-                        <Input id="shipping-address" defaultValue={userData.shippingAddress} />
+                        <Input id="shipping-address" defaultValue={userData?.shippingAddress || ''} />
                       </div>
                     </div>
                   )}
@@ -208,13 +323,22 @@ export default function CheckoutPage() {
                 <Button 
                   className="w-full bg-blue-600 hover:bg-blue-700" 
                   onClick={handlePlaceOrder}
+                  disabled={submitting || cartItems.length === 0}
                 >
-                  確認下單 - ${total}
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      處理中...
+                    </>
+                  ) : (
+                    `確認下單 - $${total}`
+                  )}
                 </Button>
                 <Button 
                   variant="outline" 
                   className="w-full" 
                   onClick={() => router.back()}
+                  disabled={submitting}
                 >
                   返回購物車
                 </Button>
