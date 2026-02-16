@@ -13,7 +13,10 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 // 確保 DATABASE_URL 存在
-const databaseUrl = process.env.DATABASE_URL || 'postgresql://ceo_admin:SecureDevPass_2026!@localhost:5432/ceo_platform'
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL environment variable is required');
+}
+const databaseUrl = process.env.DATABASE_URL;
 
 // For Prisma 7+, we need to use an adapter
 const pool = new Pool({ connectionString: databaseUrl })
