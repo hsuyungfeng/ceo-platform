@@ -3,15 +3,44 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { ShoppingCart, Menu, X, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 export function Header() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [cartItemCount, setCartItemCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  // Mock cart count
-  const cartItemCount = 3;
+  // Fetch cart count on mount
+  useEffect(() => {
+    const fetchCartCount = async () => {
+      try {
+        const response = await fetch('/api/cart');
+        
+        if (response.ok) {
+          const data = await response.json();
+          // Calculate total items in cart
+          const count = data.items?.reduce((sum: number, item: { quantity: number }) => sum + item.quantity, 0) || 0;
+          setCartItemCount(count);
+        } else if (response.status === 401) {
+          // User not logged in, show 0
+          setCartItemCount(0);
+        }
+      } catch (error) {
+        // Silently fail - don't show error to user for header cart count
+        setCartItemCount(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCartCount();
+    
+    // Refresh cart count every 30 seconds
+    const interval = setInterval(fetchCartCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -41,9 +70,9 @@ export function Header() {
               className={`font-medium ${pathname === '/cart' ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`}
             >
               購物車
-              {cartItemCount > 0 && (
+              {cartItemCount > 0 && !loading && (
                 <span className="ml-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {cartItemCount}
+                  {cartItemCount > 99 ? '99+' : cartItemCount}
                 </span>
               )}
             </Link>
@@ -54,9 +83,13 @@ export function Header() {
             <Link href="/cart">
               <Button variant="ghost" size="icon" className="relative">
                 <ShoppingCart className="h-6 w-6" />
-                {cartItemCount > 0 && (
+                {loading ? (
+                  <span className="absolute -top-1 -right-1">
+                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                  </span>
+                ) : cartItemCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {cartItemCount}
+                    {cartItemCount > 99 ? '99+' : cartItemCount}
                   </span>
                 )}
               </Button>
@@ -102,9 +135,9 @@ export function Header() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 購物車
-                {cartItemCount > 0 && (
+                {cartItemCount > 0 && !loading && (
                   <span className="ml-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {cartItemCount}
+                    {cartItemCount > 99 ? '99+' : cartItemCount}
                   </span>
                 )}
               </Link>
