@@ -10,7 +10,7 @@ const querySchema = z.object({
   search: z.string().optional(),
   categoryId: z.string().optional(),
   featured: z.coerce.boolean().optional(),
-  sortBy: z.enum(['createdAt', 'name', 'totalSold', 'price']).default('createdAt'),
+  sortBy: z.enum(['createdAt', 'name', 'totalSold', 'price', 'featured']).default('createdAt'),
   order: z.enum(['asc', 'desc']).default('desc'),
 });
 
@@ -41,7 +41,12 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // 建立查詢條件
-    const where: any = {
+    const where: {
+      isActive: boolean;
+      OR?: Array<Record<string, unknown>>;
+      categoryId?: string;
+      isFeatured?: boolean;
+    } = {
       isActive: true,
     };
 
@@ -72,7 +77,7 @@ export async function GET(request: NextRequest) {
     ];
 
     // 排序條件
-    let orderBy: any = {};
+    let orderBy: Record<string, string | { _count: string }> | Array<Record<string, string>> = {};
     if (sortBy === 'price') {
       // 價格排序需要特殊處理，使用最低階梯價格
       orderBy = {
@@ -80,6 +85,12 @@ export async function GET(request: NextRequest) {
           _count: order,
         },
       };
+    } else if (sortBy === 'featured') {
+      // 熱門排序：先按 isFeatured 排序，再按 totalSold
+      orderBy = [
+        { isFeatured: order },
+        { totalSold: order },
+      ];
     } else {
       orderBy = { [sortBy]: order };
     }
