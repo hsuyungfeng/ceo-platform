@@ -6,34 +6,66 @@ datasource db {
   provider = "postgresql"
 }
 
+enum TwoFactorMethod {
+  EMAIL
+  APP
+  SMS
+}
+
 model User {
-  id            String     @id @default(cuid())
-  email         String     @unique
-  password      String
-  name          String
-  taxId         String     @unique
-  phone         String?
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String?
+  name          String?
+  taxId         String?   @unique
+  phone         String?   @unique
   fax           String?
   address       String?
   contactPerson String?
-  points        Int        @default(0)
-  role          UserRole   @default(MEMBER)
-  loginAttempts Int        @default(0)
+  points        Int       @default(0)
+  role          UserRole  @default(MEMBER)
+  loginAttempts Int       @default(0)
   lockedUntil   DateTime?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  emailVerified Boolean    @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  emailVerified Boolean   @default(false)
   lastLoginAt   DateTime?
   status        UserStatus @default(ACTIVE)
+  twoFactorEnabled   Boolean             @default(false)
+  twoFactorMethod    TwoFactorMethod?    @default(EMAIL)
+  emailVerifications EmailVerification[]
+  oauthAccounts      OAuthAccount[]
   cartItems     CartItem[]
   member        Member?
   orders        Order[]
   sessions      Session[]
+  accounts      Account[]
   userLogs      UserLog[]          @relation("UserLogs")
   adminLogs     UserLog[]          @relation("AdminLogs")
   pointTransactions PointTransaction[]
+  deviceTokens      DeviceToken[]
 
   @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
 }
 
 model Member {
@@ -61,7 +93,7 @@ model Session {
 
 model Category {
   id        String     @id @default(cuid())
-  name      String
+  name      String     @unique
   parentId  String?
   level     Int        @default(1)
   sortOrder Int        @default(0)
@@ -76,7 +108,7 @@ model Category {
 
 model Firm {
   id        String    @id @default(cuid())
-  name      String
+  name      String    @unique
   phone     String?
   address   String?
   isActive  Boolean   @default(true)
@@ -88,7 +120,7 @@ model Firm {
 
 model Product {
   id          String      @id @default(cuid())
-  name        String
+  name        String      @unique
   subtitle    String?
   description String?
   image       String?
@@ -223,6 +255,83 @@ model Faq {
   @@map("faqs")
 }
 
+enum EmailVerificationPurpose {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+  CHANGE_EMAIL
+  TWO_FACTOR_AUTH
+}
+
+model EmailVerification {
+  id        String                   @id @default(cuid())
+  email     String                   @unique
+  token     String                   @unique
+  expiresAt DateTime
+  purpose   EmailVerificationPurpose @default(VERIFY_EMAIL)
+  userId    String?
+  createdAt DateTime                 @default(now())
+  user      User?                    @relation(fields: [userId], references: [id])
+
+  @@index([email])
+  @@index([token])
+  @@map("email_verifications")
+}
+
+model EmailVerificationAttempt {
+  email     String   @id
+  attempts  Int      @default(1)
+  updatedAt DateTime @updatedAt
+
+  @@index([updatedAt])
+  @@map("email_verification_attempts")
+}
+
+model OAuthAccount {
+  id                String    @id @default(cuid())
+  provider          String
+  providerId        String
+  userId            String
+  email             String
+  name              String?
+  picture           String?
+  accessToken       String?
+  refreshToken      String?
+  expiresAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  appleUserId       String?   @unique
+  authorizationCode String?
+  identityToken     String?
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@index([userId])
+  @@index([provider, email])
+  @@map("oauth_accounts")
+}
+
+model TempOAuth {
+  id                String    @id @default(cuid())
+  provider          String
+  providerId        String
+  email             String
+  name              String
+  picture           String?
+  accessToken       String
+  refreshToken      String?
+  tokenExpiresAt    DateTime?
+  data              String
+  createdAt         DateTime  @default(now())
+  expiresAt         DateTime  @default(now())
+  appleUserId       String?
+  authorizationCode String?
+  identityToken     String?
+
+  @@unique([provider, providerId])
+  @@index([expiresAt])
+  @@map("temp_oauth")
+}
+
 enum UserRole {
   MEMBER
   ADMIN
@@ -257,4 +366,40 @@ enum PointTransactionType {
   ORDER_REFUND     // 訂單退款
   MANUAL_ADJUST    // 手動調整
   SYSTEM_ADJUST    // 系統調整
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  type      String   @default("EMAIL_VERIFICATION")
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([email, token])
+  @@map("email_verification_tokens")
+}
+
+enum DevicePlatform {
+  IOS
+  ANDROID
+  WEB
+}
+
+model DeviceToken {
+  id        String         @id @default(cuid())
+  userId    String
+  token     String         @unique
+  platform  DevicePlatform
+  deviceId  String?        // Optional device identifier
+  isActive  Boolean        @default(true)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([platform])
+  @@index([isActive])
+  @@map("device_tokens")
 }
