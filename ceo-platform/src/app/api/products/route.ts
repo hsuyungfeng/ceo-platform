@@ -102,7 +102,6 @@ export async function GET(request: NextRequest) {
         include: {
           priceTiers: {
             orderBy: { minQty: 'asc' },
-            take: 1, // 只取最低價格
           },
           firm: {
             select: { name: true },
@@ -133,6 +132,10 @@ export async function GET(request: NextRequest) {
       totalSold: product.totalSold,
       createdAt: product.createdAt,
       price: product.priceTiers[0]?.price || 0,
+      priceTiers: product.priceTiers.map(tier => ({
+        minQty: tier.minQty,
+        price: tier.price,
+      })),
       firm: product.firm?.name || null,
       category: product.category?.name || null,
     }));

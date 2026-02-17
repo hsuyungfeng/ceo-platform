@@ -42,8 +42,8 @@ export default function CartPage() {
       }
       
       const data = await response.json();
-      // Handle both { items: [...] } and direct array responses
-      const items = Array.isArray(data) ? data : data.items || [];
+      // Handle both { data: [...] } and direct array responses
+      const items = Array.isArray(data) ? data : data.data || [];
       setCartItems(items);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');

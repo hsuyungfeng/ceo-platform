@@ -1,6 +1,6 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // 簡單的種子資料腳本 - 使用SQL直接插入
 const { exec } = require('child_process');
-const path = require('path');
 
 // 設定環境變數
 process.env.DATABASE_URL = 'postgresql://ceo_admin:SecureDevPass_2026!@localhost:5432/ceo_platform';

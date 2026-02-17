@@ -104,7 +104,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       .sort((a, b) => b.minQty - a.minQty)
       .find(tier => tier.minQty <= updatedCartItem.quantity);
     
-    const unitPrice = applicableTier?.price || updatedCartItem.product.priceTiers[0].price;
+    const unitPrice = Number(applicableTier?.price || updatedCartItem.product.priceTiers[0].price);
     const subtotal = unitPrice * updatedCartItem.quantity;
 
     return NextResponse.json({

@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: '參數驗證錯誤', details: error.errors },
+        { error: '參數驗證錯誤', details: error.issues },
         { status: 400 }
       )
     }
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: '資料驗證錯誤', details: error.errors },
+        { error: '資料驗證錯誤', details: error.issues },
         { status: 400 }
       )
     }

@@ -4,20 +4,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, Package, User, Calendar, DollarSign } from 'lucide-react'
+import { ArrowLeft, User, Calendar, DollarSign } from 'lucide-react'
 import Link from 'next/link'
 import OrderStatusUpdate from '@/components/admin/order-status-update'
 
 interface OrderDetailPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default async function OrderDetailPage({ params }: OrderDetailPageProps) {
+  const { id } = await params
   const order = await prisma.order.findUnique({
     where: {
-      id: params.id,
+      id: id,
     },
     include: {
       user: {

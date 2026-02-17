@@ -59,14 +59,14 @@ export async function GET(request: NextRequest) {
           .sort((a, b) => b.minQty - a.minQty)
           .find(tier => tier.minQty <= item.quantity);
         
-        unitPrice = applicableTier?.price || item.product.priceTiers[0].price;
+        unitPrice = Number(applicableTier?.price || item.product.priceTiers[0].price);
       }
 
       // 計算小計
-      const subtotal = unitPrice * item.quantity;
+      const subtotal = Number(unitPrice) * item.quantity;
       
       // 計算原價（最低數量價格）
-      const originalPrice = item.product.priceTiers[0]?.price || 0;
+      const originalPrice = Number(item.product.priceTiers[0]?.price || 0);
       const originalSubtotal = originalPrice * item.quantity;
       const savings = originalSubtotal - subtotal;
 
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
     }));
 
     return NextResponse.json({
-      items: formattedItems,
+      data: formattedItems,
       summary: {
         totalItems,
         totalAmount,
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    let cartItem;
+    let cartItem: any;
     if (existingCartItem) {
       // 更新現有商品數量
       cartItem = await prisma.cartItem.update({
@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
       .sort((a, b) => b.minQty - a.minQty)
       .find(tier => tier.minQty <= cartItem.quantity);
     
-    const unitPrice = applicableTier?.price || cartItem.product.priceTiers[0].price;
+    const unitPrice = Number(applicableTier?.price || cartItem.product.priceTiers[0].price);
     const subtotal = unitPrice * cartItem.quantity;
 
     return NextResponse.json({

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -129,8 +129,8 @@ export function CategoryForm({
     categories: CategoryWithChildren[], 
     level = 0,
     excludeId?: string
-  ): JSX.Element[] => {
-    const options: JSX.Element[] = [];
+  ): React.ReactElement[] => {
+    const options: React.ReactElement[] = [];
     
     // 添加"無（頂級分類）"選項
     if (level === 0) {

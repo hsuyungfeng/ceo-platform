@@ -30,6 +30,16 @@ interface UserProfile {
   shippingAddress: string;
 }
 
+interface FormData {
+  name: string;
+  taxId: string;
+  email: string;
+  phone: string;
+  billingAddress: string;
+  shippingAddress: string;
+  paymentMethod: 'CREDIT_CARD' | 'ATM' | 'COD';
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const [orderNote, setOrderNote] = useState('');
@@ -40,6 +50,15 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [formData, setFormData] = useState<FormData>({
+    name: '',
+    taxId: '',
+    email: '',
+    phone: '',
+    billingAddress: '',
+    shippingAddress: '',
+    paymentMethod: 'CREDIT_CARD'
+  });
 
   useEffect(() => {
     fetchCartItems();
@@ -53,7 +72,7 @@ export default function CheckoutPage() {
         throw new Error('Failed to fetch cart items');
       }
       const data = await response.json();
-      setCartItems(data.items || []);
+      setCartItems(data.data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch cart items');
     }
@@ -67,6 +86,16 @@ export default function CheckoutPage() {
       }
       const data = await response.json();
       setUserData(data);
+      // Initialize form data with user profile
+      setFormData(prev => ({
+        ...prev,
+        name: data.name || '',
+        taxId: data.taxId || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        billingAddress: data.billingAddress || '',
+        shippingAddress: data.shippingAddress || ''
+      }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch user profile');
     } finally {
@@ -79,9 +108,47 @@ export default function CheckoutPage() {
   const shipping = subtotal > 0 ? 150 : 0;
   const total = subtotal + shipping;
 
+  // Validate form data
+  const validateForm = (): boolean => {
+    if (!formData.name.trim()) {
+      setError('請輸入姓名');
+      return false;
+    }
+    if (!formData.email.trim()) {
+      setError('請輸入電子郵件');
+      return false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setError('電子郵件格式不正確');
+      return false;
+    }
+    if (!formData.phone.trim()) {
+      setError('請輸入電話號碼');
+      return false;
+    }
+    if (!formData.billingAddress.trim()) {
+      setError('請輸入發票寄送地址');
+      return false;
+    }
+    if (!sameAsBilling && !formData.shippingAddress.trim()) {
+      setError('請輸入收貨地址');
+      return false;
+    }
+    return true;
+  };
+
+  // Handle form input changes
+  const handleInputChange = (field: keyof FormData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
   const handlePlaceOrder = async () => {
     if (cartItems.length === 0) {
       setError('購物車是空的，無法下單');
+      return;
+    }
+
+    if (!validateForm()) {
       return;
     }
 
@@ -89,11 +156,22 @@ export default function CheckoutPage() {
     setError(null);
 
     try {
+      const shippingAddress = sameAsBilling ? formData.billingAddress : formData.shippingAddress;
+
       const orderData = {
         items: cartItems.map(item => ({
           productId: item.productId || String(item.id),
           quantity: item.quantity
         })),
+        shippingInfo: {
+          name: formData.name,
+          taxId: formData.taxId,
+          email: formData.email,
+          phone: formData.phone,
+          billingAddress: formData.billingAddress,
+          shippingAddress: shippingAddress,
+          paymentMethod: formData.paymentMethod
+        },
         note: orderNote
       };
 
@@ -112,7 +190,7 @@ export default function CheckoutPage() {
 
       const result = await response.json();
       setSuccess(true);
-      
+
       // Redirect to orders page after successful order
       router.push('/orders');
     } catch (err) {
@@ -229,20 +307,41 @@ export default function CheckoutPage() {
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="name">姓名</Label>
-                      <Input id="name" defaultValue={userData?.name || ''} />
+                      <Label htmlFor="name">姓名 *</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        placeholder="請輸入姓名"
+                      />
                     </div>
                     <div>
                       <Label htmlFor="taxId">統一編號</Label>
-                      <Input id="taxId" defaultValue={userData?.taxId || ''} />
+                      <Input
+                        id="taxId"
+                        value={formData.taxId}
+                        onChange={(e) => handleInputChange('taxId', e.target.value)}
+                        placeholder="選填"
+                      />
                     </div>
                     <div>
-                      <Label htmlFor="email">電子郵件</Label>
-                      <Input id="email" type="email" defaultValue={userData?.email || ''} />
+                      <Label htmlFor="email">電子郵件 *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        placeholder="請輸入電子郵件"
+                      />
                     </div>
                     <div>
-                      <Label htmlFor="phone">電話</Label>
-                      <Input id="phone" defaultValue={userData?.phone || ''} />
+                      <Label htmlFor="phone">電話 *</Label>
+                      <Input
+                        id="phone"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        placeholder="請輸入電話號碼"
+                      />
                     </div>
                   </div>
                 </div>
@@ -251,12 +350,17 @@ export default function CheckoutPage() {
                 <div>
                   <h3 className="text-lg font-medium mb-3 flex items-center">
                     <MapPin className="h-5 w-5 mr-2" />
-                    發票寄送地址
+                    發票寄送地址 *
                   </h3>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="billing-address">地址</Label>
-                      <Input id="billing-address" defaultValue={userData?.billingAddress || ''} />
+                      <Label htmlFor="billing-address">地址 *</Label>
+                      <Input
+                        id="billing-address"
+                        value={formData.billingAddress}
+                        onChange={(e) => handleInputChange('billingAddress', e.target.value)}
+                        placeholder="請輸入發票寄送地址"
+                      />
                     </div>
                   </div>
                 </div>
@@ -267,10 +371,10 @@ export default function CheckoutPage() {
                     <MapPin className="h-5 w-5 mr-2" />
                     收貨地址
                   </h3>
-                  
+
                   <div className="flex items-center mb-3">
-                    <Checkbox 
-                      id="same-as-billing" 
+                    <Checkbox
+                      id="same-as-billing"
                       checked={sameAsBilling}
                       onCheckedChange={(checked) => setSameAsBilling(!!checked)}
                     />
@@ -278,12 +382,17 @@ export default function CheckoutPage() {
                       與發票寄送地址相同
                     </Label>
                   </div>
-                  
+
                   {!sameAsBilling && (
                     <div className="space-y-4">
                       <div>
-                        <Label htmlFor="shipping-address">地址</Label>
-                        <Input id="shipping-address" defaultValue={userData?.shippingAddress || ''} />
+                        <Label htmlFor="shipping-address">地址 *</Label>
+                        <Input
+                          id="shipping-address"
+                          value={formData.shippingAddress}
+                          onChange={(e) => handleInputChange('shippingAddress', e.target.value)}
+                          placeholder="請輸入收貨地址"
+                        />
                       </div>
                     </div>
                   )}
@@ -308,15 +417,33 @@ export default function CheckoutPage() {
                   </h3>
                   <div className="space-y-2">
                     <div className="flex items-center">
-                      <Input type="radio" id="payment-card" name="payment" defaultChecked />
+                      <input
+                        type="radio"
+                        id="payment-card"
+                        name="payment"
+                        checked={formData.paymentMethod === 'CREDIT_CARD'}
+                        onChange={() => handleInputChange('paymentMethod', 'CREDIT_CARD')}
+                      />
                       <Label htmlFor="payment-card" className="ml-2">信用卡</Label>
                     </div>
                     <div className="flex items-center">
-                      <Input type="radio" id="payment-atm" name="payment" />
+                      <input
+                        type="radio"
+                        id="payment-atm"
+                        name="payment"
+                        checked={formData.paymentMethod === 'ATM'}
+                        onChange={() => handleInputChange('paymentMethod', 'ATM')}
+                      />
                       <Label htmlFor="payment-atm" className="ml-2">ATM轉帳</Label>
                     </div>
                     <div className="flex items-center">
-                      <Input type="radio" id="payment-cod" name="payment" />
+                      <input
+                        type="radio"
+                        id="payment-cod"
+                        name="payment"
+                        checked={formData.paymentMethod === 'COD'}
+                        onChange={() => handleInputChange('paymentMethod', 'COD')}
+                      />
                       <Label htmlFor="payment-cod" className="ml-2">貨到付款</Label>
                     </div>
                   </div>

@@ -202,8 +202,8 @@ export async function POST(request: NextRequest) {
 
     // 計算訂單總金額和明細
     let totalAmount = 0;
-    const orderItems = [];
-    const productUpdates = [];
+    const orderItems: any[] = [];
+    const productUpdates: any[] = [];
 
     for (const cartItem of cartItems) {
       // 計算商品單價（根據數量）
@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
         .sort((a, b) => b.minQty - a.minQty)
         .find(tier => tier.minQty <= cartItem.quantity);
       
-      const unitPrice = applicableTier?.price || cartItem.product.priceTiers[0].price;
+      const unitPrice = Number(applicableTier?.price || cartItem.product.priceTiers[0].price);
       const subtotal = unitPrice * cartItem.quantity;
       totalAmount += subtotal;
 

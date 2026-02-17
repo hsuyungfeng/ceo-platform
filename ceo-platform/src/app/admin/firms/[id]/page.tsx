@@ -47,6 +47,14 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
+interface Product {
+  id: string
+  name: string
+  image: string | null
+  isActive: boolean
+  createdAt: string
+}
+
 interface Firm {
   id: string
   name: string
@@ -54,13 +62,7 @@ interface Firm {
   address: string | null
   isActive: boolean
   createdAt: string
-  products: Array<{
-    id: string
-    name: string
-    image: string | null
-    isActive: boolean
-    createdAt: string
-  }>
+  products: Product[]
   _count: {
     products: number
   }

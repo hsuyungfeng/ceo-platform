@@ -125,7 +125,7 @@ export async function PATCH(
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: '資料驗證錯誤', details: error.errors },
+        { error: '資料驗證錯誤', details: error.issues },
         { status: 400 }
       )
     }

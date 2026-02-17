@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -206,7 +206,6 @@ function SortablePriceTierItem({
 }
 
 export default function PriceTierForm({ tiers, onChange, errors }: PriceTierFormProps) {
-  const [validation, setValidation] = useState<ValidationResult>(() => validateTiers(tiers))
   const [showValidation, setShowValidation] = useState(false)
 
   const sensors = useSensors(
@@ -216,11 +215,8 @@ export default function PriceTierForm({ tiers, onChange, errors }: PriceTierForm
     })
   )
 
-  // Update validation when tiers change
-  useEffect(() => {
-    const result = validateTiers(tiers)
-    setValidation(result)
-  }, [tiers])
+  // Compute validation when tiers change
+  const validation = useMemo(() => validateTiers(tiers), [tiers])
 
   const handleAddTier = () => {
     const lastTier = tiers[tiers.length - 1]

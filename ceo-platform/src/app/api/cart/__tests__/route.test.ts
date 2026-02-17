@@ -71,7 +71,7 @@ describe('GET /api/cart', () => {
     const body = await res.json()
 
     expect(res.status).toBe(200)
-    expect(body.items).toEqual([])
+    expect(body.data).toEqual([])
     expect(body.summary.totalItems).toBe(0)
     expect(body.summary.totalAmount).toBe(0)
   })

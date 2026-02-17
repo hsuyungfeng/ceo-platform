@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { logger } from '@/lib/logger'
@@ -58,6 +58,20 @@ export async function POST(request: NextRequest) {
         { error: '電子郵件已被使用' },
         { status: 409 }
       );
+    }
+
+    // 檢查手機號碼是否已存在
+    if (phone) {
+      const existingPhone = await prisma.user.findUnique({
+        where: { phone },
+      });
+
+      if (existingPhone) {
+        return NextResponse.json(
+          { error: '手機號碼已被使用' },
+          { status: 409 }
+        );
+      }
     }
 
     // 加密密碼

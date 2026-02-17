@@ -1,27 +1,59 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Search } from 'lucide-react';
+import { toast } from 'sonner';
 
-// Server component - no 'use client' needed for static content
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  unit: string;
+}
+
 export default function HomePage() {
-  // Mock data for featured products
-  const featuredProducts = [
-    { id: 1, name: '醫療口罩', price: 150, originalPrice: 200, discount: 25, image: '/placeholder-product.jpg' },
-    { id: 2, name: '酒精乾洗手', price: 280, originalPrice: 350, discount: 20, image: '/placeholder-product.jpg' },
-    { id: 3, name: '血壓計', price: 2450, originalPrice: 2900, discount: 15, image: '/placeholder-product.jpg' },
-    { id: 4, name: '血糖儀', price: 1800, originalPrice: 2200, discount: 18, image: '/placeholder-product.jpg' },
-  ];
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [latestProducts, setLatestProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data for latest products
-  const latestProducts = [
-    { id: 5, name: '體溫槍', price: 1200, image: '/placeholder-product.jpg' },
-    { id: 6, name: '輪椅', price: 8500, image: '/placeholder-product.jpg' },
-    { id: 7, name: '拐杖', price: 650, image: '/placeholder-product.jpg' },
-    { id: 8, name: '病床', price: 15000, image: '/placeholder-product.jpg' },
-  ];
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const [featuredRes, latestRes] = await Promise.all([
+          fetch('/api/products?featured=true&limit=4'),
+          fetch('/api/products?sortBy=createdAt&order=desc&limit=4')
+        ]);
+
+        if (!featuredRes.ok || !latestRes.ok) {
+          throw new Error('載入商品失敗');
+        }
+
+        const featuredData = await featuredRes.json();
+        const latestData = await latestRes.json();
+
+        setFeaturedProducts(featuredData.data || []);
+        setLatestProducts(latestData.data || []);
+      } catch (error) {
+        toast.error('載入商品時發生錯誤');
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  if (loading) {
+    return <HomePageSkeleton />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -59,37 +91,39 @@ export default function HomePage() {
         <section className="mb-16">
           <h2 className="text-3xl font-bold mb-8 text-center">熱門商品</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {featuredProducts.map((product) => (
-              <Card key={product.id} className="overflow-hidden">
-                <div className="relative h-48 bg-gray-200">
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                  />
-                </div>
-                <CardHeader>
-                  <CardTitle className="text-lg">{product.name}</CardTitle>
-                  <CardDescription>
-                    <span className="text-red-600 font-bold">${product.price}</span>
-                    <span className="line-through text-gray-500 ml-2">${product.originalPrice}</span>
-                    <span className="ml-2 text-green-600">-{product.discount}%</span>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button
-                    className="w-full"
-                    asChild
-                  >
-                    <Link href={`/products/${product.id}`}>
-                      查看詳情
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+            {featuredProducts.length > 0 ? (
+              featuredProducts.map((product) => (
+                <Card key={product.id} className="overflow-hidden">
+                  <div className="relative h-48 bg-gray-200">
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                    />
+                  </div>
+                  <CardHeader>
+                    <CardTitle className="text-lg">{product.name}</CardTitle>
+                    <CardDescription>
+                      <span className="text-red-600 font-bold">${product.price}</span>
+                      <span className="ml-2 text-gray-600">/{product.unit}</span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button className="w-full" asChild>
+                      <Link href={`/products/${product.id}`}>
+                        查看詳情
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full text-center text-gray-500 py-8">
+                暫無熱門商品
+              </div>
+            )}
           </div>
         </section>
 
@@ -97,35 +131,39 @@ export default function HomePage() {
         <section className="mb-16">
           <h2 className="text-3xl font-bold mb-8 text-center">最新商品</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {latestProducts.map((product) => (
-              <Card key={product.id}>
-                <div className="relative h-48 bg-gray-200">
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                  />
-                </div>
-                <CardHeader>
-                  <CardTitle className="text-lg">{product.name}</CardTitle>
-                  <CardDescription>
-                    <span className="text-red-600 font-bold">${product.price}</span>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button
-                    className="w-full"
-                    asChild
-                  >
-                    <Link href={`/products/${product.id}`}>
-                      查看詳情
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+            {latestProducts.length > 0 ? (
+              latestProducts.map((product) => (
+                <Card key={product.id}>
+                  <div className="relative h-48 bg-gray-200">
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                    />
+                  </div>
+                  <CardHeader>
+                    <CardTitle className="text-lg">{product.name}</CardTitle>
+                    <CardDescription>
+                      <span className="text-red-600 font-bold">${product.price}</span>
+                      <span className="ml-2 text-gray-600">/{product.unit}</span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button className="w-full" asChild>
+                      <Link href={`/products/${product.id}`}>
+                        查看詳情
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full text-center text-gray-500 py-8">
+                暫無最新商品
+              </div>
+            )}
           </div>
         </section>
 
@@ -144,6 +182,58 @@ export default function HomePage() {
               <h3 className="text-xl font-bold mb-2">品質保證</h3>
               <p className="text-gray-600">嚴格篩選合作廠商，確保商品品質</p>
             </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function HomePageSkeleton() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <section className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-16">
+        <div className="container mx-auto px-4 text-center">
+          <Skeleton className="h-12 w-3/4 mx-auto mb-4 bg-blue-500" />
+          <Skeleton className="h-8 w-2/3 mx-auto mb-8 bg-blue-500" />
+          <Skeleton className="h-14 w-1/2 mx-auto rounded-full bg-blue-500" />
+        </div>
+      </section>
+
+      <div className="container mx-auto px-4 py-12">
+        <section className="mb-16">
+          <h2 className="text-3xl font-bold mb-8 text-center">熱門商品</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <Skeleton className="h-48 w-full" />
+                <CardHeader>
+                  <Skeleton className="h-4 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-1/2" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-10 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <section className="mb-16">
+          <h2 className="text-3xl font-bold mb-8 text-center">最新商品</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <Skeleton className="h-48 w-full" />
+                <CardHeader>
+                  <Skeleton className="h-4 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-1/2" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-10 w-full" />
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </section>
       </div>

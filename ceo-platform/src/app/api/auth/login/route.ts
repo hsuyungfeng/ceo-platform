@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { signIn } from '@/auth';
@@ -7,7 +7,7 @@ import { logger } from '@/lib/logger'
 
 // 登入請求驗證 schema
 const loginSchema = z.object({
-  taxId: z.string().length(8, '統一編號必須是8位數字').regex(/^\d+$/, '統一編號必須是數字'),
+  identifier: z.string().min(1, '請輸入電子郵件或手機號碼'),
   password: z.string().min(1, '密碼不能為空'),
   rememberMe: z.boolean().optional().default(false),
 });
@@ -29,19 +29,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { taxId, password, rememberMe } = validationResult.data;
+    const { identifier, password, rememberMe } = validationResult.data;
 
-    // 查找使用者
-    const user = await prisma.user.findUnique({
-      where: { taxId },
+    // 查找使用者 (支援電子郵件或手機號碼)
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: identifier },
+          { phone: identifier }
+        ]
+      },
       include: {
         member: true,
       },
     });
 
-    if (!user) {
+    if (!user || !user.password) {
       return NextResponse.json(
-        { error: '統一編號或密碼錯誤' },
+        { error: '帳號或密碼錯誤' },
         { status: 401 }
       );
     }
@@ -58,7 +63,7 @@ export async function POST(request: NextRequest) {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return NextResponse.json(
-        { error: '統一編號或密碼錯誤' },
+        { error: '帳號或密碼錯誤' },
         { status: 401 }
       );
     }
@@ -67,7 +72,7 @@ export async function POST(request: NextRequest) {
     try {
       const result = await signIn('credentials', {
         redirect: false,
-        taxId,
+        identifier,
         password,
       });
 

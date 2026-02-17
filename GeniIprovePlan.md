@@ -4,8 +4,8 @@
 > **審查日期**：2026-02-17
 > **審查範圍**：plan.md (1801行) + ClaudePlan.md (860行) + progress.md (2896行) + 專案結構
 > **專案版本**：CEO Group Buying Platform v2
-> **專案整體完成度**：~90%（主要功能已完成，僅剩部署優化）
-> **最後更新**：2026-02-17（已完成所有優先級改善）
+> **專案整體完成度**：~92%（主要功能完成，剩安全清理、推播配置與部署優化）
+> **最後更新**：2026-02-17（已完成代碼庫合併，新增 4 項改善項目）
 
 ---
 
@@ -34,30 +34,31 @@
 | 3     | 購物車 + 訂單         | `ceo-platform/src/app/api/cart/` + `orders/` | 100%          |
 | 4     | 後台管理              | `ceo-platform/src/app/admin/`                | 95%（見缺口） |
 | 5     | 部署配置              | `ceo-platform/docker/` + scripts             | 100%          |
-| 6     | Mobile App + Monorepo | `ceo-monorepo/apps/mobile/`                  | 95%           |
-| 8     | 安全強化              | `ceo-monorepo/apps/web/src/lib/`             | 100%          |
+| 6     | Mobile App 基礎       | `ceo-monorepo/apps/mobile/`                  | 95%           |
+| 7     | Mobile App 進階       | `ceo-monorepo/apps/mobile/`                  | 70%           |
+| 8     | 安全強化              | `ceo-platform/src/lib/`                      | 100%          |
 
 ### 1.2 未完成 / 進行中項目
 
-| Phase     | 主題              | 位置                     | 完成度 | 阻塞原因                |
-| --------- | ----------------- | ------------------------ | ------ | ----------------------- |
-| 4（殘餘） | 聯絡訊息 + 儀表板 | `ceo-platform/`          | 85%    | plan.md 內標記未完成    |
-| 7         | Mobile App 上架   | `.worktrees/phase6/`     | 40%    | 推送、上架、離線未實作  |
-| 郵件認證  | Email Auth 系統   | `.worktrees/email-auth/` | 70%    | Phase 2 核心 API 待實施 |
-| 分支合併  | Worktree 整合     | `.worktrees/`            | 0%     | 決策點未做              |
-| 生產部署  | 真正部署上線      | -                        | 0%     | 依賴合併+安全修復       |
+| Phase     | 主題              | 位置                     | 完成度 | 狀態                |
+| --------- | ----------------- | ------------------------ | ------ | ------------------- |
+| 4（殘餘） | 聯絡訊息 + 儀表板 | `ceo-platform/`          | 85%    | 已完善，待最終測試  |
+| 7         | Mobile App 上架   | `ceo-monorepo/apps/mobile/` | 60% | 推送、上架、離線待實作 |
+| 郵件認證  | Email Auth 系統   | `ceo-platform/`          | 80%    | Phase 1 完成，Phase 2 API 待實施 |
+| 分支合併  | Worktree 整合     | `ceo-platform/`          | 100%   | ✅ 已完成 7 階段合併 |
+| 生產部署  | 真正部署上線      | `ceo-platform/docker/`   | 30%    | 配置完成，需實際部署 |
 
 ### 1.3 專案健康度報告卡
 
 | 維度           | 評分  | 說明                                                  |
 | -------------- | ----- | ----------------------------------------------------- |
-| **功能完整性** | ★★★★☆ | Web 核心完整，Mobile 基礎可用                         |
-| **程式碼品質** | ★★★☆☆ | 有 mock 殘留、`any` 型別、console.log                 |
-| **安全性**     | ★★★★☆ | Phase 8 安全框架完整，但 hardcoded password 仍存在    |
-| **架構一致性** | ★★☆☆☆ | 三套代碼副本（ceo-platform、ceo-monorepo、worktrees） |
-| **測試覆蓋**   | ★★★☆☆ | 164 安全測試 + 15 API 測試，缺 E2E/元件測試           |
-| **部署就緒度** | ★★☆☆☆ | 配置完成但從未真正部署過                              |
-| **文件完整度** | ★★★★★ | 文件非常詳盡(plan, progress, API docs)                |
+| **功能完整性** | ★★★★☆ | Web 核心完整，Mobile 基礎可用，團購流程完整           |
+| **程式碼品質** | ★★★☆☆ | mock 資料已清理，`any` 型別部分殘留，console.log 待清理 |
+| **安全性**     | ★★★★☆ | Phase 8 安全框架完整，硬編碼密碼已修復，CSRF、速率限制已實作 |
+| **架構一致性** | ★★★★☆ | 單一代碼庫（ceo-platform），Mobile 分離但結構清晰      |
+| **測試覆蓋**   | ★★★☆☆ | 189/193 測試通過（Vitest），缺 E2E/元件測試           |
+| **部署就緒度** | ★★★☆☆ | Docker 配置完整，需實際部署測試                       |
+| **文件完整度** | ★★★★★ | 文件非常詳盡(plan, progress, API docs, 改善計劃)      |
 
 ---
 
@@ -68,7 +69,7 @@
 | #    | 項目                             | 來源            | 現狀      |
 | ---- | -------------------------------- | --------------- | --------- |
 | P0-1 | **prisma.ts 硬編碼資料庫密碼**   | ClaudePlan §2.1 | ✅ 已修復 |
-| P0-2 | **Git 歷史中的 .env.local**      | ClaudePlan §2.2 | ⚠️ 暫緩（功能優先） |
+| P0-2 | **Git 歷史中的 .env.local**      | ClaudePlan §2.2 | 🔴 待處理（需 force push） |
 | P0-3 | **分支合併決策**                 | ClaudePlan §11  | ✅ 已完成 |
 | P0-4 | **商品詳情頁仍使用 mockProduct** | ClaudePlan §3.1 | ✅ 已修復 |
 
@@ -82,7 +83,7 @@
 | P1-4 | 郵件認證系統 Phase 2 API      | progress.md Day 21    | ✅ 已完成          |
 | P1-5 | 手機號碼驗證系統              | plan.md Phase 6.1     | ⏳ 規劃中           |
 | P1-6 | Mobile Profile 頁假資料       | ClaudePlan §5.1       | ✅ 已完成          |
-| P1-7 | App 圖示 + 啟動畫面           | plan.md Phase 7.4     | ✅ 已完成          |
+| P1-7 | App 圖示 + 啟動畫面           | plan.md Phase 7.4     | 🔴 待處理（需生成各尺寸圖示資源） |
 | P1-8 | 訂單 Email 通知               | progress.md 技術債 #7 | ⏳ 待實施           |
 
 ### 🟢 P2 — 品質提升（上線後可迭代）
@@ -99,7 +100,7 @@
 | P2-8  | 無障礙標籤缺失           | ClaudePlan §3.7       | ⏳ 待完善               |
 | P2-9  | 離線瀏覽（MMKV 快取）    | plan.md Phase 7.4     | ⏳ 待實施               |
 | P2-10 | 掃碼下單功能             | plan.md Phase 7.4     | ⏳ 待實施               |
-| P2-11 | 推播通知實際配置         | plan.md Phase 7.4     | ✅ 配置文檔已完成        |
+| P2-11 | 推播通知實際配置         | plan.md Phase 7.4     | 🔴 待處理（需配置實際 FCM/APNs 憑證） |
 | P2-12 | 銷售報表匯出             | progress.md 技術債 #8 | ⏳ 待實施               |
 | P2-13 | 操作日誌系統             | progress.md 技術債 #9 | ⚠️ 基礎架構已建立        |
 
@@ -107,47 +108,50 @@
 
 ## 3. 最大風險：分支碎片化問題
 
-> [!CAUTION]
-> 這是整個專案最大的結構性風險。目前有 **三套不同的代碼副本** 分散在不同位置：
+> [!SUCCESS]
+> **✅ 風險已緩解**（2026-02-17）：已完成 7 階段代碼合併，將三套代碼副本統一為單一源頭 (`ceo-platform/`)。
 
 ```
 /統購PHP/
-├── ceo-platform/            # 🔵 原始開發目錄（Phase 0-5 的主要成果）
-│   └── src/                 # 68 .tsx + 47 .ts 檔案
+├── ceo-platform/            # 🟢 單一源頭代碼庫（已合併所有功能）
+│   ├── src/                 # 完整功能（Phase 0-8 所有功能）
+│   │   ├── app/             # Next.js 15 App Router
+│   │   ├── lib/             # 安全強化庫（CSRF、速率限制、輸入驗證）
+│   │   └── __tests__/       # 189/193 測試通過
+│   ├── prisma/              # 擴充 Schema（EmailVerification、OAuthAccount 等）
+│   └── docker/              # 生產部署配置
 │
-├── ceo-monorepo/            # 🟢 Phase 6-8 的 Monorepo 結構
-│   ├── apps/web/            # Web App（從 ceo-platform 遷移 + 擴充）
-│   ├── apps/mobile/         # Mobile App
-│   └── packages/            # 共用套件（shared, auth, api-client）
-│
-└── .worktrees/
-    ├── phase6/ceo-monorepo/ # 🟡 Phase 6 分支（19 個未合併提交）
-    │   ├── apps/web/        # 含安全強化、OAuth、Email 驗證
-    │   └── apps/mobile/     # 含推播、深層連結
-    └── email-auth/          # 🟠 Email 認證分支（Phase 1 完成）
+└── .worktrees/              # 🟡 已合併，可清理（釋放 5.9GB 空間）
+    ├── phase6/              # 安全強化、OAuth、推播通知功能已合併
+    └── email-auth/          # 郵件認證 Phase 1 已合併
 ```
 
-### 問題分析
+### 現況更新（2026-02-17）
 
-1. **`ceo-platform/`** — 這是最早的開發目錄，Phase 0-4 的成果在這裡，但**未包含** Phase 6-8 的安全強化、OAuth、Mobile App 等功能。
+✅ **已完成 7 階段代碼合併**，將所有功能統一至 `ceo-platform/` 單一源頭：
 
-2. **`ceo-monorepo/`** — 位於根目錄，已安裝 371 個子項目。但與 `.worktrees/phase6/ceo-monorepo/` 之間可能存在**代碼分歧**。
+1. **`ceo-platform/`** — 現在是完整的單一源頭代碼庫，包含：
+   - ✅ Phase 0-5：基礎功能（認證、商品、購物車、訂單、後台）
+   - ✅ Phase 6-8：安全強化、OAuth（Apple Sign-In）、郵件認證、推播通知
+   - ✅ 資料庫 Schema 擴充（EmailVerification、OAuthAccount 等模型）
+   - ✅ 189/193 測試通過（4 個測試待修復）
 
-3. **`.worktrees/phase6/`** — 包含最完整的功能代碼（安全強化、Apple Sign-In、推播通知等），但有 **19 個未合併提交**，佔用 ~5.8 GB。
+2. **`.worktrees/`** — 已完成合併，可安全清理以釋放 ~5.9GB 磁碟空間。
 
-4. **`.worktrees/email-auth/`** — 郵件認證系統 Phase 1 完成（5 個資料表 + 郵件服務 + 令牌管理），Phase 2 核心 API 未實施。
+3. **`ceo-monorepo/`** — 已退役，功能已遷移至 `ceo-platform/`。
 
-### 建議合併策略
+### 合併執行結果（2026-02-17）
 
 ```mermaid
 flowchart TD
-    A["確認 Source of Truth"] --> B{"以哪個為主？"}
-    B -->|"建議"| C["ceo-monorepo/ 為主"]
-    C --> D["合併 .worktrees/phase6 的未提交代碼"]
-    D --> E["將 email-auth 的 Phase 1 合併入主線"]
-    E --> F["完成 email-auth Phase 2 API"]
-    F --> G["退役 ceo-platform/ 目錄"]
-    G --> H["清理 .worktrees/"]
+    A["7 階段合併計劃"] --> B["Phase 1: 安全備份 + Git 標籤"]
+    B --> C["Phase 2: 資料庫 Schema 遷移"]
+    C --> D["Phase 3: 安全功能遷移 (CSRF、速率限制)"]
+    D --> E["Phase 4: 測試遷移 (Jest → Vitest)"]
+    E --> F["Phase 5: 驗證與編譯 (189/193 測試通過)"]
+    F --> G["Phase 6: Worktrees 清理 (釋放 5.9GB)"]
+    G --> H["Phase 7: 最終提交 + 版本標籤"]
+    H --> I["✅ 單一源頭代碼庫完成"]
 ```
 
 ---
@@ -490,6 +494,14 @@ curl https://your-domain.com/api/health
 
 ### ✅ 本次改善已完成項目
 
+#### Sprint 0: 代碼庫合併與安全強化（2026-02-17）
+- ✅ **7 階段代碼合併完成**：將 `ceo-monorepo/`、`.worktrees/` 功能統一至 `ceo-platform/`
+- ✅ **安全功能遷移**：CSRF 保護、速率限制、輸入驗證、Sentry 整合
+- ✅ **資料庫 Schema 擴充**：新增 `EmailVerification`、`OAuthAccount`、`TempOAuth` 等模型
+- ✅ **測試遷移與修復**：189/193 測試通過（Jest → Vitest 轉換）
+- ✅ **環境變數統一**：更新 `.env.local` 包含 Sentry、JWT、Resend、OAuth 配置
+- ✅ **Git 備份與標籤**：建立 `backup-consolidation-20260217` 分支與 `consolidation-start` 標籤
+
 #### Sprint 1: 安全修復 + 分支合併
 - ✅ **P0-1**: 移除 prisma.ts 硬編碼資料庫密碼
 - ✅ **P0-3**: 分支合併決策（確認所有分支已整合）
@@ -513,9 +525,9 @@ curl https://your-domain.com/api/health
 
 #### Sprint 4: Mobile App 準備
 - ✅ **P1-6**: Mobile Profile 頁串接真實 API
-- ✅ **P1-7**: App 圖示 + 啟動畫面配置
-- ✅ **P2-5**: 圖片優化（next/image）
-- ✅ **P2-11**: 推播通知配置文檔
+- ⚠️ **P1-7**: App 圖示 + 啟動畫面配置（文檔完成，需實際生成圖示資源）
+- ✅ **P2-5**: 圖片優化（next/image） - 已替換 10 個頁面的 `<img>` 標籤
+- ⚠️ **P2-11**: 推播通知配置文檔（文檔完成，需配置實際 FCM/APNs 憑證）
   - FCM 設定指南
   - APNs 設定指南
 - ✅ App 圖示模板與生成指南
@@ -524,50 +536,65 @@ curl https://your-domain.com/api/health
 
 | 指標 | 改善前 | 改善後 | 提升 |
 |------|--------|--------|------|
-| **整體完成度** | ~75% | ~90% | +15% |
-| **P0 阻塞問題** | 4/4 待修復 | 1/4 暫緩 | 75% 解決 |
-| **P1 必須項目** | 0/8 完成 | 5/8 完成 | 63% 完成 |
-| **P2 品質提升** | 0/13 完成 | 3/13 完成 | 進行中 |
+| **整體完成度** | ~75% | ~92% | +17% |
+| **P0 阻塞問題** | 4/4 待修復 | 3/4 解決（1待處理） | 75% 解決 |
+| **P1 必須項目** | 0/8 完成 | 4/8 完成（1待處理） | 50% 完成 |
+| **P2 品質提升** | 0/13 完成 | 3/13 完成（1待處理） | 23% 完成 |
 | **Mock 資料清理** | 0/6 頁面 | 6/6 頁面 | 100% 完成 |
+| **關鍵 Bug 修復** | - | 1/1 | ✅ Products API 400 錯誤已修復 |
+| **代碼庫合併** | 三套副本 | 單一源頭完成 | ✅ 風險消除 |
 
 ### 📝 最近的提交記錄
 
-1. **ba6af16e** - `perf: Replace img tags with Next.js Image component`
-   - 優化 10 個頁面的圖片載入效能
-   - 修復 P2-5
+1. **[合併提交]** - `feat: Consolidate codebases into single source of truth`
+   - 7 階段代碼合併完成（ceo-monorepo + worktrees → ceo-platform）
+   - 安全功能遷移（CSRF、速率限制、輸入驗證、Sentry）
+   - 資料庫 Schema 擴充（EmailVerification、OAuthAccount 等模型）
+   - 測試遷移與修復（189/193 測試通過）
 
-2. **80493d0e** - `feat: Complete major improvements from GeniIprovePlan.md`
+2. **ba6af16e** - `perf: Replace img tags with Next.js Image component`
+   - 優化 10 個頁面的圖片載入效能
+   - 修復 P2-5（圖片優化完成）
+
+3. **97a9c7fe** - `fix: Add 'featured' to valid sortBy values in products API`
+   - 修復 Products API 400 錯誤
+   - 新增 'featured' 到 sortBy 枚舉
+   - 修復 TypeScript any 類型
+
+4. **80493d0e** - `feat: Complete major improvements from GeniIprovePlan.md`
    - Mock 資料清理（4 頁面）
    - Email Auth Phase 2 API
    - 忘記密碼功能
    - Mobile Profile 優化
 
-3. **56c7f453** - `fix: Replace mock data with real API calls`
+5. **56c7f453** - `fix: Replace mock data with real API calls`
    - 商品詳情頁真實 API
    - Header 購物車計數真實數據
 
-4. **07211a1d** - `security: Remove hardcoded database password`
+6. **07211a1d** - `security: Remove hardcoded database password`
    - 移除 prisma.ts 硬編碼密碼
    - 改為環境變數驗證
 
-### 🎯 下一步建議
+### 🎯 下一步建議（依據用戶要求）
 
-雖然主要改善已完成，以下項目可進一步提升：
+**高優先級（立即處理）:**
+1. 🔴 **Git 歷史清理**（P0-2）：清理 .env.local 從 Git 歷史（需要 force push）
+2. 🔴 **Push 通知配置**（P2-11）：配置實際的 FCM/APNs 憑證，非僅文檔
+3. 🔴 **App 圖示生成**（P1-7）：生成各尺寸的 App 圖示資源，非僅模板
+4. 🟡 **生產環境部署測試**：Docker Build 與實際部署驗證
+5. 🟡 **完整購物流程測試**：登入→瀏覽→購物車→結帳端到端測試
 
-**高優先級（建議下個 Sprint）:**
-- 🔴 Git 歷史清理（.env.local）- 需要 force push
-- 🟡 訂單 Email 通知實施
-- 🟡 生產環境部署測試
-
-**中優先級:**
-- 🟢 圖片 CDN 配置（Cloudflare/AWS CloudFront）
-- 🟢 完整 E2E 測試（Playwright）
-- 🟢 性能監控（Sentry）
+**中優先級（上線前建議）:**
+- 🟢 **訂單 Email 通知實施**（P1-8）：整合 Resend 服務發送訂單狀態郵件
+- 🟢 **Footer 連結修復**：連結全部指向實際頁面，非 `#`
+- 🟢 **錯誤邊界（Error Boundary）**：關鍵頁面添加 `error.tsx`
+- 🟢 **圖片 CDN 配置**：Cloudflare/AWS CloudFront 優化圖片載入
 
 **低優先級（可迭代）:**
-- ⚪ 掃碼下單功能
-- ⚪ 離線瀏覽（MMKV）
-- ⚪ 銷售報表匯出
+- ⚪ **掃碼下單功能**：QR Code 掃描快速下單
+- ⚪ **離線瀏覽（MMKV）**：Mobile App 離線快取
+- ⚪ **銷售報表匯出**：Excel/PDF 報表生成
+- ⚪ **完整 E2E 測試**：Playwright 完整流程測試
 
 ---
 

@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Star, Clock, Package, ArrowLeft, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface PriceTier {
   minQty: number;
@@ -42,16 +44,18 @@ interface Product {
   } | null;
 }
 
-export default function ProductDetailPage({ params }: { params: { id: string } }) {
+export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const { id } = params;
+  const { id } = use(params);
   
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [selectedTier, setSelectedTier] = useState<PriceTier | null>(null);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
+  const [shouldShowTimeRemaining, setShouldShowTimeRemaining] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   // Fetch product data
   useEffect(() => {
@@ -68,14 +72,9 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         }
         
         setProduct(data);
-        // Initialize selected tier with the first tier
-        if (data.priceTiers && data.priceTiers.length > 0) {
-          setSelectedTier(data.priceTiers[0]);
-          // Set initial quantity to suggestedQty if available
           if (data.suggestedQty && data.suggestedQty > 1) {
             setQuantity(data.suggestedQty);
           }
-        }
       } catch (err) {
         setError(err instanceof Error ? err.message : '獲取商品失敗');
       } finally {
@@ -87,6 +86,11 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       fetchProduct();
     }
   }, [id]);
+
+  // Set mounted state
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Calculate applicable tier based on quantity
   const getApplicableTier = (qty: number): PriceTier => {
@@ -106,28 +110,51 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   // Calculate price based on quantity
   const calculatePrice = (qty: number): number => {
     const tier = getApplicableTier(qty);
-    setSelectedTier(tier);
-    return tier.price * qty;
+    return Number(tier.price) * qty;
+  };
+
+  // Calculate group buy progress
+  const calculateGroupBuyProgress = (): { current: number; target: number; percentage: number } => {
+    if (!product || !product.priceTiers || product.priceTiers.length === 0) {
+      return { current: 0, target: 0, percentage: 0 };
+    }
+
+    const current = product.totalSold || 0;
+    
+    // Find the next price tier threshold
+    const sortedTiers = [...product.priceTiers].sort((a, b) => a.minQty - b.minQty);
+    let target = sortedTiers[sortedTiers.length - 1].minQty; // Default to highest tier
+    
+    // Find the next tier that hasn't been reached yet
+    for (const tier of sortedTiers) {
+      if (current < tier.minQty) {
+        target = tier.minQty;
+        break;
+      }
+    }
+    
+    // If current exceeds all tiers, use the next logical target (e.g., current + 10%)
+    if (current >= target) {
+      target = Math.max(current, Math.ceil(current * 1.1)); // 10% more than current
+    }
+    
+    const percentage = Math.min(100, Math.round((current / target) * 100));
+    
+    return { current, target, percentage };
   };
 
   // Handle quantity change
   const handleQuantityChange = (value: number) => {
-    if (value < 1) value = 1;
-    setQuantity(value);
-    calculatePrice(value);
+    const newQty = Math.max(1, value);
+    setQuantity(newQty);
   };
 
-  // Calculate savings percentage
-  const savingsPercentage = product?.priceTiers && selectedTier
-    ? Math.round(
-        ((product.priceTiers[0].price - selectedTier.price) / product.priceTiers[0].price) * 100
-      )
-    : 0;
+
 
   // Calculate time remaining
-  const getTimeRemaining = (): string => {
-    if (!product?.endDate) return '';
-    const end = new Date(product.endDate);
+  const calculateTimeRemaining = (endDate: string): string => {
+    if (!endDate) return '';
+    const end = new Date(endDate);
     const now = new Date();
     const diff = end.getTime() - now.getTime();
     
@@ -139,6 +166,29 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
     if (days > 0) return `${days} 天 ${hours} 小時`;
     return `${hours} 小時`;
   };
+
+  // Update time remaining when product changes
+  useEffect(() => {
+    if (!product?.endDate) {
+      setTimeRemaining('');
+      setShouldShowTimeRemaining(false);
+      return;
+    }
+
+    // Calculate initial time
+    const calculateAndSetTime = () => {
+      const time = calculateTimeRemaining(product.endDate!);
+      setTimeRemaining(time);
+      setShouldShowTimeRemaining(true);
+    };
+
+    calculateAndSetTime();
+
+    // Update time every minute
+    const intervalId = setInterval(calculateAndSetTime, 60000);
+
+    return () => clearInterval(intervalId);
+  }, [product]);
 
   // Add to cart
   const handleAddToCart = async () => {
@@ -160,10 +210,10 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         throw new Error(data.error || '加入購物車失敗');
       }
 
-      // Show success toast or notification
-      alert(`已加入購物車: ${quantity} ${product?.unit || '件'}`);
+      // Show success toast notification
+      toast.success(`已加入購物車：${quantity} ${product?.unit || '件'}`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : '加入購物車失敗');
+      toast.error(err instanceof Error ? err.message : '加入購物車失敗');
     } finally {
       setAddingToCart(false);
     }
@@ -210,8 +260,16 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
     );
   }
 
+  const selectedTier = getApplicableTier(quantity);
   const displayPrice = calculatePrice(quantity);
-  const timeRemaining = getTimeRemaining();
+  const progress = calculateGroupBuyProgress();
+  
+  // Calculate savings percentage
+  const savingsPercentage = product?.priceTiers && selectedTier && product.priceTiers.length > 0
+    ? Math.round(
+        ((Number(product.priceTiers[0].price) - Number(selectedTier.price)) / Number(product.priceTiers[0].price)) * 100
+      )
+    : 0;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -259,6 +317,24 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   ))}
                 </div>
                 <span className="ml-2 text-gray-600">({product.totalSold || 0} 已售)</span>
+              </div>
+              
+              {/* Group buy progress bar */}
+              <div className="mb-6">
+                <Progress 
+                   value={progress.current}
+                  max={progress.target}
+                  showValue={true}
+                  valueSuffix={`${product.unit}`}
+                  color="green"
+                  size="md"
+                />
+                <div className="mt-2 text-sm text-gray-600 flex justify-between">
+                  <span>集購進度</span>
+                  <span className="font-medium">
+                     已售 {progress.current} {product.unit} / 目標 {progress.target} {product.unit}
+                  </span>
+                </div>
               </div>
               
               <div className="mb-6">
@@ -378,7 +454,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               </div>
               
               {/* Time remaining */}
-              {timeRemaining && (
+              {isMounted && shouldShowTimeRemaining && timeRemaining && (
                 <div className="mt-6 p-4 bg-yellow-50 rounded-lg flex items-center">
                   <Clock className="h-5 w-5 mr-2 text-yellow-600" />
                   <div>

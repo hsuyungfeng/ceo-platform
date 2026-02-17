@@ -7,15 +7,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, SlidersHorizontal, Loader2, AlertCircle } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Search, SlidersHorizontal, Loader2, AlertCircle } from 'lucide-react';
 
 interface Product {
-  id: number;
+  id: string;
   name: string;
-  price: number;
-  originalPrice: number;
-  discount: number;
-  image: string;
+  subtitle: string | null;
+  description: string | null;
+  price: number | string;
+  originalPrice?: number | string;
+  discount?: number;
+  image: string | null;
+  unit: string;
+  totalSold: number;
+  priceTiers: { minQty: number; price: number | string }[];
   category: string;
   firm: string;
   featured: boolean;
@@ -42,7 +48,39 @@ interface ProductsResponse {
   pagination: Pagination;
 }
 
-export default function ProductsPage() {
+// 計算集購進度
+function calculateGroupBuyProgress(product: Product): { current: number; target: number; percentage: number } {
+  if (!product.priceTiers || product.priceTiers.length === 0) {
+    return { current: 0, target: 0, percentage: 0 };
+  }
+
+  const current = product.totalSold || 0;
+  
+  // Find the next price tier threshold
+  const sortedTiers = [...product.priceTiers].sort((a, b) => a.minQty - b.minQty);
+  let target = sortedTiers[sortedTiers.length - 1].minQty; // Default to highest tier
+  
+  // Find the next tier that hasn't been reached yet
+  for (const tier of sortedTiers) {
+    if (current < tier.minQty) {
+      target = tier.minQty;
+      break;
+    }
+  }
+  
+  // If current exceeds all tiers, use the next logical target (e.g., current + 10%)
+  if (current >= target) {
+    target = Math.max(current, Math.ceil(current * 1.1)); // 10% more than current
+  }
+  
+  const percentage = Math.min(100, Math.round((current / target) * 100));
+  
+  return { current, target, percentage };
+}
+
+import { Suspense } from 'react';
+
+function ProductsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -177,7 +215,7 @@ export default function ProductsPage() {
         
         <div className="flex flex-col md:flex-row gap-6">
           {/* Filters sidebar */}
-          <div className="w-full md:w-64 flex-shrink-0">
+          <div className="w-full md:w-64 shrink-0">
             <div className="bg-white p-4 rounded-lg shadow-sm">
               <h2 className="text-lg font-semibold mb-4 flex items-center">
                 <SlidersHorizontal className="mr-2 h-5 w-5" />
@@ -287,43 +325,63 @@ export default function ProductsPage() {
             {!loading && !error && (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {products.map((product) => (
-                    <Card key={product.id} className="overflow-hidden">
-                      <div className="relative h-48 bg-gray-200">
-                        <Image 
-                          src={product.image} 
-                          alt={product.name} 
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                        />
-                        {product.featured && (
-                          <Badge className="absolute top-2 left-2 bg-red-500">熱門</Badge>
-                        )}
-                      </div>
-                      <CardHeader>
-                        <CardTitle className="text-lg">{product.name}</CardTitle>
-                        <CardDescription>
-                          <div>{product.category}</div>
-                          <div className="text-xs text-gray-500">{product.firm}</div>
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <span className="text-red-600 font-bold">${product.price}</span>
-                            <span className="line-through text-gray-500 ml-2 text-sm">${product.originalPrice}</span>
-                          </div>
-                          <Button 
-                            size="sm" 
-                            onClick={() => router.push(`/products/${product.id}`)}
-                          >
-                            詳情
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                   {products.map((product) => {
+                     const progress = calculateGroupBuyProgress(product);
+                     return (
+                       <Card key={product.id} className="overflow-hidden">
+                         <div className="relative h-48 bg-gray-200">
+                           <Image 
+                             src={product.image || '/placeholder-product.jpg'} 
+                             alt={product.name} 
+                             fill
+                             className="object-cover"
+                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                           />
+                           {product.featured && (
+                             <Badge className="absolute top-2 left-2 bg-red-500">熱門</Badge>
+                           )}
+                         </div>
+                         <CardHeader>
+                           <CardTitle className="text-lg">{product.name}</CardTitle>
+                           <CardDescription>
+                             <div>{product.category}</div>
+                             <div className="text-xs text-gray-500">{product.firm}</div>
+                           </CardDescription>
+                         </CardHeader>
+                         <CardContent>
+                           {/* 集購進度條 */}
+                           <div className="mb-3">
+                             <Progress 
+                               value={progress.current}
+                               max={progress.target}
+                               showValue={false}
+                               color="green"
+                               size="sm"
+                             />
+                             <div className="mt-1 text-xs text-gray-600 flex justify-between">
+                               <span>集購</span>
+                               <span className="font-medium">
+                                 {progress.current}/{progress.target} {product.unit || '單位'}
+                               </span>
+                             </div>
+                           </div>
+                           
+                           <div className="flex justify-between items-center">
+                             <div>
+                               <span className="text-red-600 font-bold">${product.price}</span>
+                               <span className="line-through text-gray-500 ml-2 text-sm">${product.originalPrice}</span>
+                             </div>
+                             <Button 
+                               size="sm" 
+                               onClick={() => router.push(`/products/${product.id}`)}
+                             >
+                               詳情
+                             </Button>
+                           </div>
+                         </CardContent>
+                       </Card>
+                     );
+                   })}
                 </div>
                 
                 {products.length === 0 && (
@@ -344,5 +402,18 @@ export default function ProductsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <span className="ml-2 text-gray-500">載入中...</span>
+      </div>
+    }>
+      <ProductsContent />
+    </Suspense>
   );
 }

@@ -33,11 +33,13 @@ interface Pagination {
 }
 
 interface OrdersResponse {
-  orders: Order[];
+  data: Order[];
   pagination: Pagination;
 }
 
-export default function OrdersPage() {
+import { Suspense } from 'react';
+
+function OrdersContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -96,7 +98,7 @@ export default function OrdersPage() {
       }
       
       const data: OrdersResponse = await response.json();
-      setOrders(data.orders);
+      setOrders(data.data);
       setPagination(data.pagination);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -152,7 +154,7 @@ export default function OrdersPage() {
       
       toast.success('訂單已取消');
       fetchOrders();
-    } catch (err) {
+    } catch {
       toast.error('取消訂單失敗，請稍後再試');
     } finally {
       setCancellingOrderId(null);
@@ -363,5 +365,22 @@ export default function OrdersPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function OrdersPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4">
+          <h1 className="text-3xl font-bold mb-8">我的訂單</h1>
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          </div>
+        </div>
+      </div>
+    }>
+      <OrdersContent />
+    </Suspense>
   );
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { UserAction } from '@prisma/client';
 import { requireAdmin } from '@/lib/admin-auth';
 import { UpdateUserStatusSchema, UpdateUserInfoSchema, ApiResponse } from '@/types/admin';
 import { logger } from '@/lib/logger'
@@ -179,17 +180,19 @@ export async function PATCH(
       });
 
       // 記錄操作日誌
-      let logAction = 'INFO_UPDATE';
-      let oldValue = null;
-      let newValue = null;
-      let metadata = null;
+      let logAction: UserAction = 'INFO_UPDATE';
+      let oldValue: string | null = null;
+      let newValue: string | null = null;
+      let metadata: any = undefined;
 
       if (updateType === 'status') {
+        const statusData = data as any;
         logAction = 'STATUS_CHANGE';
         oldValue = user.status;
-        newValue = data.status;
-        metadata = { reason: data.reason };
+        newValue = statusData.status;
+        metadata = { reason: statusData.reason };
       } else {
+        const infoData = data as any;
         // 記錄變更的欄位
         const changedFields: Record<string, { old: any; new: any }> = {};
         Object.keys(data).forEach(key => {
@@ -213,8 +216,8 @@ export async function PATCH(
           action: logAction,
           oldValue,
           newValue,
-          reason: data.reason || null,
-          metadata,
+          reason: (data as any).reason || null,
+          metadata: metadata || undefined,
         },
       });
 

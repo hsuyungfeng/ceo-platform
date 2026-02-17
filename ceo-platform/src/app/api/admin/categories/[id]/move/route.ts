@@ -209,7 +209,7 @@ export async function PATCH(
       }
     };
 
-    await updateCategoryAndChildren(id, newParentId, newLevel);
+    await updateCategoryAndChildren(id, newParentId ?? null, newLevel);
 
     return NextResponse.json({
       success: true,

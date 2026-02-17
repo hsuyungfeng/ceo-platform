@@ -1,21 +1,26 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
+import Google from 'next-auth/providers/google';
 import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 import { z } from 'zod';
 
 // 登入驗證 schema
 const credentialsSchema = z.object({
-  taxId: z.string().length(8, '統一編號必須是8位數字').regex(/^\d+$/, '統一編號必須是數字'),
+  identifier: z.string().min(1, '請輸入電子郵件或手機號碼'),
   password: z.string().min(1, '密碼不能為空'),
 });
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
+    Google({
+      clientId: process.env.AUTH_GOOGLE_ID,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET,
+    }),
     Credentials({
       name: 'credentials',
       credentials: {
-        taxId: { label: '統一編號', type: 'text' },
+        identifier: { label: '電子郵件或手機號碼', type: 'text' },
         password: { label: '密碼', type: 'password' },
       },
       async authorize(credentials) {
@@ -27,15 +32,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return null;
           }
 
-          const { taxId, password } = validatedCredentials.data;
+          const { identifier, password } = validatedCredentials.data;
 
-          // 查找使用者
-          const user = await prisma.user.findUnique({
-            where: { taxId },
+          // 查找使用者 (支援電子郵件或手機號碼)
+          const user = await prisma.user.findFirst({
+            where: {
+              OR: [
+                { email: identifier },
+                { phone: identifier }
+              ]
+            },
           });
 
-          if (!user) {
-            console.error('使用者不存在:', taxId);
+          if (!user || !user.password) {
+            console.error('使用者不存在或未設定密碼:', identifier);
             return null;
           }
 
@@ -46,7 +56,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
 
           // 驗證密碼
-          const isPasswordValid = await bcrypt.compare(password, user.password);
+          const isPasswordValid = await bcrypt.compare(password, user.password as string);
           if (!isPasswordValid) {
             console.error('密碼驗證失敗');
             return null;
@@ -56,7 +66,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return {
             id: user.id,
             name: user.name,
-            taxId: user.taxId,
+            taxId: user.taxId as string,
             email: user.email,
             role: user.role,
             status: user.status,
@@ -77,20 +87,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.taxId = user.taxId;
+        token.taxId = user.taxId as string;
         token.role = user.role;
         token.status = user.status;
-        token.emailVerified = user.emailVerified;
+        token.emailVerified = user.emailVerified as boolean;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user && token) {
-        session.user.id = token.id as string;
-        session.user.taxId = token.taxId as string;
-        session.user.role = token.role as string;
-        session.user.status = token.status as string;
-        session.user.emailVerified = token.emailVerified as boolean;
+        (session.user as any).id = token.id as string;
+        (session.user as any).taxId = token.taxId as string;
+        (session.user as any).role = token.role as string;
+        (session.user as any).status = token.status as string;
+        (session.user as any).emailVerified = token.emailVerified as boolean;
       }
       return session;
     },

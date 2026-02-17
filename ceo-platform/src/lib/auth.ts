@@ -1,4 +1,3 @@
-import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
@@ -46,7 +45,7 @@ export const authOptions = {
           }
 
           // 驗證密碼
-          const isPasswordValid = await bcrypt.compare(password, user.password);
+          const isPasswordValid = await bcrypt.compare(password, user.password as string);
           if (!isPasswordValid) {
             console.error('密碼驗證失敗');
             return null;
@@ -56,7 +55,7 @@ export const authOptions = {
           return {
             id: user.id,
             name: user.name,
-            taxId: user.taxId,
+            taxId: user.taxId as string,
             email: user.email,
             role: user.role,
             status: user.status,
@@ -74,17 +73,17 @@ export const authOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30天
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user }: { token: any; user: any }) {
       if (user) {
         token.id = user.id;
-        token.taxId = user.taxId;
+        token.taxId = user.taxId as string;
         token.role = user.role;
         token.status = user.status;
         token.emailVerified = user.emailVerified;
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: any; token: any }) {
       if (session.user && token) {
         session.user.id = token.id as string;
         session.user.taxId = token.taxId as string;

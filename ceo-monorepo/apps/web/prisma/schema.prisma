@@ -10,8 +10,8 @@ model User {
   id                 String              @id @default(cuid())
   email              String              @unique
   password           String
-  name               String
-  taxId              String              @unique
+  name               String?
+  taxId              String?              @unique
   phone              String?
   fax                String?
   address            String?
