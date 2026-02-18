@@ -14,6 +14,19 @@ const querySchema = z.object({
 // 建立訂單請求驗證 schema
 const createOrderSchema = z.object({
   note: z.string().max(500, '備註不能超過500字').optional(),
+  shippingInfo: z.object({
+    name: z.string().min(1, '姓名不能為空'),
+    taxId: z.string().optional(),
+    email: z.string().email('電子郵件格式不正確'),
+    phone: z.string().min(1, '電話不能為空'),
+    billingAddress: z.string().min(1, '發票寄送地址不能為空'),
+    shippingAddress: z.string().min(1, '收貨地址不能為空'),
+    paymentMethod: z.enum(['CREDIT_CARD', 'ATM', 'COD', 'LINE_PAY', 'JKO_PAY', 'TAIWAN_PAY']),
+  }),
+  items: z.array(z.object({
+    productId: z.string(),
+    quantity: z.number().int().positive(),
+  })).optional(),
 });
 
 // 取得訂單列表
@@ -153,7 +166,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { note } = validationResult.data;
+    const { note, shippingInfo } = validationResult.data;
 
     // 取得使用者的購物車
     const cartItems = await prisma.cartItem.findMany({
@@ -289,6 +302,45 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // 建立付款記錄
+      const payment = await tx.payment.create({
+        data: {
+          orderId: newOrder.id,
+          userId: session.user.id,
+          status: 'PENDING',
+          paymentMethod: shippingInfo.paymentMethod,
+          amount: totalAmount,
+          currency: 'TWD',
+        },
+      });
+
+      // 建立物流記錄
+      const shipping = await tx.shipping.create({
+        data: {
+          orderId: newOrder.id,
+          shippingMethod: 'HOME_DELIVERY', // 預設宅配，可根據需求調整
+          status: 'PREPARING',
+          shippingAddress: shippingInfo.shippingAddress,
+          receiverName: shippingInfo.name,
+          receiverPhone: shippingInfo.phone,
+        },
+      });
+
+      // 建立發票記錄（待開立）
+      const invoice = await tx.invoice.create({
+        data: {
+          orderId: newOrder.id,
+          userId: session.user.id,
+          status: 'PENDING',
+          type: 'ELECTRONIC',
+          taxId: shippingInfo.taxId || null,
+          buyerName: shippingInfo.name,
+          buyerAddress: shippingInfo.billingAddress,
+          amount: totalAmount,
+          taxAmount: 0, // 可根據稅率計算
+        },
+      });
+
       // 更新商品銷售量
       for (const productUpdate of productUpdates) {
         await tx.product.update({
@@ -316,7 +368,29 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      return newOrder;
+      // 重新取得包含關聯的訂單
+      const orderWithRelations = await tx.order.findUnique({
+        where: { id: newOrder.id },
+        include: {
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  image: true,
+                  unit: true,
+                },
+              },
+            },
+          },
+          payment: true,
+          invoice: true,
+          shipping: true,
+        },
+      });
+      
+      return orderWithRelations!;
     });
 
     // 格式化回應資料
@@ -338,6 +412,29 @@ export async function POST(request: NextRequest) {
         unitPrice: item.unitPrice,
         subtotal: item.subtotal,
       })),
+      payment: order.payment ? {
+        id: order.payment.id,
+        status: order.payment.status,
+        paymentMethod: order.payment.paymentMethod,
+        amount: order.payment.amount,
+        currency: order.payment.currency,
+      } : null,
+      invoice: order.invoice ? {
+        id: order.invoice.id,
+        status: order.invoice.status,
+        type: order.invoice.type,
+        taxId: order.invoice.taxId,
+        amount: order.invoice.amount,
+      } : null,
+      shipping: order.shipping ? {
+        id: order.shipping.id,
+        status: order.shipping.status,
+        shippingMethod: order.shipping.shippingMethod,
+        trackingNumber: order.shipping.trackingNumber,
+        shippingAddress: order.shipping.shippingAddress,
+        receiverName: order.shipping.receiverName,
+        receiverPhone: order.shipping.receiverPhone,
+      } : null,
     };
 
     return NextResponse.json({

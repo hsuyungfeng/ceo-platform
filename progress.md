@@ -3637,9 +3637,49 @@ Phase 8 安全加固現已完成！系統已準備好用於生產部署。
 - **資料庫 Schema 不一致**：Web app 的 Prisma schema 缺少 DeviceToken 模型，導致 `db:push` 失敗
 - **Mobile App 圖示已存在但需驗證**：`assets/` 目錄已包含 icon.png、adaptive-icon.png、splash-icon.png、favicon.png
 
+### 2026-02-18（Day X）Phase 7：Vercel 部署準備完成
+
+**完成項目**
+- [x] **Phase 3 任務 3.5-3.6 驗證完成**
+  - 任務 3.5 (最低集購數量)：已在 Prisma schema 實現 (`minGroupQty Int @default(1)`)
+  - 任務 3.6 (整合測試)：216/216 測試通過 (100%)，建置成功
+  - 項目已推送 GitHub，標籤 `v3.0.0-phase3-complete` 建立
+
+- [x] **Vercel 部署配置完成**
+  - 創建 `vercel.json` 配置文件
+  - 創建部署文檔：`VERCEL_DEPLOYMENT.md`, `DEPLOY_CHECKLIST.md`
+  - 創建密鑰生成腳本：`generate-secrets.sh`
+  - 修復 husky prepare 腳本以兼容 Vercel 環境
+  - 移除 Sentry 依賴以解決 Next.js 16 版本衝突
+
+- [x] **項目連接與準備**
+  - Vercel CLI 已安裝並登錄 (`hsuyungfeng63-3769`)
+  - 項目已連接：`hsuyungfeng63-gmailcoms-projects/ceo-platform`
+  - 代碼已提交並推送至 GitHub
+  - 所有更改已提交 (`3820000` commit)
+
+**部署狀態**
+- ✅ 所有測試通過：216/216 (100%)
+- ✅ 生產建置成功：56/56 頁面，4-5.8 秒
+- ✅ TypeScript 類型檢查：0 錯誤
+- ✅ ESLint 錯誤：0 錯誤 (126 警告為樣式建議)
+- ✅ 部署文檔完整：`VERCEL_DEPLOYMENT.md`, `DEPLOY_CHECKLIST.md`
+- ✅ 環境配置完成：`.env.production.example`, `vercel.json`
+- ✅ Vercel 項目連接：`prj_GPGAYW4PHF1dHssd55L5tDFg3Ttd`
+- 🔄 實際部署待執行：需設置環境變數並觸發部署
+
 **下一步行動**
-1. 優先修復 Web app 資料庫 Schema (添加 DeviceToken 模型)
-2. 繼續修復剩餘 ESLint 錯誤
-3. 驗證並生成 App 圖示資源
-4. 部署至 Staging 環境進行測試
+1. **部署至 Vercel**：
+   - 登入 Vercel Dashboard (https://vercel.com)
+   - 導入 GitHub 項目 `ceo-platform`
+   - 設置環境變數 (參考 `VERCEL_DEPLOYMENT.md`)
+   - 觸發部署並驗證
+
+2. **部署後驗證**：
+   - 健康檢查端點：`/api/health`
+   - 主頁加載：`/`
+   - 核心功能測試：商品瀏覽、購物車、結帳
+
+3. **可選清理**：
+   - 工作樹清理：可釋放 ~5.9GB 磁碟空間
 

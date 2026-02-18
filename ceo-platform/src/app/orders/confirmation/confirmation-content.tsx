@@ -29,6 +29,46 @@ interface Order {
   status: string;
   createdAt: string;
   items: OrderItem[];
+  payment: {
+    id: string;
+    status: string;
+    paymentMethod: string;
+    amount: number;
+    currency: string;
+    gateway: string | null;
+    gatewayTransactionId: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+  invoice: {
+    id: string;
+    status: string;
+    type: string;
+    invoiceNumber: string | null;
+    invoiceDate: string | null;
+    taxId: string | null;
+    buyerName: string | null;
+    buyerAddress: string | null;
+    amount: number;
+    taxAmount: number;
+    carrierType: string | null;
+    carrierId: string | null;
+    issuedAt: string | null;
+    cancelledAt: string | null;
+  } | null;
+  shipping: {
+    id: string;
+    shippingMethod: string;
+    provider: string | null;
+    trackingNumber: string | null;
+    status: string;
+    estimatedDelivery: string | null;
+    actualDelivery: string | null;
+    shippingAddress: string;
+    receiverName: string;
+    receiverPhone: string;
+    notes: string | null;
+  } | null;
 }
 
 export default function ConfirmationContent() {

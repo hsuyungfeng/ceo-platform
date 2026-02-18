@@ -43,6 +43,8 @@ model User {
   userLogs      UserLog[]          @relation("UserLogs")
   adminLogs     UserLog[]          @relation("AdminLogs")
   pointTransactions PointTransaction[]
+  payments          Payment[]
+  invoices          Invoice[]
   deviceTokens      DeviceToken[]
 
   @@map("users")
@@ -183,6 +185,9 @@ model Order {
   updatedAt    DateTime    @updatedAt
   items        OrderItem[]
   user         User        @relation(fields: [userId], references: [id])
+  payment      Payment?    // 付款資訊
+  invoice      Invoice?    // 發票資訊
+  shipping     Shipping?   // 物流資訊
 
   @@map("orders")
 }
@@ -369,6 +374,52 @@ enum PointTransactionType {
   SYSTEM_ADJUST    // 系統調整
 }
 
+// ============ Payment, Invoice, Shipping Enums ============
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  ATM
+  COD
+  LINE_PAY
+  JKO_PAY
+  TAIWAN_PAY
+}
+
+enum InvoiceStatus {
+  PENDING
+  ISSUED
+  CANCELLED
+  VOIDED
+}
+
+enum InvoiceType {
+  ELECTRONIC  // 電子發票
+  RECEIPT     // 收據
+}
+
+enum ShippingStatus {
+  PREPARING
+  SHIPPED
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  RETURNED
+}
+
+enum ShippingMethod {
+  HOME_DELIVERY     // 宅配
+  CONVENIENCE_STORE // 超商取貨
+  PICKUP           // 自取
+}
+
 model EmailVerificationToken {
   id        String   @id @default(cuid())
   email     String
@@ -379,6 +430,85 @@ model EmailVerificationToken {
 
   @@unique([email, token])
   @@map("email_verification_tokens")
+}
+
+// ============ Payment, Invoice, Shipping Models ============
+model Payment {
+  id                  String        @id @default(cuid())
+  orderId             String
+  userId              String
+  status              PaymentStatus @default(PENDING)
+  paymentMethod       PaymentMethod
+  gateway             String?       // 支付閘道名稱，如 "ECPAY", "NCCC", "LINEPAY"
+  gatewayTransactionId String?      // 閘道交易編號
+  amount              Decimal       @db.Decimal(10, 2)
+  currency            String        @default("TWD")
+  metadata            Json?         // 閘道回應資料
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  order               Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId])
+  @@index([userId])
+  @@index([status])
+  @@index([gatewayTransactionId])
+  @@map("payments")
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  orderId         String
+  userId          String
+  invoiceNumber   String?       @unique // 發票號碼
+  invoiceDate     DateTime?     // 開立日期
+  type            InvoiceType   @default(ELECTRONIC)
+  status          InvoiceStatus @default(PENDING)
+  taxId           String?       // 統一編號
+  buyerName       String?       // 買方名稱
+  buyerAddress    String?       // 買方地址
+  amount          Decimal       @db.Decimal(10, 2)
+  taxAmount       Decimal       @db.Decimal(10, 2) @default(0)
+  carrierType     String?       // 載具類型：手機條碼、自然人憑證等
+  carrierId       String?       // 載具編號
+  issuedAt        DateTime?     // 開立時間
+  cancelledAt     DateTime?     // 作廢時間
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId])
+  @@index([userId])
+  @@index([invoiceNumber])
+  @@index([status])
+  @@map("invoices")
+}
+
+model Shipping {
+  id                  String          @id @default(cuid())
+  orderId             String
+  shippingMethod      ShippingMethod
+  provider            String?         // 物流商：黑貓、新竹物流、7-11、全家等
+  trackingNumber      String?
+  status              ShippingStatus  @default(PREPARING)
+  estimatedDelivery   DateTime?
+  actualDelivery      DateTime?
+  shippingAddress     String
+  receiverName        String
+  receiverPhone       String
+  notes               String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  order               Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId])
+  @@index([trackingNumber])
+  @@index([status])
+  @@map("shippings")
 }
 
 enum DevicePlatform {

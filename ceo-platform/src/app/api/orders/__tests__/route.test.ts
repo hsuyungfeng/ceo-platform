@@ -126,7 +126,17 @@ describe('POST /api/orders', () => {
 
     const req = createRequest('/api/orders', {
       method: 'POST',
-      body: JSON.stringify({}),
+      body: JSON.stringify({
+        shippingInfo: {
+          name: 'Test User',
+          taxId: '',
+          email: 'test@test.com',
+          phone: '0912345678',
+          billingAddress: 'Test Billing Address',
+          shippingAddress: 'Test Shipping Address',
+          paymentMethod: 'COD'
+        }
+      }),
     })
     const res = await POST(req)
     const body = await res.json()

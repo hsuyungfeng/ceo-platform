@@ -1168,6 +1168,33 @@ import {
 - **代碼品質**：0 TypeScript 錯誤，0 ESLint 錯誤
 - **功能完整性**：所有 P0-P3 功能實現並驗證
 - **上線準備度**：95%+ (僅缺 Staging 部署驗證)
+- **Vercel 部署準備**：✅ 100% 完成
+  - ✅ `vercel.json` 配置文件已創建
+  - ✅ 部署文檔完成 (`VERCEL_DEPLOYMENT.md`, `DEPLOY_CHECKLIST.md`)
+  - ✅ 密鑰生成腳本 (`generate-secrets.sh`)
+  - ✅ Vercel CLI 安裝並登錄
+  - ✅ 項目連接：`hsuyungfeng63-gmailcoms-projects/ceo-platform`
+  - ✅ 代碼提交推送至 GitHub
+  - ✅ Husky prepare 腳本修復兼容 Vercel 環境
+  - ✅ Sentry 依賴移除 (解決 Next.js 16 版本衝突)
+
+### 🚀 立即部署步驟
+1. **Vercel Dashboard 部署**：
+   - 登入 https://vercel.com
+   - 導入 GitHub 項目 `ceo-platform`
+   - 設置環境變數 (參考 `VERCEL_DEPLOYMENT.md`)
+   - 點擊 "Deploy"
+
+2. **CLI 部署**：
+   ```bash
+   cd /Users/hsuyungfeng/Applesoft/統購PHP/ceo-platform
+   vercel --prod --yes
+   ```
+
+3. **部署後驗證**：
+   - 健康檢查：`https://[您的域名].vercel.app/api/health`
+   - 主頁測試：`https://[您的域名].vercel.app/`
+   - 功能驗證：商品、購物車、結帳流程
 
 ## 下一步
 - 實際支付整合（信用卡、第三方支付）
