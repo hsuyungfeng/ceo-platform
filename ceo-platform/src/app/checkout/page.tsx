@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CreditCard, MapPin, User, Phone, Mail, Loader2, AlertCircle } from 'lucide-react';
+import { CreditCard, MapPin, User, Loader2, AlertCircle } from 'lucide-react';
 
 interface CartItem {
   id: number;
@@ -49,7 +49,6 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     name: '',
     taxId: '',
@@ -138,7 +137,7 @@ export default function CheckoutPage() {
   };
 
   // Handle form input changes
-  const handleInputChange = (field: keyof FormData, value: any) => {
+  const handleInputChange = (field: keyof FormData, value: string | 'CREDIT_CARD' | 'ATM' | 'COD') => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -189,10 +188,9 @@ export default function CheckoutPage() {
       }
 
       const result = await response.json();
-      setSuccess(true);
 
-      // Redirect to orders page after successful order
-      router.push('/orders');
+      // Redirect to confirmation page with order ID
+      router.push(`/orders/confirmation?id=${result.order.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to place order');
       setSubmitting(false);
@@ -203,7 +201,7 @@ export default function CheckoutPage() {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4 flex items-center justify-center h-96">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <span className="ml-2 text-gray-600">載入中...</span>
         </div>
       </div>
@@ -214,7 +212,7 @@ export default function CheckoutPage() {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-center h-96 text-red-600">
+          <div className="flex items-center justify-center h-96 text-destructive">
             <AlertCircle className="h-6 w-6 mr-2" />
             <span>{error}</span>
           </div>
@@ -293,7 +291,7 @@ export default function CheckoutPage() {
               
               <CardContent className="space-y-6">
                 {error && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-center text-red-600">
+                  <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md flex items-center text-destructive">
                     <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
                     <span className="text-sm">{error}</span>
                   </div>
@@ -451,8 +449,8 @@ export default function CheckoutPage() {
               </CardContent>
               
               <CardFooter className="flex flex-col space-y-4">
-                <Button 
-                  className="w-full bg-blue-600 hover:bg-blue-700" 
+                <Button
+                  className="w-full bg-primary hover:bg-primary/90"
                   onClick={handlePlaceOrder}
                   disabled={submitting || cartItems.length === 0}
                 >
