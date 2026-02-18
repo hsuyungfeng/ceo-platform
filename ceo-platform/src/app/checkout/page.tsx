@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CreditCard, MapPin, User, Loader2, AlertCircle } from 'lucide-react';
+import { CheckoutStepper } from '@/components/ui/checkout-stepper';
 
 interface CartItem {
   id: number;
@@ -225,7 +226,20 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
         <h1 className="text-3xl font-bold mb-8">結帳</h1>
-        
+
+        {/* Checkout Progress Stepper */}
+        <div className="mb-12 max-w-3xl">
+          <CheckoutStepper
+            steps={[
+              { id: 'cart', label: '購物車', description: '已完成' },
+              { id: 'info', label: '填寫資料', description: '進行中' },
+              { id: 'confirm', label: '確認訂單', description: '待執行' },
+              { id: 'done', label: '完成', description: '待執行' },
+            ]}
+            currentStep={1}
+          />
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Order summary */}
           <div>
