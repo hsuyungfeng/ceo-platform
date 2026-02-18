@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Star, Clock, Package, ArrowLeft, Loader2 } from 'lucide-react';
+import { Star, Clock, Package, ArrowLeft, Loader2, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PriceTier {
@@ -120,11 +120,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     }
 
     const current = product.totalSold || 0;
-    
+
     // Find the next price tier threshold
     const sortedTiers = [...product.priceTiers].sort((a, b) => a.minQty - b.minQty);
     let target = sortedTiers[sortedTiers.length - 1].minQty; // Default to highest tier
-    
+
     // Find the next tier that hasn't been reached yet
     for (const tier of sortedTiers) {
       if (current < tier.minQty) {
@@ -132,15 +132,45 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         break;
       }
     }
-    
+
     // If current exceeds all tiers, use the next logical target (e.g., current + 10%)
     if (current >= target) {
       target = Math.max(current, Math.ceil(current * 1.1)); // 10% more than current
     }
-    
+
     const percentage = Math.min(100, Math.round((current / target) * 100));
-    
+
     return { current, target, percentage };
+  };
+
+  // Calculate next tier discount info for user's current quantity
+  const getNextTierInfo = (currentQty: number) => {
+    if (!product?.priceTiers || product.priceTiers.length <= 1) return null;
+
+    const sortedTiers = [...product.priceTiers].sort((a, b) => a.minQty - b.minQty);
+    const currentTier = getApplicableTier(currentQty);
+
+    // Find next tier after current
+    let nextTier = null;
+    for (const tier of sortedTiers) {
+      if (tier.minQty > currentQty) {
+        nextTier = tier;
+        break;
+      }
+    }
+
+    if (!nextTier) return null; // No better tier available
+
+    const remaining = nextTier.minQty - currentQty;
+    const savings = (currentTier.price - nextTier.price) * nextTier.minQty;
+
+    return {
+      remaining,
+      nextPrice: nextTier.price,
+      currentPrice: currentTier.price,
+      savings: Math.round(savings),
+      nextMinQty: nextTier.minQty
+    };
   };
 
   // Handle quantity change
@@ -224,7 +254,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     return (
       <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
         <div className="flex items-center space-x-2">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <span className="text-lg text-gray-600">載入商品資訊...</span>
         </div>
       </div>
@@ -246,7 +276,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           </Button>
           
           <Card className="p-8 text-center">
-            <div className="text-red-600 mb-4">
+            <div className="text-destructive mb-4">
               <Package className="h-12 w-12 mx-auto mb-2" />
               <h2 className="text-xl font-bold">載入失敗</h2>
             </div>
@@ -305,15 +335,23 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                     <p className="text-gray-600">{product.subtitle}</p>
                   )}
                 </div>
-                {product.isFeatured && (
-                  <Badge className="bg-red-500">熱門商品</Badge>
-                )}
+                <div className="flex flex-col gap-2 items-end">
+                  {product.isFeatured && (
+                    <Badge className="bg-destructive">熱門商品</Badge>
+                  )}
+                  {!product.isGroupBuyActive && (
+                    <Badge className="bg-gray-400 text-white">已下架</Badge>
+                  )}
+                  {product.isGroupBuyActive && product.totalSold > 50 && (
+                    <Badge className="bg-warning">熱銷中</Badge>
+                  )}
+                </div>
               </div>
               
               <div className="flex items-center mb-4">
                 <div className="flex items-center">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className={`h-5 w-5 ${i < 4 ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
+                    <Star key={i} className={`h-5 w-5 ${i < 4 ? 'text-warning fill-current' : 'text-gray-300'}`} />
                   ))}
                 </div>
                 <span className="ml-2 text-gray-600">({product.totalSold || 0} 已售)</span>
@@ -371,15 +409,15 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                   <h3 className="text-lg font-semibold mb-3">階梯定價</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {product.priceTiers.map((tier, index) => (
-                      <Card 
-                        key={index} 
-                        className={`${selectedTier?.minQty === tier.minQty ? 'border-blue-500 ring-2 ring-blue-200' : ''}`}
+                      <Card
+                        key={index}
+                        className={`${selectedTier?.minQty === tier.minQty ? 'border-primary ring-2 ring-primary/20' : ''}`}
                       >
                         <CardContent className="p-3 text-center">
                           <div className="text-sm text-gray-600">滿 {tier.minQty}{product.unit}</div>
-                          <div className="font-bold text-red-600">${tier.price}/{product.unit}</div>
+                          <div className="font-bold text-destructive">${tier.price}/{product.unit}</div>
                           {index > 0 && product.priceTiers[0] && (
-                            <div className="text-xs text-green-600">
+                            <div className="text-xs text-success">
                               省{Math.round(((product.priceTiers[0].price - tier.price) / product.priceTiers[0].price) * 100)}%
                             </div>
                           )}
@@ -416,24 +454,45 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                     +
                   </Button>
                   <div className="ml-4">
-                    <div className="text-lg font-bold text-red-600">
+                    <div className="text-lg font-bold text-destructive">
                       小計: ${displayPrice}
                     </div>
                     {savingsPercentage > 0 && selectedTier && product.priceTiers[0] && (
-                      <div className="text-sm text-green-600">
+                      <div className="text-sm text-success">
                         省${(product.priceTiers[0].price - selectedTier.price) * quantity} ({savingsPercentage}% OFF)
                       </div>
                     )}
                   </div>
                 </div>
+
+                {/* Next tier discount hint */}
+                {(() => {
+                  const nextTierInfo = getNextTierInfo(quantity);
+                  return nextTierInfo ? (
+                    <div className="mt-4 p-3 bg-warning/10 rounded-lg border border-warning/20 flex items-start gap-3">
+                      <TrendingUp className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+                      <div className="text-sm">
+                        <div className="font-medium text-warning-foreground">
+                          再買 <span className="font-bold">{nextTierInfo.remaining}</span> {product.unit} 即可享更優惠價格
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          升級至 {nextTierInfo.nextMinQty} {product.unit}：${nextTierInfo.nextPrice}/{product.unit}
+                          {nextTierInfo.savings > 0 && (
+                            <span className="ml-1">（最多省 ${nextTierInfo.savings}）</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
               </div>
-              
+
               {/* Action buttons */}
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button 
-                  className="flex-1 bg-blue-600 hover:bg-blue-700" 
+                <Button
+                  className="flex-1 bg-primary hover:bg-primary/90"
                   onClick={handleAddToCart}
-                  disabled={addingToCart}
+                  disabled={addingToCart || !product.isGroupBuyActive}
                 >
                   {addingToCart ? (
                     <>
@@ -455,8 +514,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               
               {/* Time remaining */}
               {isMounted && shouldShowTimeRemaining && timeRemaining && (
-                <div className="mt-6 p-4 bg-yellow-50 rounded-lg flex items-center">
-                  <Clock className="h-5 w-5 mr-2 text-yellow-600" />
+                <div className="mt-6 p-4 bg-warning/10 rounded-lg flex items-center">
+                  <Clock className="h-5 w-5 mr-2 text-warning" />
                   <div>
                     <div className="font-semibold">團購即將截止</div>
                     <div className="text-sm text-gray-600">剩餘 {timeRemaining}</div>
