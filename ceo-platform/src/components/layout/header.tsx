@@ -48,30 +48,30 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center">
-            <span className="text-xl font-bold text-blue-600">CEO團購平台</span>
+            <span className="text-xl font-bold text-primary">CEO團購平台</span>
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-8">
-            <Link 
-              href="/" 
-              className={`font-medium ${pathname === '/' ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`}
+            <Link
+              href="/"
+              className={`font-medium ${pathname === '/' ? 'text-primary' : 'text-gray-700 hover:text-primary'}`}
             >
               首頁
             </Link>
-            <Link 
-              href="/products" 
-              className={`font-medium ${pathname.startsWith('/products') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`}
+            <Link
+              href="/products"
+              className={`font-medium ${pathname.startsWith('/products') ? 'text-primary' : 'text-gray-700 hover:text-primary'}`}
             >
               商品
             </Link>
-            <Link 
-              href="/cart" 
-              className={`font-medium ${pathname === '/cart' ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`}
+            <Link
+              href="/cart"
+              className={`font-medium ${pathname === '/cart' ? 'text-primary' : 'text-gray-700 hover:text-primary'}`}
             >
               購物車
               {cartItemCount > 0 && !loading && (
-                <span className="ml-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="ml-1 bg-destructive text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                   {cartItemCount > 99 ? '99+' : cartItemCount}
                 </span>
               )}
@@ -88,7 +88,7 @@ export function Header() {
                     <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
                   </span>
                 ) : cartItemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-destructive text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                     {cartItemCount > 99 ? '99+' : cartItemCount}
                   </span>
                 )}
@@ -129,14 +129,14 @@ export function Header() {
               >
                 商品
               </Link>
-              <Link 
-                href="/cart" 
-                className={`font-medium py-2 ${pathname === '/cart' ? 'text-blue-600' : 'text-gray-700'}`}
+              <Link
+                href="/cart"
+                className={`font-medium py-2 ${pathname === '/cart' ? 'text-primary' : 'text-gray-700'}`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 購物車
                 {cartItemCount > 0 && !loading && (
-                  <span className="ml-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  <span className="ml-2 bg-destructive text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                     {cartItemCount > 99 ? '99+' : cartItemCount}
                   </span>
                 )}
