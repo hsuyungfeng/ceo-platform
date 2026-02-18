@@ -15,7 +15,7 @@ describe('Security Middleware', () => {
     const request = new NextRequest(new Request(url, { method }));
 
     if (origin) {
-      (request.headers as any).set('origin', origin);
+      (request.headers as Headers).set('origin', origin);
     }
 
     return request;

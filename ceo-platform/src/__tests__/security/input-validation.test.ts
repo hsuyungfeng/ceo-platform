@@ -56,7 +56,7 @@ describe('Input Validation & Sanitization', () => {
     });
 
     it('should handle non-string input gracefully', () => {
-      const result = sanitizeString(null as any);
+      const result = sanitizeString(null as any); // eslint-disable-line @typescript-eslint/no-explicit-any
       expect(result).toBe('');
     });
   });

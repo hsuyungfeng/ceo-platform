@@ -331,7 +331,7 @@ export function CategoryTreeNode({
           <DialogHeader>
             <DialogTitle>確認刪除</DialogTitle>
             <DialogDescription>
-              確定要刪除分類 "{category.name}" 嗎？
+              確定要刪除分類 &ldquo;{category.name}&rdquo; 嗎？
               {category.productCount && category.productCount > 0 && (
                 <p className="mt-2 text-red-600">
                   警告：該分類下有 {category.productCount} 個商品，刪除後這些商品將變為未分類狀態。

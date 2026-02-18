@@ -124,7 +124,7 @@ export function FaqReorder({ onBack }: FaqReorderProps) {
       } else {
         toast.error(result.error || '排序更新失敗');
         if (result.errors) {
-          result.errors.forEach((error: any) => {
+          result.errors.forEach((error: { field: string; message: string }) => {
             console.error(`字段 ${error.field}: ${error.message}`);
           });
         }

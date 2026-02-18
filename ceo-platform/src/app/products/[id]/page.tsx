@@ -317,14 +317,20 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           <div className="md:flex">
             <div className="md:w-1/2">
               <div className="h-96 bg-gray-200 relative">
-                <Image 
-                  src={product.image || '/placeholder-product.jpg'} 
-                  alt={product.name} 
-                  fill
-                  className="object-contain"
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
-              </div>
+                 {product.image ? (
+                   <Image 
+                     src={product.image} 
+                     alt={product.name} 
+                     fill
+                     className="object-contain"
+                     sizes="(max-width: 768px) 100vw, 50vw"
+                   />
+                 ) : (
+                   <div className="flex items-center justify-center h-full text-gray-400">
+                     <Package className="h-24 w-24" />
+                   </div>
+                 )}
+               </div>
             </div>
             
             <div className="md:w-1/2 p-6">

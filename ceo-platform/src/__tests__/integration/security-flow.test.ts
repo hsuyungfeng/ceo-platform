@@ -366,9 +366,12 @@ describe('Security Flow Integration Tests', () => {
         '',
         'invalid',
         'too-short',
-        123 as any,
-        null as any,
-        undefined as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          123 as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          null as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          undefined as any,
       ];
 
       invalidInputs.forEach((input) => {

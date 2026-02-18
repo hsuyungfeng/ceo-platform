@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Search, SlidersHorizontal, Loader2, AlertCircle } from 'lucide-react';
+import { Search, SlidersHorizontal, Loader2, AlertCircle, Package } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -329,25 +329,31 @@ function ProductsContent() {
                      const progress = calculateGroupBuyProgress(product);
                      return (
                        <Card key={product.id} className="overflow-hidden">
-                         <div className="relative h-48 bg-gray-200">
-                           <Image 
-                             src={product.image || '/placeholder-product.jpg'} 
-                             alt={product.name} 
-                             fill
-                             className="object-cover"
-                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                           />
-                           {product.featured && (
-                             <Badge className="absolute top-2 left-2 bg-red-500">熱門</Badge>
-                           )}
-                         </div>
-                         <CardHeader>
-                           <CardTitle className="text-lg">{product.name}</CardTitle>
-                           <CardDescription>
-                             <div>{product.category}</div>
-                             <div className="text-xs text-gray-500">{product.firm}</div>
-                           </CardDescription>
-                         </CardHeader>
+                          <div className="relative h-48 bg-gray-200">
+                            {product.image ? (
+                              <Image 
+                                src={product.image} 
+                                alt={product.name} 
+                                fill
+                                className="object-cover"
+                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center h-full text-gray-400">
+                                <Package className="h-12 w-12" />
+                              </div>
+                            )}
+                            {product.featured && (
+                              <Badge className="absolute top-2 left-2 bg-red-500">熱門</Badge>
+                            )}
+                          </div>
+                          <CardHeader>
+                            <CardTitle className="text-lg">{product.name}</CardTitle>
+                            <div className="text-sm text-muted-foreground">
+                              <span>{product.category}</span>
+                              <span className="text-xs text-gray-500 block mt-1">{product.firm}</span>
+                            </div>
+                          </CardHeader>
                          <CardContent>
                            {/* 集購進度條 */}
                            <div className="mb-3">

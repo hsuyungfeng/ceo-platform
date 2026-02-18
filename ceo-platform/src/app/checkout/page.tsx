@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CreditCard, MapPin, User, Loader2, AlertCircle } from 'lucide-react';
+import { CreditCard, MapPin, User, Loader2, AlertCircle, Package } from 'lucide-react';
 import { CheckoutStepper } from '@/components/ui/checkout-stepper';
 
 interface CartItem {
@@ -256,16 +256,19 @@ export default function CheckoutPage() {
                 ) : (
                   cartItems.map((item) => (
                     <div key={item.id} className="flex items-center">
-                      <div className="w-16 h-16 bg-gray-200 mr-4">
-                        <Image 
-                          src={item.image || '/placeholder-product.jpg'} 
-                          alt={item.name} 
-                          width={64}
-                          height={64}
-                          className="w-full h-full object-contain"
-                          unoptimized
-                        />
-                      </div>
+                      <div className="w-16 h-16 bg-gray-200 mr-4 flex items-center justify-center">
+                         {item.image ? (
+                           <Image 
+                             src={item.image} 
+                             alt={item.name} 
+                             width={64}
+                             height={64}
+                             className="w-full h-full object-contain"
+                           />
+                         ) : (
+                           <Package className="h-8 w-8 text-gray-400" />
+                         )}
+                       </div>
                       <div className="flex-1">
                         <h3 className="font-medium">{item.name}</h3>
                         <p className="text-sm text-gray-600">數量: {item.quantity} {item.unit || '件'}</p>

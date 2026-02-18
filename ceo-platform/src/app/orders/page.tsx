@@ -9,14 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Search, X } from 'lucide-react';
+import { Search, X, Package } from 'lucide-react';
 
 interface OrderItem {
   id: number;
   name: string;
   quantity: number;
   price: number;
-  image: string;
+  image: string | null;
 }
 
 interface Order {
@@ -391,16 +391,19 @@ function OrdersContent() {
                     {order.items.map((item) => (
                       <div key={item.id} className="flex items-center justify-between">
                         <div className="flex items-center">
-                          <div className="w-12 h-12 bg-gray-200 mr-3">
-                            <Image 
-                              src={item.image || '/placeholder-product.jpg'} 
-                              alt={item.name} 
-                              width={48}
-                              height={48}
-                              className="w-full h-full object-contain"
-                              unoptimized
-                            />
-                          </div>
+                          <div className="w-12 h-12 bg-gray-200 mr-3 flex items-center justify-center">
+                             {item.image ? (
+                               <Image 
+                                 src={item.image} 
+                                 alt={item.name} 
+                                 width={48}
+                                 height={48}
+                                 className="w-full h-full object-contain"
+                               />
+                             ) : (
+                               <Package className="h-6 w-6 text-gray-400" />
+                             )}
+                           </div>
                           <span>{item.name}</span>
                         </div>
                         <div className="text-right">

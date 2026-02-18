@@ -1,9 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+// Removed unused Link import
 import { Loader2 } from 'lucide-react';
 import ConfirmationContent from './confirmation-content';
 

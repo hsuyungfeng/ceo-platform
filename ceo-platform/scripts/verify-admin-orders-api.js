@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
+ 
 // 驗證管理員訂單 API 文件結構
 const fs = require('fs');
 const path = require('path');

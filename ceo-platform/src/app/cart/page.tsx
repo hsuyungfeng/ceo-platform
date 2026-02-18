@@ -6,6 +6,17 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Trash2, Plus, Minus, CreditCard, Loader2 } from 'lucide-react';
 
 interface CartItem {
@@ -25,6 +36,8 @@ export default function CartPage() {
   const [error, setError] = useState<string | null>(null);
   const [updatingItemId, setUpdatingItemId] = useState<number | null>(null);
   const [removingItemId, setRemovingItemId] = useState<number | null>(null);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [itemToRemove, setItemToRemove] = useState<CartItem | null>(null);
 
   useEffect(() => {
     fetchCartItems();
@@ -85,16 +98,17 @@ export default function CartPage() {
   const removeItem = async (itemId: number) => {
     try {
       setRemovingItemId(itemId);
-      
+
       const response = await fetch(`/api/cart/${itemId}`, {
         method: 'DELETE',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to remove item');
       }
-      
+
       setCartItems(prev => prev.filter(item => item.id !== itemId));
+      setConfirmDialogOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove item');
     } finally {
@@ -117,7 +131,7 @@ export default function CartPage() {
         <div className="container mx-auto px-4">
           <h1 className="text-3xl font-bold mb-8">購物車</h1>
           <div className="flex justify-center items-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <span className="ml-2 text-gray-600">載入中...</span>
           </div>
         </div>
@@ -226,19 +240,52 @@ export default function CartPage() {
                       </CardContent>
                       
                       <CardFooter className="p-0 pt-2">
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => removeItem(item.id)}
-                          disabled={removingItemId === item.id}
-                        >
-                          {removingItemId === item.id ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4 mr-2" />
-                          )}
-                          移除
-                        </Button>
+                        <AlertDialog open={confirmDialogOpen && itemToRemove?.id === item.id} onOpenChange={(open) => {
+                          if (!open) setConfirmDialogOpen(false);
+                        }}>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => {
+                                setItemToRemove(item);
+                                setConfirmDialogOpen(true);
+                              }}
+                              disabled={removingItemId === item.id}
+                            >
+                              {removingItemId === item.id ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4 mr-2" />
+                              )}
+                              移除
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>確認移除商品</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                確定要從購物車移除「{item.name}」嗎？此操作無法復原。
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>取消</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => removeItem(item.id)}
+                                className="bg-destructive hover:bg-destructive/90"
+                              >
+                                {removingItemId === item.id ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    移除中...
+                                  </>
+                                ) : (
+                                  '確認移除'
+                                )}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </CardFooter>
                     </div>
                   </div>
@@ -269,8 +316,8 @@ export default function CartPage() {
                     </div>
                   </div>
                   
-                  <Button 
-                    className="w-full mt-6 bg-blue-600 hover:bg-blue-700" 
+                  <Button
+                    className="w-full mt-6 bg-primary hover:bg-primary/90"
                     onClick={handleCheckout}
                   >
                     <CreditCard className="h-4 w-4 mr-2" />

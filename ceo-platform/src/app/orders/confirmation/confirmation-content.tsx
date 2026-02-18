@@ -168,17 +168,20 @@ export default function ConfirmationContent() {
             </CardHeader>
             <CardContent className="space-y-4">
               {order.items.map((item) => (
-                <div key={item.id} className="flex items-center gap-4 pb-4 border-b last:border-0 last:pb-0">
-                  <div className="shrink-0 w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
-                    <Image
-                      src={item.product.image || '/placeholder-product.jpg'}
-                      alt={item.product.name}
-                      width={64}
-                      height={64}
-                      className="w-full h-full object-contain"
-                      unoptimized
-                    />
-                  </div>
+                 <div key={item.id} className="flex items-center gap-4 pb-4 border-b last:border-0 last:pb-0">
+                   <div className="shrink-0 w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                     {item.product.image ? (
+                       <Image
+                         src={item.product.image}
+                         alt={item.product.name}
+                         width={64}
+                         height={64}
+                         className="w-full h-full object-contain"
+                       />
+                     ) : (
+                       <Package className="h-8 w-8 text-gray-400" />
+                     )}
+                   </div>
                   <div className="flex-1">
                     <h3 className="font-medium">{item.product.name}</h3>
                     <p className="text-sm text-gray-600">

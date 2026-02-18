@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { describe, expect, test, beforeEach, afterEach } from 'vitest';
+import { describe, expect, test, afterEach } from 'vitest';
 
 describe('DeviceToken Model', () => {
   let userId: string;

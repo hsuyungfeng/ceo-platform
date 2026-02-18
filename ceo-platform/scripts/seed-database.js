@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
+ 
 // 簡單的種子資料腳本 - 使用SQL直接插入
 const { exec } = require('child_process');
 

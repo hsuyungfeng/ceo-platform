@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { 
   ArrowLeft, Mail, Phone, MapPin, User, Building, CreditCard, Calendar, 
-  Package, DollarSign, Clock, FileText, Plus, Minus, Settings,
+  Package, Plus, Minus,
   TrendingUp, History, Activity
 } from 'lucide-react'
 import Link from 'next/link'

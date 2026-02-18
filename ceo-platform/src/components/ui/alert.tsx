@@ -28,7 +28,7 @@ const Alert = ({ className, variant, ...props }: AlertProps) => (
   />
 );
 
-interface AlertTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {}
+type AlertTitleProps = React.HTMLAttributes<HTMLHeadingElement>;
 
 const AlertTitle = ({ className, ...props }: AlertTitleProps) => (
   <h5
@@ -37,8 +37,7 @@ const AlertTitle = ({ className, ...props }: AlertTitleProps) => (
   />
 );
 
-interface AlertDescriptionProps
-  extends React.HTMLAttributes<HTMLParagraphElement> {}
+type AlertDescriptionProps = React.HTMLAttributes<HTMLParagraphElement>;
 
 const AlertDescription = ({ className, ...props }: AlertDescriptionProps) => (
   <div
