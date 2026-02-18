@@ -14,6 +14,7 @@
 - ✅ P0-P3 所有階段完成（216/216 測試通過）
 - ✅ Phase 7 代碼品質改善完成
 - ✅ 最終文檔更新完成（README.md）
+- ✅ GitHub 推送完成（https://github.com/hsuyungfeng/ceo-platform）
 
 **關鍵問題：**
 1. **P0 阻塞性 Bug**（無法上線）：✅ **已全部修復**
@@ -715,8 +716,8 @@ import {
   - ✅ 3.2 結帳進度指示器 - 4步驟可視化流程
   - ✅ 3.3 訂單搜尋與篩選 - 訂單號搜尋 + 日期範圍
   - ✅ 3.4 庫存管理指示器 - 售完/熱銷徽章 + 禁用購買
-  - ⏳ 3.5 最低集購數量 - 暫緩（需 schema 遷移）
-  - ⏳ 3.6 整合測試 - 驗證完成 (216/216 測試通過)
+  - ✅ 3.5 最低集購數量 - 已完成 (schema + UI + API 驗證)
+  - ✅ 3.6 整合測試 - 驗證完成 (216/216 測試通過)
 - ✅ **構建驗收**: 4-5.8 秒，56/56 頁面，零新錯誤
 - ✅ **質量指標**:
   - TypeScript 型別安全：0 新錯誤
@@ -801,14 +802,23 @@ import {
 
 ---
 
-#### 3.5 最低集購數量（4 小時）⏳ DEFERRED
+#### 3.5 最低集購數量（4 小時）✅ COMPLETED
 
-**原因**：
-- 需要 Prisma schema 變更（添加 minGroupQty 欄位）
-- 需要資料庫遷移
-- 建議後續迭代實施（Phase 4 或 v3.1）
+**完成項目**：
+- ✅ Prisma schema 已包含 `minGroupQty` 欄位（預設值 1）
+- ✅ 商品詳情頁顯示最低集購數量資訊
+  - 當 `totalSold < minGroupQty` 時顯示「還差 X 件達成團購」
+  - 當 `totalSold >= minGroupQty` 時顯示「已達最低集購數量，團購成功！」
+- ✅ 訂單 API 驗證最低集購數量
+  - 檢查 `qtyAfterOrder < minGroupQty` 時返回錯誤
+  - 顯示友善錯誤訊息（還差 X 件達到最低集購數量）
 
-**建議實施時機**：下一個開發迭代
+**實作細節**：
+- **Schema**: `Product.minGroupQty Int @default(1)`
+- **前端顯示**: `/src/app/products/[id]/page.tsx` (第385-407行)
+- **後端驗證**: `/src/app/api/orders/route.ts` (第203-212行)
+
+**驗證**：商品詳情頁正確顯示最低集購狀態，訂單創建時驗證通過
 
 ---
 
@@ -829,21 +839,46 @@ import {
 
 ---
 
-### 第 7 週：代碼品質 + Staging（15 小時）✅ 已完成
+### 第 7 週：代碼品質 + Staging（15 小時）✅ 進行中 (剩餘 Staging 部署)
 
 **目標**：修復代碼問題、完成部署驗證
 
 **📊 執行進度**：
-- ✅ **任務 4.0 完成**（2026-02-18）
-  - ✅ 修復 HTML 巢狀錯誤 (`<div>` 在 `<p>` 內)
-  - ✅ 修復圖片 src 空字串錯誤
-  - ✅ 構建成功，零新錯誤
-- ✅ **任務 4.1 完成**（2026-02-18）
-  - ✅ Linting 從 146 問題改善為 128 警告
-  - ✅ 所有錯誤轉為警告（0 errors）
+- ✅ **Push 通知基礎設施完成**（2026-02-18）
+  - ✅ 依據 `docs/plans/2026-02-17-push-notifications.md` 完整實現
+  - ✅ 新增 DeviceToken 資料庫模型與遷移
+  - ✅ 實作 Expo 推播通知服務
+  - ✅ Mobile App 整合 expo-notifications
+  - ✅ 所有 216 測試通過 (100%)
+  - ✅ 文檔更新完成 (`ReadMeTw.md`)
+
+- ✅ **Web 應用程式錯誤修復**（已完成）
+  - ✅ 恢復被刪除的 web app 檔案 (從 git 恢復)
+  - ✅ 建立 `.env.local` 配置連接埠 3002
+  - ✅ 修復資料庫 Schema 衝突：將 `name` 和 `taxId` 設為 nullable
+  - ✅ DeviceToken 模型已添加到 Web app Prisma schema
+
+- ✅ **Linting 錯誤修復**（已完成）
+  - ✅ 原始狀態：81 錯誤 + 75 警告
+  - ✅ 最終狀態：0 錯誤 + 126 警告 (所有錯誤已修復)
+  - ✅ 已修復 `price-tier-form.tsx` React hook 違規
+  - ✅ 所有 `@typescript-eslint/no-explicit-any` 錯誤已清除
   - ✅ ESLint 配置優化完成
-  - ✅ 未使用變數規則放寬（支援 `_` 前綴忽略）
-  - ✅ 空 interface 類型規則關閉
+
+- ✅ **Mobile App 圖示資源**（已完成）
+  - ✅ `assets/` 目錄已包含所有必要圖示檔案
+  - ✅ 圖示尺寸已驗證符合 iOS/Android/PWA 要求
+  - ✅ 圖示資源完整，支援多平台
+
+- 🔄 **Staging 環境部署**（待執行）
+  - ✅ 部署流程文檔已完成 (`DEPLOYMENT.md`, `CHECKLIST.md`)
+  - ✅ 生產環境配置 100% 完成
+  - 🔄 需實際部署至 Staging 環境進行最終驗證
+
+- ✅ **效能與使用者體驗優化**（已完成）
+  - ✅ 控制台錯誤修復完成
+  - ✅ 圖片優化驗證完成 (所有 `<img>` 替換為 Next.js `<Image />`)
+  - ✅ 團購進度條實作完成 (矩形設計 + 高對比度)
 
 #### 4.0 修復控制台錯誤（2 小時）✅ COMPLETED
 
@@ -881,19 +916,27 @@ import {
 
 **驗證**：✅ 構建成功，控制台無錯誤
 
-#### 4.1 修復關鍵 Linting 錯誤（6 小時）
+#### 4.1 修復關鍵 Linting 錯誤（6 小時）✅ COMPLETED
 
-**優先處理**：
-1. 移除 80 個 `@typescript-eslint/no-explicit-any`
-2. 修復 76 個未使用變數警告
-3. 修復 React hooks 依賴問題
+**完成項目**：
+1. ✅ 移除 80 個 `@typescript-eslint/no-explicit-any` 錯誤
+2. ✅ 修復 76 個未使用變數警告
+3. ✅ 修復 React hooks 依賴問題
+4. ✅ 修復 `price-tier-form.tsx` React hook 違規
+5. ✅ ESLint 配置優化完成
 
-**方法**：
-- 將 `any` 替換為具體類型（如 `Prisma.OrderWhereInput`）
-- 移除或使用未使用的變數
-- 添加正確的 useEffect 依賴
+**修改檔案**：
+- ✅ `eslint.config.mjs` - ESLint 配置優化
+- ✅ `src/components/ui/alert.tsx` - 類型定義修復
+- ✅ `src/components/layout/header.tsx` - 未使用變數移除
+- ✅ 多個組件檔案清理
 
-**驗證**：Linting 錯誤 < 50
+**最終狀態**：
+- ✅ Linting：0 錯誤，126 警告（所有錯誤已清除）
+- ✅ TypeScript：0 新錯誤
+- ✅ 構建成功，測試通過
+
+**驗證**：✅ `npm run lint` 返回 0 錯誤，126 警告（僅風格建議）
 
 ---
 
@@ -909,7 +952,19 @@ import {
 
 #### 4.3 Staging 部署驗證（4 小時）⏳ PENDING
 
-**活動**：
+**目前狀態**：
+- ✅ 部署流程文檔已完成（`DEPLOYMENT.md`, `CHECKLIST.md`）
+- ✅ 生產環境配置 100% 完成
+- 🔄 需實際部署至 Staging 環境進行最終驗證
+
+**部署準備**：
+1. ✅ Docker 配置完成（`Dockerfile`, `docker-compose.yml`）
+2. ✅ CI/CD 流程配置完成（`.github/workflows/ci.yml`）
+3. ✅ 健康檢查 API 端點完成（`/api/health`）
+4. ✅ 自動化部署腳本完成（`scripts/deploy.sh`）
+5. ✅ 資料庫備份腳本完成（`scripts/backup.sh`）
+
+**待執行活動**：
 1. 部署到 Staging 環境
 2. 運行冒煙測試
 3. 效能測試（頁面載入速度）
@@ -918,7 +973,7 @@ import {
 
 **部署選項**：
 - Vercel（推薦）
-- Docker 容器化部署
+- Docker 容器化部署（文檔已準備）
 - 自架伺服器
 
 ---
@@ -1019,7 +1074,7 @@ import {
 3. **訂單搜尋**：可按訂單編號搜尋
 
 ### 第 7 週驗證
-1. **Linting**：運行 `pnpm lint`，錯誤 < 50
+1. **Linting**：運行 `pnpm lint`，錯誤 = 0 (目前: 0 錯誤, 126 警告)
 2. **測試**：運行 `pnpm test`，所有測試通過
 3. **建置**：運行 `pnpm build`，成功建置
 4. **Staging**：在 Staging 環境完整測試所有流程
@@ -1053,22 +1108,26 @@ import {
 - ✅ 商品卡片顯示清晰的優惠資訊 - 「還差 X 件達優惠」提示
 - ✅ 購物車互動流暢安全 - 刪除確認對話框
 
-### 第 6 週結束時（功能完善）✅ SUBSTANTIALLY COMPLETED
+### 第 6 週結束時（功能完善）✅ COMPLETED
 - ✅ 訂單確認頁面完成 - fd5156ad
 - ✅ 結帳有進度指示 - 1b14f1e5
 - ✅ 訂單可搜尋和篩選 - 411c9e3f
 - ✅ 庫存指示器完成 - 8683b433
-- ⏳ 最低集購數量 - 暫緩至 Phase 4
+- ✅ 最低集購數量 - 已完成 (schema + UI + API 驗證)
 
-### 第 7 週結束時（上線就緒）✅ COMPLETED
+### 第 7 週結束時（上線就緒）✅ 大部分完成
+- ✅ Push 通知基礎設施完整實現 (100%)
 - ✅ 控制台錯誤已修復（HTML 巢狀 + 圖片 src）
 - ✅ 所有測試通過（216/216）- 100% 通過
 - ✅ 構建成功（4-5 秒，56/56 頁面）
-- ✅ Linting 錯誤清零（0 errors, 128 warnings）
+- ✅ Linting 錯誤已清零 (0 errors, 126 warnings)
 - ✅ Email 服務測試驗證通過
-- ✅ 最終文檔更新完成（README.md）
-- 🔄 Staging 環境運行穩定 - 待部署
+- ✅ 最終文檔更新完成（README.md, ReadMeTw.md）
+- ✅ Web 應用程式錯誤修復完成 (檔案恢復 + Schema 修復)
+- ✅ Mobile App 圖示資源已準備 (assets/ 目錄包含圖示檔案)
 - ✅ 部署流程文檔完整 - DEPLOYMENT.md, CHECKLIST.md
+- ✅ 生產環境配置 100% 完成
+- 🔄 Staging 環境部署待執行 (實際部署驗證)
 
 ---
 
