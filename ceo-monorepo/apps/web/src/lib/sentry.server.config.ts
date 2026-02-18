@@ -32,11 +32,11 @@ export function initSentryServer() {
       'ETIMEDOUT',
     ],
 
-    // Server-specific integrations
-    integrations: [
-      new Sentry.Integrations.OnUncaughtException(),
-      new Sentry.Integrations.OnUnhandledRejection(),
-    ],
+    // Server-specific integrations (commented out due to import issues)
+    // integrations: [
+    //   new Sentry.Integrations.OnUncaughtException(),
+    //   new Sentry.Integrations.OnUnhandledRejection(),
+    // ],
 
     // Performance monitoring
     beforeSend(event, hint) {

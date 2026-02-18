@@ -54,7 +54,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 驗證密碼
+    // 驗證密碼（檢查密碼是否存在）
+    if (!user.password) {
+      return NextResponse.json(
+        { error: '使用者沒有設定密碼（可能是 OAuth 登入）' },
+        { status: 401 }
+      );
+    }
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return NextResponse.json(

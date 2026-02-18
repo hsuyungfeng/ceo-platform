@@ -109,6 +109,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       startDate: product.startDate,
       endDate: product.endDate,
       totalSold: product.totalSold,
+      minGroupQty: product.minGroupQty,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
       priceTiers,

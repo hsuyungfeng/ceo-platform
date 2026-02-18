@@ -92,7 +92,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return null;
           }
 
-          // 驗證密碼
+          // 驗證密碼（檢查密碼是否存在）
+          if (!user.password) {
+            console.error('使用者沒有設定密碼（可能是 OAuth 登入）');
+            return null;
+          }
           const isPasswordValid = await bcrypt.compare(password, user.password);
           if (!isPasswordValid) {
             console.error('密碼驗證失敗');

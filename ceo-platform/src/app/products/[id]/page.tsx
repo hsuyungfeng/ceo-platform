@@ -28,6 +28,7 @@ interface Product {
   startDate: string;
   endDate: string;
   totalSold: number;
+  minGroupQty: number;
   priceTiers: PriceTier[];
   suggestedQty: number;
   isGroupBuyActive: boolean;
@@ -379,6 +380,31 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                      已售 {progress.current} {product.unit} / 目標 {progress.target} {product.unit}
                   </span>
                 </div>
+                
+                {/* Minimum group buy quantity indicator */}
+                {product.minGroupQty > 1 && product.totalSold < product.minGroupQty && (
+                  <div className="mt-3 p-3 bg-warning/10 rounded-lg border border-warning/20">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-warning" />
+                      <p className="text-sm text-warning-foreground">
+                        <span className="font-medium">最低集購數量：{product.minGroupQty} {product.unit}</span>
+                        <span className="mx-2">|</span>
+                        <span className="text-warning">
+                          還差 <span className="font-bold">{product.minGroupQty - product.totalSold}</span> {product.unit} 達成團購
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Success message when minimum is met */}
+                {product.minGroupQty > 1 && product.totalSold >= product.minGroupQty && (
+                  <div className="mt-3 p-3 bg-success/10 rounded-lg border border-success/20">
+                    <p className="text-sm text-success-foreground">
+                      ✅ 已達最低集購數量 ({product.minGroupQty} {product.unit})，團購成功！
+                    </p>
+                  </div>
+                )}
               </div>
               
               <div className="mb-6">

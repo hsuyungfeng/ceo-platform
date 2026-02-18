@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { OrderStatus } from '@prisma/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -27,7 +28,9 @@ export default async function OrdersPage({
 }) {
   const status = searchParams.status || 'ALL'
 
-  const whereClause = status !== 'ALL' ? { status } : {}
+  const whereClause = status !== 'ALL' && Object.values(OrderStatus).includes(status as OrderStatus) 
+    ? { status: status as OrderStatus } 
+    : {}
 
   const orders = await prisma.order.findMany({
     where: whereClause,

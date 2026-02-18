@@ -119,28 +119,29 @@ model Firm {
 }
 
 model Product {
-  id          String      @id @default(cuid())
-  name        String      @unique
-  subtitle    String?
-  description String?
-  image       String?
-  unit        String?
-  spec        String?
-  firmId      String?
-  categoryId  String?
-  isActive    Boolean     @default(true)
-  isFeatured  Boolean     @default(false)
-  startDate   DateTime?
-  endDate     DateTime?
-  totalSold   Int         @default(0)
-  sortOrder   Int         @default(0)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  cartItems   CartItem[]
-  orderItems  OrderItem[]
-  priceTiers  PriceTier[]
-  category    Category?   @relation(fields: [categoryId], references: [id])
-  firm        Firm?       @relation(fields: [firmId], references: [id])
+  id               String      @id @default(cuid())
+  name             String      @unique
+  subtitle         String?
+  description      String?
+  image            String?
+  unit             String?
+  spec             String?
+  firmId           String?
+  categoryId       String?
+  isActive         Boolean     @default(true)
+  isFeatured       Boolean     @default(false)
+  startDate        DateTime?
+  endDate          DateTime?
+  totalSold        Int         @default(0)
+  minGroupQty      Int         @default(1)
+  sortOrder        Int         @default(0)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  cartItems        CartItem[]
+  orderItems       OrderItem[]
+  priceTiers       PriceTier[]
+  category         Category?   @relation(fields: [categoryId], references: [id])
+  firm             Firm?       @relation(fields: [firmId], references: [id])
 
   @@map("products")
 }

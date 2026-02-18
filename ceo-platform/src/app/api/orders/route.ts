@@ -198,6 +198,18 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+      
+      // 檢查最低集購數量
+      const minGroupQty = (cartItem.product as any).minGroupQty || 1;
+      const currentSold = (cartItem.product as any).totalSold || 0;
+      const qtyAfterOrder = currentSold + cartItem.quantity;
+      
+      if (minGroupQty > 1 && qtyAfterOrder < minGroupQty) {
+        return NextResponse.json(
+          { error: `商品「${cartItem.product.name}」還差 ${minGroupQty - qtyAfterOrder} ${(cartItem.product as any).unit} 達到最低集購數量（${minGroupQty} ${(cartItem.product as any).unit}）` },
+          { status: 400 }
+        );
+      }
     }
 
     // 計算訂單總金額和明細
