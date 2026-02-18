@@ -6,7 +6,10 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { Search, X } from 'lucide-react';
 
 interface OrderItem {
   id: number;
@@ -53,9 +56,13 @@ function OrdersContent() {
     itemsPerPage: 10
   });
   const [cancellingOrderId, setCancellingOrderId] = useState<number | null>(null);
-  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
   const statusFilter = searchParams.get('status') || '';
+  const orderNoFilter = searchParams.get('orderNo') || '';
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -82,7 +89,7 @@ function OrdersContent() {
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const params = new URLSearchParams();
       params.append('page', currentPage.toString());
@@ -90,14 +97,36 @@ function OrdersContent() {
       if (statusFilter) {
         params.append('status', statusFilter);
       }
-      
+
       const response = await fetch(`/api/orders?${params.toString()}`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch orders');
       }
-      
+
       const data: OrdersResponse = await response.json();
+
+      // Client-side filtering for order number search
+      if (orderNoFilter) {
+        data.data = data.data.filter((order) =>
+          order.orderNo.toLowerCase().includes(orderNoFilter.toLowerCase())
+        );
+      }
+
+      // Client-side filtering for date range
+      if (startDate || endDate) {
+        data.data = data.data.filter((order) => {
+          const orderDate = new Date(order.createdAt);
+          if (startDate && new Date(startDate) > orderDate) return false;
+          if (endDate) {
+            const endDateTime = new Date(endDate);
+            endDateTime.setHours(23, 59, 59, 999);
+            if (endDateTime < orderDate) return false;
+          }
+          return true;
+        });
+      }
+
       setOrders(data.data);
       setPagination(data.pagination);
     } catch (err) {
@@ -106,7 +135,7 @@ function OrdersContent() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, statusFilter]);
+  }, [currentPage, statusFilter, orderNoFilter, startDate, endDate]);
 
   useEffect(() => {
     fetchOrders();
@@ -130,6 +159,31 @@ function OrdersContent() {
     }
     params.set('page', '1');
     router.push(`/orders?${params.toString()}`);
+  };
+
+  const handleSearchOrderNo = (query: string) => {
+    setSearchQuery(query);
+    const params = new URLSearchParams(searchParams);
+    if (query) {
+      params.set('orderNo', query);
+    } else {
+      params.delete('orderNo');
+    }
+    params.set('page', '1');
+    router.push(`/orders?${params.toString()}`);
+  };
+
+  const handleDateRangeChange = (start: string, end: string) => {
+    setStartDate(start);
+    setEndDate(end);
+    fetchOrders();
+  };
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setStartDate('');
+    setEndDate('');
+    router.push('/orders');
   };
 
   const handleCancelOrder = async (orderId: number) => {
@@ -196,7 +250,76 @@ function OrdersContent() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
         <h1 className="text-3xl font-bold mb-8">我的訂單</h1>
-        
+
+        {/* Search and Filters */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg">搜尋和篩選</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Order Number Search */}
+            <div className="space-y-2">
+              <Label htmlFor="search-order">訂單編號</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="search-order"
+                    placeholder="搜尋訂單編號..."
+                    value={searchQuery}
+                    onChange={(e) => handleSearchOrderNo(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleSearchOrderNo('')}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Date Range Filter */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="start-date">開始日期</Label>
+                <Input
+                  id="start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => handleDateRangeChange(e.target.value, endDate)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end-date">結束日期</Label>
+                <Input
+                  id="end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => handleDateRangeChange(startDate, e.target.value)}
+                  min={startDate}
+                />
+              </div>
+            </div>
+
+            {/* Clear Filters Button */}
+            {(searchQuery || statusFilter || startDate || endDate) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearFilters}
+                className="w-full"
+              >
+                清除所有篩選
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Status Filter */}
         <div className="mb-6">
           <div className="flex flex-wrap gap-2">
