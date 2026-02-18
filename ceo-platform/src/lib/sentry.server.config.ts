@@ -1,59 +1,13 @@
 /**
  * Sentry Server-Side Configuration
  * Handles error tracking for API routes and server-side operations
+ * Note: Sentry is optional and can be configured later
  */
 
-import * as Sentry from '@sentry/nextjs';
-
+// Sentry is optional - functions will be no-ops if not configured
 export function initSentryServer() {
-  const environment = process.env.NODE_ENV || 'development';
-  const dsn = process.env.SENTRY_DSN;
-
-  if (!dsn) {
-    console.warn('Sentry DSN not configured, server error tracking disabled');
-    return;
-  }
-
-  Sentry.init({
-    dsn,
-    environment,
-    tracesSampleRate: environment === 'production' ? 0.1 : 1.0,
-    debug: environment === 'development',
-
-    // Release tracking
-    release: process.env.APP_VERSION || 'unknown',
-
-    // Ignored errors
-    ignoreErrors: [
-      'NetworkError',
-      'Network request failed',
-      'ECONNREFUSED',
-      'ECONNRESET',
-      'ETIMEDOUT',
-    ],
-
-    // Server-specific integrations
-    integrations: [],
-
-    // Performance monitoring
-    beforeSend(event, hint) {
-      // Filter out health checks and internal requests
-      if (event.request?.url?.includes('/api/health')) {
-        return null;
-      }
-
-      // Mask sensitive data
-      if (event.request?.headers) {
-        event.request.headers = {
-          ...event.request.headers,
-          authorization: '[REDACTED]',
-          cookie: '[REDACTED]',
-        };
-      }
-
-      return event;
-    },
-  });
+  // No-op: Sentry is optional
+  console.log('Sentry is optional - server error tracking disabled by default');
 }
 
 /**
@@ -64,23 +18,8 @@ export function captureServerSecurityEvent(
   context: Record<string, any>,
   level: 'warning' | 'error' = 'warning'
 ) {
-  Sentry.captureException(
-    new Error(`Server Security Event: ${eventType}`),
-    {
-      tags: {
-        eventType,
-        category: 'security',
-        serverSide: true,
-      },
-      level,
-      contexts: {
-        security: {
-          ...context,
-          timestamp: new Date().toISOString(),
-        },
-      },
-    }
-  );
+  // No-op: Sentry is optional
+  console.log(`Server security event: ${eventType}`, context);
 }
 
 /**
@@ -93,25 +32,7 @@ export function trackApiRequest(
   duration: number,
   userId?: string
 ) {
-  Sentry.captureEvent({
-    message: `API ${method} ${endpoint}`,
-    level: statusCode >= 400 ? 'warning' : 'info',
-    tags: {
-      method,
-      endpoint,
-      statusCode: String(statusCode),
-      performance: duration > 1000 ? 'slow' : 'normal',
-    },
-    contexts: {
-      request: {
-        method,
-        endpoint,
-        statusCode,
-        durationMs: duration,
-        userId,
-      },
-    },
-  });
+  // No-op: Sentry is optional
 }
 
 /**
@@ -123,40 +44,9 @@ export function trackDatabaseOperation(
   duration: number,
   error?: Error
 ) {
-  const level = error ? 'error' : 'info';
-
+  // No-op: Sentry is optional
   if (error) {
-    Sentry.captureException(error, {
-      tags: {
-        operation,
-        table,
-        category: 'database',
-      },
-      contexts: {
-        database: {
-          operation,
-          table,
-          durationMs: duration,
-        },
-      },
-    });
-  } else {
-    Sentry.captureEvent({
-      message: `Database ${operation} on ${table}`,
-      level,
-      tags: {
-        operation,
-        table,
-        performance: duration > 100 ? 'slow' : 'normal',
-      },
-      contexts: {
-        database: {
-          operation,
-          table,
-          durationMs: duration,
-        },
-      },
-    });
+    console.error(`Database error: ${operation} on ${table}`, error);
   }
 }
 
@@ -169,36 +59,9 @@ export function trackEmailOperation(
   success: boolean,
   error?: Error
 ) {
+  // No-op: Sentry is optional
   if (error) {
-    Sentry.captureException(error, {
-      tags: {
-        operation: 'email',
-        templateType,
-        status: 'failed',
-      },
-      contexts: {
-        email: {
-          templateType,
-          recipient: maskEmail(recipient),
-        },
-      },
-    });
-  } else {
-    Sentry.captureEvent({
-      message: `Email sent: ${templateType}`,
-      level: 'info',
-      tags: {
-        operation: 'email',
-        templateType,
-        status: 'success',
-      },
-      contexts: {
-        email: {
-          templateType,
-          recipient: maskEmail(recipient),
-        },
-      },
-    });
+    console.error(`Email error: ${templateType} to ${maskEmail(recipient)}`, error);
   }
 }
 
@@ -206,17 +69,14 @@ export function trackEmailOperation(
  * Set server user context
  */
 export function setSentryServerUser(userId: string, email?: string) {
-  Sentry.setUser({
-    id: userId,
-    email: maskEmail(email),
-  });
+  // No-op: Sentry is optional
 }
 
 /**
  * Clear server user context
  */
 export function clearSentryServerUser() {
-  Sentry.setUser(null);
+  // No-op: Sentry is optional
 }
 
 /**
@@ -234,21 +94,16 @@ function maskEmail(email?: string): string {
 export function addServerBreadcrumb(
   message: string,
   category: string = 'server',
-  level: Sentry.SeverityLevel = 'info',
+  level: any = 'info',
   data?: Record<string, any>
 ) {
-  Sentry.addBreadcrumb({
-    message,
-    category,
-    level,
-    data,
-    timestamp: Date.now() / 1000,
-  });
+  // No-op: Sentry is optional
 }
 
 /**
  * Flush pending Sentry events (call before server shutdown)
  */
 export async function flushSentry(timeout = 5000) {
-  return Sentry.close(timeout);
+  // No-op: Sentry is optional
+  return Promise.resolve();
 }

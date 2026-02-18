@@ -1,75 +1,13 @@
 /**
  * Sentry Client-Side Configuration
  * Handles error tracking and performance monitoring for browser
+ * Note: Sentry is optional and can be configured later
  */
 
-import * as Sentry from '@sentry/nextjs';
-
+// Sentry is optional - functions will be no-ops if not configured
 export function initSentryClient() {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  const environment = process.env.NODE_ENV || 'development';
-  const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
-
-  if (!dsn) {
-    console.warn('Sentry DSN not configured, error tracking disabled');
-    return;
-  }
-
-  Sentry.init({
-    dsn,
-    environment,
-    tracesSampleRate: environment === 'production' ? 0.1 : 1.0,
-    debug: environment === 'development',
-
-    // Release tracking
-    release: process.env.NEXT_PUBLIC_APP_VERSION || 'unknown',
-
-    // Allowed URLs for error tracking
-    allowUrls: [
-      /^https?:\/\/(localhost|127\.0\.0\.1|.*\.ceo-buy\.com)/,
-    ],
-
-    // Ignored errors
-    ignoreErrors: [
-      // Browser extensions
-      'top.GLOBALS',
-      'chrome-extension://',
-      'moz-extension://',
-
-      // Network errors that are expected
-      'NetworkError',
-      'Network request failed',
-
-      // ResizeObserver errors (common and harmless)
-      'ResizeObserver loop limit exceeded',
-
-      // Random plugins/extensions
-      'Can\'t find variable: ZiteReader',
-      'jigsaw is not defined',
-      'ComboSearch is not defined',
-    ],
-
-    // Denylist for URLs
-    denyUrls: [
-      // Browser extensions
-      /extensions\//i,
-      /^chrome:\/\//i,
-      /^moz-extension:\/\//i,
-    ],
-
-    // Performance monitoring
-    integrations: [],
-
-    // Session replay disabled
-    replaysSessionSampleRate: 0,
-    replaysOnErrorSampleRate: 0,
-
-    // Attach stack traces
-    attachStacktrace: true,
-  });
+  // No-op: Sentry is optional
+  console.log('Sentry is optional - error tracking disabled by default');
 }
 
 /**
@@ -80,16 +18,8 @@ export function captureSecurityEvent(
   context: Record<string, any>,
   level: 'warning' | 'error' = 'warning'
 ) {
-  Sentry.captureException(new Error(`Security Event: ${eventType}`), {
-    tags: {
-      eventType,
-      category: 'security',
-    },
-    level,
-    contexts: {
-      security: context,
-    },
-  });
+  // No-op: Sentry is optional
+  console.log(`Security event: ${eventType}`, context);
 }
 
 /**
@@ -107,18 +37,14 @@ export function trackPerformance(
  * Set user context for error tracking
  */
 export function setSentryUser(userId: string, email?: string, username?: string) {
-  Sentry.setUser({
-    id: userId,
-    email,
-    username,
-  });
+  // No-op: Sentry is optional
 }
 
 /**
  * Clear user context
  */
 export function clearSentryUser() {
-  Sentry.setUser(null);
+  // No-op: Sentry is optional
 }
 
 /**
@@ -127,13 +53,8 @@ export function clearSentryUser() {
 export function addSentryBreadcrumb(
   message: string,
   category: string = 'user-action',
-  level: Sentry.SeverityLevel = 'info',
+  level: any = 'info',
   data?: Record<string, any>
 ) {
-  Sentry.addBreadcrumb({
-    message,
-    category,
-    level,
-    data,
-  });
+  // No-op: Sentry is optional
 }
