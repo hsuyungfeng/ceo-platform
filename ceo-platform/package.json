@@ -16,7 +16,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "prepare": "cd .. && husky",
+    "prepare": "if [ -z \"$CI\" ] && [ -z \"$VERCEL\" ]; then husky install || echo 'Husky install skipped'; else echo 'Skipping husky in CI/Vercel environment'; fi",
     "postinstall": "prisma generate"
   },
   "lint-staged": {
