@@ -136,12 +136,18 @@
 
 ---
 
-## ✅ 立即待辦 (This Week)
+## ✅ 立即待辦 (This Week - 更新於 2026-02-28)
 
-### 優先級 1️⃣ 
-- [ ] **與業務會面** - 確認月結、點數、支付需求
-- [ ] **解決 Prisma 幽靈依賴** - 修復 package.json
-- [ ] **驗證 PocketBase 環境** - 確認本機連線
+### 優先級 1️⃣ (進行中)
+- [ ] **Priority #1: 與業務會面** - 確認月結、點數、支付需求（待排程）
+- [x] ✅ **Priority #2: 解決 Prisma 幽靈依賴** - 修復 package.json（✅ 已完成）
+  - @prisma/client v7.3.0 已安裝
+  - prisma v7.3.0 已安裝
+  - npx prisma --version 測試通過
+- [x] ✅ **Priority #3: 驗證 PocketBase 環境** - 確認本機連線（部分完成）
+  - ✅ pocketbase.ts 已初始化
+  - ✅ NEXT_PUBLIC_POCKETBASE_URL 已設定為 http://127.0.0.1:8090
+  - ⏳ 需要執行 npm run dev 完成測試
 
 ### 優先級 2️⃣
 - [ ] 建立 PocketBase Schema 初稿

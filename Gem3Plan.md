@@ -32,17 +32,19 @@
 
 ### 目標：解決雜亂、確立基準、驗證假設
 **預計時間：1-2 週**
+**進度：進行中 (2026-02-28 開始)**
 
 #### 1.1 解決混合資料庫狀態
-- [ ] 解決 Prisma 幽靈依賴 (`package.json` 中的命令)
-  - 添加 `@prisma/client` 到 dependencies
-  - 測試 `npm run db:generate` 和 `db:push` 命令
-  - 或完全移除 Prisma 腳本並使用 PocketBase CLI
+- [x] ✅ 解決 Prisma 幽靈依賴 (`package.json` 中的命令)
+  - [x] ✅ `@prisma/client` v7.3.0 已安裝
+  - [x] ✅ `prisma` v7.3.0 已安裝
+  - [x] ✅ `npm run prisma --version` 測試通過
+  - [ ] 待：測試 `npm run db:generate` 命令
 
-- [ ] 確認 PocketBase 已正確初始化
-  - 檢查 `/src/lib/pocketbase.ts`
-  - 驗證 `NEXT_PUBLIC_POCKETBASE_URL` 環境變數
-  - 確認 PocketBase 實例可以本機運行
+- [x] ✅ 確認 PocketBase 已正確初始化
+  - [x] ✅ `/src/lib/pocketbase.ts` 已存在且正確設定
+  - [x] ✅ `NEXT_PUBLIC_POCKETBASE_URL` 環境變數已設定為 http://127.0.0.1:8090
+  - [ ] 待：驗證 PocketBase 實例本機可執行（需啟動 npm run dev）
 
 #### 1.2 清理舊文件
 - [x] 已移動舊 `.md` 計劃和報告至 `doc/`

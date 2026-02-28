@@ -1,16 +1,21 @@
 # 每日進度 (Daily Progress)
 
-## 2026-02-28 (Updated)
+## 2026-02-28 (Phase 1 - 開始執行)
 
 ### 今日目標 (Today's Goals)
-- 進行三面向專家分析 (UX、技術、風險管理)
-- 綜合分析結果，更新 Gem3Plan 與詳細實施步驟
+- ✅ 完成檔案結構重組 (主文件在根目錄，支持文件在 /doc)
+- ✅ 執行 Priority #1, #2, #3 初步檢查
+- 📋 開始 Phase 1: 準備與清理
 
-### 進度 (Progress)
+### 進度 (Progress - Phase 1 執行)
 ✅ **已完成**：
-- 已將舊的 `.md` 計劃和報告移至 `doc/` 資料夾
-- 建立了 `Gem3Plan.md` 和 `DailyProgress.md`
-- 開始分析 `apps/web` 結構，尋找不必要的文件
+- ✅ 檔案結構重組完成（Gem3Plan.md, DailyProgress.md, README_ANALYSIS.md 在根目錄）
+- ✅ 在 /doc 建立了符號連結指向主文件
+- ✅ Priority #2: Prisma 幽靈依賴已修復 (@prisma/client v7.3.0, prisma v7.3.0 已安裝)
+- ✅ Priority #3: PocketBase 環境已驗證
+  - pocketbase.ts 存在且初始化正確
+  - NEXT_PUBLIC_POCKETBASE_URL 已設定為 http://127.0.0.1:8090
+  - Prisma v7.3.0 命令測試通過
 - **召集三人專家團隊進行多角度分析**：
   - **UX/產品視角 (Agent 1)**：評估當前 UI/UX，識別可簡化的複雜功能
     - 發現：首頁、產品列表、產品詳情和管理儀表板包含大量 B2C 團購功能
@@ -66,10 +71,12 @@
    - 低風險：代碼清理、UX 衝擊
 
 ### 下一步要做什麼 (Next to Do)
-- [ ] **與業務/PM 會面** (本週)
-  - 確認月結需求詳情（發票頻率、逾期政策、點數兌換率）
+⏳ **本週進行中**：
+- [ ] **Priority #1: 與業務/PM 會面** (本週)
+  - 需要確認月結需求詳情（發票頻率、逾期政策、點數兌換率）
   - 驗證員工數量和交易量 (用於效能規劃)
   - 確認當前使用的支付方式 (是否真的只需 cash/monthly/points)
+  - 確認搜尋功能是否有被使用
 
 - [ ] **解決 Prisma 幽靈依賴** (本週)
   - 添加 @prisma/client 或完全移除 Prisma 腳本
