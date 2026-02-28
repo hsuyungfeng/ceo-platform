@@ -32,7 +32,7 @@ export async function PATCH(
     }
 
     // Verify authorization: user owns invoice or is admin
-    if (invoice.userId !== authData.userId && authData.user?.role !== 'ADMIN') {
+    if (invoice.userId !== authData.userId && authData.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
