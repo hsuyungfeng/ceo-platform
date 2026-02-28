@@ -5,7 +5,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum TwoFactorMethod {
@@ -46,6 +45,7 @@ model User {
   adminLogs     UserLog[]          @relation("AdminLogs")
   pointTransactions PointTransaction[]
   deviceTokens      DeviceToken[]
+  invoices Invoice[] @relation("UserInvoices")
 
   @@map("users")
 }
@@ -185,6 +185,7 @@ model Order {
   updatedAt    DateTime    @updatedAt
   items        OrderItem[]
   user         User        @relation(fields: [userId], references: [id])
+  invoiceItems InvoiceLineItem[] @relation("OrderInvoiceItems")
 
   @@map("orders")
 }
@@ -405,4 +406,63 @@ model DeviceToken {
   @@index([platform])
   @@index([isActive])
   @@map("device_tokens")
+}
+
+enum InvoiceStatus {
+  DRAFT      // 草稿 (尚未發送)
+  SENT       // 已發送 (等待員工確認)
+  CONFIRMED  // 已確認 (員工已查看)
+  PAID       // 已支付
+}
+
+model Invoice {
+  id String @id @default(cuid())
+  invoiceNo String @unique
+  userId String
+  user User @relation("UserInvoices", fields: [userId], references: [id], onDelete: Cascade)
+
+  billingMonth String                   // YYYY-MM
+  billingStartDate DateTime
+  billingEndDate DateTime
+
+  totalAmount Decimal @db.Decimal(10, 2)
+  totalItems Int
+
+  status InvoiceStatus @default(DRAFT)
+  sentAt DateTime?
+  confirmedAt DateTime?
+  paidAt DateTime?
+
+  invoiceFormat String @default("simple")
+
+  lineItems InvoiceLineItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([billingMonth])
+  @@index([status])
+  @@map("invoices")
+}
+
+model InvoiceLineItem {
+  id String @id @default(cuid())
+  invoiceId String
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  orderId String
+  order Order @relation("OrderInvoiceItems", fields: [orderId], references: [id], onDelete: Cascade)
+
+  productName String
+  quantity Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  subtotal Decimal @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([invoiceId])
+  @@index([orderId])
+  @@map("invoice_line_items")
 }
