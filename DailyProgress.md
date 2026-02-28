@@ -88,15 +88,124 @@
   - [x] ✅ 建立 .env.local
   - [x] ✅ npm run build 可執行
 
-- 🔥 **Phase 2.3: 認證層整合** (進行中 - 20%)
+- 🔥 **Phase 2.3: 認證層整合** (進行中 - 100% 代碼實現，待測試驗證)
   - [x] ✅ 分析現有認證架構
   - [x] ✅ 建立 `/src/lib/pocketbase-auth.ts` (20+ 個函數)
-  - ⏳ **下一步**：遷移 `/src/auth.ts` (Credentials + OAuth)
+  - [x] ✅ 遷移 `/src/auth.ts` (Credentials + Google + Apple OAuth)
+  - [x] ✅ 遷移 `/src/lib/auth-helper.ts` (Bearer Token + Session 驗證)
+  - ⏳ **測試計劃**：建立於下方
+
+---
+
+## Phase 2.3 測試驗證計劃 (Authentication Testing Plan)
+
+### 🧪 測試覆蓋範圍
+
+#### 1. 認證流程單元測試
+**Credentials 登入 (稅號 + 密碼)**
+```typescript
+// 測試場景：
+✅ 有效稅號 + 正確密碼 → 成功登入
+❌ 無效稅號 → 返回 null
+❌ 有效稅號 + 錯誤密碼 → 返回 null
+❌ 帳號狀態為 INACTIVE → 返回 null
+```
+
+**Bearer Token 驗證 (移動應用 JWT)**
+```typescript
+// 測試場景：
+✅ 有效 JWT Token → 返回用戶信息
+❌ 過期 Token → 返回 null
+❌ 無效簽名 → 返回 null
+❌ 缺少 user ID → 返回 null
+❌ 用戶已刪除 → 返回 null
+```
+
+**Session 驗證 (Web 應用 NextAuth)**
+```typescript
+// 測試場景：
+✅ 有效 Session → 返回用戶信息
+❌ 無效 Session → 返回 null
+❌ 用戶不存在 → 返回 null
+❌ 帳號已停用 → 返回 null
+```
+
+#### 2. OAuth 流程集成測試
+**Google OAuth**
+```typescript
+// 測試場景：
+✅ 首次 Google 登入（新用戶）→ 重定向至註冊頁面
+✅ 既有 Google 帳戶連結 → 直接登入，更新令牌
+✅ Google OAuth 帳戶連結至現有用戶 → 成功連結
+```
+
+**Apple OAuth**
+```typescript
+// 測試場景與 Google 相同
+```
+
+#### 3. Token 刷新與寬限期
+```typescript
+// 測試場景：
+✅ 有效 Token → 刷新成功
+✅ 已過期但在 7 天寬限期內 → 刷新成功
+❌ 超過寬限期（7+ 天）→ 刷新失敗
+❌ Token 超過 60 天最大年限 → 拒絕
+```
+
+### 📋 完整端點驗證清單
+
+**已受保護的 API 端點** (需驗證仍可工作)：
+- [ ] `GET /api/user/profile` - 需有效 Session
+- [ ] `POST /api/cart/add` - 需有效 Bearer Token 或 Session
+- [ ] `POST /api/orders` - 需有效 Session
+- [ ] `GET /api/admin/users` - 需 ADMIN 角色
+- [ ] `GET /api/admin/orders` - 需 ADMIN 角色
+
+**Public 端點** (應無認證要求)：
+- [ ] `GET /api/products` - 無認證需求
+- [ ] `GET /api/categories` - 無認證需求
+- [ ] `POST /auth/signin` - 無先前認證需求
+
+### ✅ 代碼完成度檢查清單
+
+- [x] ✅ `pocketbase-auth.ts` - 20+ 函數已實現
+  - [x] findUserByTaxId() - Credentials 登入
+  - [x] findUserByEmail() - OAuth 用戶查詢
+  - [x] findUserById() - Bearer Token 驗證
+  - [x] findOAuthAccount() - OAuth 帳戶查詢
+  - [x] createOAuthAccount() - OAuth 帳戶創建
+  - [x] updateOAuthAccount() - OAuth 帳戶更新
+  - [x] createTempOAuth() - 臨時註冊數據
+  - [x] getTempOAuth() - 取得臨時數據
+  - [x] deleteTempOAuth() - 清理過期數據
+  - [x] verifyPassword() - 密碼驗證
+  - [x] createUser() - 用戶創建
+  - [x] updateUser() - 用戶更新
+  - [x] isUserActive() - 狀態檢查
+
+- [x] ✅ `/src/auth.ts` - 所有 Prisma 查詢已替換
+  - [x] Credentials 提供者 (line 80)
+  - [x] Google OAuth (lines 128-235)
+  - [x] Apple OAuth (lines 242-349)
+
+- [x] ✅ `/src/lib/auth-helper.ts` - 所有用戶查詢已替換
+  - [x] validateBearerToken() (line 67)
+  - [x] validateSession() (line 108)
+  - [x] validateTokenForRefresh() (line 240)
+
+### 🚀 下一步行動
+⏳ **本週待做**：
+- [ ] 啟動 PocketBase 本機實例 (`npm run dev` 並驗證 http://127.0.0.1:8090)
+- [ ] 驗證 PocketBase users 集合已建立
+- [ ] 執行簡單的集成測試（登入流程）
+- [ ] 修復任何 PocketBase 連接問題
+- [ ] 測試 Bearer Token 流程（移動應用模擬）
 
 ⏳ **下週計劃**：
-- [ ] 完成 Phase 2.3: 重構 `/src/auth.ts` 和 `/src/lib/auth-helper.ts`
-- [ ] 開始第 1 階段：準備與清理
-- [ ] 設計 PocketBase Schema
+- [ ] 完整的 OAuth 流程測試（需 Google/Apple 開發憑證）
+- [ ] Edge case 測試（過期 Token、並發登入等）
+- [ ] 開始 Phase 2.4: 逐路由遷移
 
 ---
 

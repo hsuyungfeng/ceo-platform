@@ -150,15 +150,21 @@
   - ✅ .env.local 已建立
   - ✅ npm run build 可執行（已識別 reset-password Suspense 邊界警告）
 
-### 優先級 2️⃣ (後續)
-- [ ] **Phase 2.3: 認證層整合** - Gem3Plan.md § 2.3（🔴 高風險，進行中）
-  - 分析 NextAuth + Prisma vs PocketBase Auth
-  - 決定整合策略
-  - 重構 `/src/auth.ts` 和 `/src/lib/auth-helper.ts`
+### 優先級 2️⃣ (進行中)
+- [x] ✅ **Phase 2.3: 認證層整合** - Gem3Plan.md § 2.3（🔴 高風險，代碼實現 100%）
+  - [x] ✅ 分析 NextAuth + Prisma vs PocketBase Auth 架構
+  - [x] ✅ 決定整合策略（選項 A：保持 NextAuth，改用 PocketBase 儲存）
+  - [x] ✅ 建立 `/src/lib/pocketbase-auth.ts`（20+ 個認證輔助函數）
+  - [x] ✅ 重構 `/src/auth.ts`（Credentials + Google + Apple OAuth）
+  - [x] ✅ 重構 `/src/lib/auth-helper.ts`（Bearer Token + Session 驗證）
+  - [ ] 待執行：測試驗證（需 PocketBase 實例運行）
+  - 代碼改動統計：-160 行（Prisma），+106 行（PocketBase），淨減少 54 行
 
-- [ ] 建立 PocketBase Schema 初稿
+### 優先級 3️⃣ (待執行)
+- [ ] 啟動 PocketBase 實例並執行認證測試
+- [ ] 建立 PocketBase Schema 完整版本
 - [ ] 建立測試基準 (速度、覆蓋率)
-- [ ] 識別過時檔案
+- [ ] 開始 Phase 2.4: 逐路由遷移（低風險優先）
 
 ---
 

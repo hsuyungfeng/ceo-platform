@@ -148,7 +148,7 @@
 #### 2.3 認證層整合 (🔴 高風險 - 進行中)
 **狀態**：實施中（2026-02-28 開始）
 **複雜度**：高（影響所有 41 個 API 路由）
-**進度**：20% (完成: PocketBase auth 輔助函數)
+**進度**：60% (完成: PocketBase auth 輔助函數 + auth.ts + auth-helper.ts 遷移)
 
 - [x] ✅ **分析現有認證架構**
   - [x] ✅ 審查 `/src/auth.ts` - 識別 3 個 Prisma 用戶查詢
@@ -170,23 +170,32 @@
   - [x] ✅ 臨時 OAuth 管理函數（createTempOAuth, getTempOAuth, deleteTempOAuth）
   - [x] ✅ 用戶管理函數（createUser, updateUser, verifyPassword）
 
-- [ ] **重構 `/src/auth.ts`**（根據選擇）
-  - [ ] Credentials 提供者：替換 line 80 的 Prisma 查詢
-  - [ ] Google OAuth：替換 line 174、135、158、219 的查詢
-  - [ ] Apple OAuth：替換 line 286、248、271、329 的查詢
+- [x] ✅ **重構 `/src/auth.ts`**（選項 A）
+  - [x] ✅ Credentials 提供者：替換 findUserByTaxId()、verifyPassword()
+  - [x] ✅ Google OAuth：替換 findOAuthAccount()、createOAuthAccount()、updateOAuthAccount()、createTempOAuth()
+  - [x] ✅ Apple OAuth：替換 findOAuthAccount()、createOAuthAccount()、updateOAuthAccount()、createTempOAuth()
   - [ ] 測試 3 個認證流程
 
-- [ ] **更新 `/src/lib/auth-helper.ts`**
-  - [ ] 用 PocketBase 取代 line 67 的用戶查詢
-  - [ ] 用 PocketBase 取代 line 108 的用戶查詢
-  - [ ] 用 PocketBase 取代 line 240 的用戶查詢
+- [x] ✅ **更新 `/src/lib/auth-helper.ts`**
+  - [x] ✅ 用 PocketBase 取代 line 67 的用戶查詢（validateBearerToken）
+  - [x] ✅ 用 PocketBase 取代 line 108 的用戶查詢（validateSession）
+  - [x] ✅ 用 PocketBase 取代 line 240 的用戶查詢（validateTokenForRefresh）
   - [ ] 測試 Bearer Token 驗證（移動應用）
   - [ ] 確認所有受保護的端點仍可工作
 
-- [ ] **測試認證層**
-  - [ ] 單元測試：各個認證方法
-  - [ ] 集成測試：完整登入 → API 呼叫流程
-  - [ ] Edge case：過期令牌、無效憑證、並發登入
+- [x] ✅ **測試驗證計劃已建立**
+  - [x] ✅ Credentials 登入單元測試計劃
+  - [x] ✅ Bearer Token 驗證測試計劃
+  - [x] ✅ Session 驗證測試計劃
+  - [x] ✅ OAuth 流程集成測試計劃
+  - [ ] 待執行：實際測試驗證（需 PocketBase 實例運行）
+  - [ ] 待執行：Edge case 測試（過期令牌、並發登入等）
+
+**代碼改動統計**：
+- `-160 行`（Prisma 代碼）
+- `+106 行`（PocketBase 代碼）
+- **淨減少 54 行**
+- **完成度**：代碼實現 100%，測試計劃完成，待實際驗證
 
 #### 2.4 逐路由遷移 (低風險優先)
 **第一波：已使用 PocketBase 的路由 (驗證)**
