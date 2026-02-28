@@ -202,9 +202,25 @@
 - [ ] 修復任何 PocketBase 連接問題
 - [ ] 測試 Bearer Token 流程（移動應用模擬）
 
+### 🧪 測試資源已建立 (2026-02-28)
+
+**建立的文件：**
+- [x] ✅ QUICK_START_TESTING.md (快速開始指南 - 15 分鐘)
+- [x] ✅ TESTING_PHASE_2_3.md (詳細測試指南 - 完整參考)
+- [x] ✅ ACTION_CHECKLIST.md (操作檢查清單 - 逐步執行)
+- [x] ✅ scripts/test-pocketbase-auth.ts (自動化測試腳本 - 9 個測試)
+
+**測試涵蓋範圍：**
+- [x] ✅ PocketBase 連接驗證
+- [x] ✅ 用戶查詢 (by taxId, email, id)
+- [x] ✅ 密碼驗證邏輯
+- [x] ✅ OAuth 帳戶管理
+- [x] ✅ 自動化測試報告
+
 ⏳ **下週計劃**：
-- [ ] 完整的 OAuth 流程測試（需 Google/Apple 開發憑證）
-- [ ] Edge case 測試（過期 Token、並發登入等）
+- [ ] 啟動 PocketBase 實例並執行自動測試
+- [ ] 完成 Phase 2.3 實際驗證（預計 20 分鐘）
+- [ ] 提交測試結果 commit
 - [ ] 開始 Phase 2.4: 逐路由遷移
 
 ---
