@@ -2,9 +2,19 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import Apple from 'next-auth/providers/apple';
-import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import {
+  findUserByTaxId,
+  findUserByEmail,
+  findOAuthAccount,
+  findOAuthAccountsByEmail,
+  createOAuthAccount,
+  updateOAuthAccount,
+  createTempOAuth,
+  verifyPassword,
+  isUserActive,
+} from '@/lib/pocketbase-auth';
 
 // 登入驗證 schema
 const credentialsSchema = z.object({
@@ -76,10 +86,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           const { taxId, password } = validatedCredentials.data;
 
-          // 查找使用者
-          const user = await prisma.user.findUnique({
-            where: { taxId },
-          });
+          // 查找使用者 - 改用 PocketBase
+          const user = await findUserByTaxId(taxId);
 
           if (!user) {
             console.error('使用者不存在:', taxId);
@@ -87,17 +95,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
 
           // 檢查使用者狀態
-          if (user.status !== 'ACTIVE') {
+          if (!isUserActive(user)) {
             console.error('帳號非啟用狀態:', user.status);
             return null;
           }
 
-          // 驗證密碼（檢查密碼是否存在）
-          if (!user.password) {
-            console.error('使用者沒有設定密碼（可能是 OAuth 登入）');
-            return null;
-          }
-          const isPasswordValid = await bcrypt.compare(password, user.password);
+          // 驗證密碼
+          const isPasswordValid = await verifyPassword(user, password);
           if (!isPasswordValid) {
             console.error('密碼驗證失敗');
             return null;
@@ -130,65 +134,45 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (account?.provider === 'google') {
         try {
           const { email, name, sub: providerId, picture } = profile as any;
-          
-          // 檢查是否已有 OAuth 帳戶連結
-          const existingOAuthAccount = await prisma.oAuthAccount.findUnique({
-            where: {
-              provider_providerId: {
-                provider: 'google',
-                providerId,
-              },
-            },
-            include: {
-              user: true,
-            },
-          });
 
-          if (existingOAuthAccount) {
+          // 檢查是否已有 OAuth 帳戶連結 - 改用 PocketBase
+          const existingOAuthResult = await findOAuthAccount('google', providerId);
+
+          if (existingOAuthResult) {
             // 已有連結帳戶，更新使用者資訊
-            user.id = existingOAuthAccount.user.id;
-            user.name = existingOAuthAccount.user.name;
-            user.email = existingOAuthAccount.user.email;
-            user.taxId = existingOAuthAccount.user.taxId;
-            user.role = existingOAuthAccount.user.role;
-            user.status = existingOAuthAccount.user.status;
-            user.emailVerified = existingOAuthAccount.user.emailVerified;
+            const { account: oauthAccount, user: linkedUser } = existingOAuthResult;
+            user.id = linkedUser.id;
+            user.name = linkedUser.name;
+            user.email = linkedUser.email;
+            user.taxId = linkedUser.taxId;
+            user.role = linkedUser.role;
+            user.status = linkedUser.status;
+            user.emailVerified = linkedUser.emailVerified;
 
             // 更新 OAuth 帳戶資訊
-            await prisma.oAuthAccount.update({
-              where: { id: existingOAuthAccount.id },
-              data: {
-                name,
-                picture,
-                accessToken: account.access_token,
-                refreshToken: account.refresh_token,
-                expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
-                updatedAt: new Date(),
-              },
+            await updateOAuthAccount(oauthAccount.id, {
+              name,
+              picture,
+              accessToken: account.access_token,
+              refreshToken: account.refresh_token,
+              expiresAt: account.expires_at ? new Date(account.expires_at * 1000).toISOString() : undefined,
             });
 
             return true;
           }
 
-          // 檢查是否已有相同 email 的使用者
-          const existingUser = await prisma.user.findUnique({
-            where: { email },
-          });
+          // 檢查是否已有相同 email 的使用者 - 改用 PocketBase
+          const existingUser = await findUserByEmail(email);
 
           if (existingUser) {
             // 連結現有使用者帳戶
-            await prisma.oAuthAccount.create({
-              data: {
-                provider: 'google',
-                providerId,
-                userId: existingUser.id,
-                email,
-                name,
-                picture,
-                accessToken: account.access_token,
-                refreshToken: account.refresh_token,
-                expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
-              },
+            await createOAuthAccount(existingUser.id, 'google', providerId, {
+              email,
+              name,
+              picture,
+              accessToken: account.access_token,
+              refreshToken: account.refresh_token,
+              expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : undefined,
             });
 
             user.id = existingUser.id;
@@ -212,23 +196,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             picture,
             accessToken: account.access_token,
             refreshToken: account.refresh_token,
-            expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
+            expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : undefined,
           };
 
-          // 將 OAuth 資料儲存到暫存表（1小時後過期）
-          const tempOAuth = await prisma.tempOAuth.create({
-            data: {
-              provider: 'google',
-              providerId,
-              email,
-              name: name || '',
-              picture: picture || '',
-              accessToken: account.access_token || '',
-              refreshToken: account.refresh_token || '',
-              tokenExpiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
-              data: JSON.stringify(tempOAuthData),
-              expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1小時後過期
-            },
+          // 將 OAuth 資料儲存到暫存表（1小時後過期） - 改用 PocketBase
+          const tempOAuth = await createTempOAuth('google', providerId, {
+            email,
+            name: name || '',
+            picture: picture || '',
+            accessToken: account.access_token || '',
+            refreshToken: account.refresh_token || '',
+            tokenExpiresAt: account.expires_at ? new Date(account.expires_at * 1000) : undefined,
           });
 
           // 重定向到 OAuth 註冊頁面，帶上暫存 ID
@@ -243,63 +221,43 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (account?.provider === 'apple') {
         try {
           const { email, sub: providerId, name } = profile as any;
-          
-          // 檢查是否已有 OAuth 帳戶連結
-          const existingOAuthAccount = await prisma.oAuthAccount.findUnique({
-            where: {
-              provider_providerId: {
-                provider: 'apple',
-                providerId,
-              },
-            },
-            include: {
-              user: true,
-            },
-          });
 
-          if (existingOAuthAccount) {
+          // 檢查是否已有 OAuth 帳戶連結 - 改用 PocketBase
+          const existingOAuthResult = await findOAuthAccount('apple', providerId);
+
+          if (existingOAuthResult) {
             // 已有連結帳戶，更新使用者資訊
-            user.id = existingOAuthAccount.user.id;
-            user.name = existingOAuthAccount.user.name;
-            user.email = existingOAuthAccount.user.email;
-            user.taxId = existingOAuthAccount.user.taxId;
-            user.role = existingOAuthAccount.user.role;
-            user.status = existingOAuthAccount.user.status;
-            user.emailVerified = existingOAuthAccount.user.emailVerified;
+            const { account: oauthAccount, user: linkedUser } = existingOAuthResult;
+            user.id = linkedUser.id;
+            user.name = linkedUser.name;
+            user.email = linkedUser.email;
+            user.taxId = linkedUser.taxId;
+            user.role = linkedUser.role;
+            user.status = linkedUser.status;
+            user.emailVerified = linkedUser.emailVerified;
 
             // 更新 OAuth 帳戶資訊
-            await prisma.oAuthAccount.update({
-              where: { id: existingOAuthAccount.id },
-              data: {
-                name,
-                accessToken: account.access_token,
-                refreshToken: account.refresh_token,
-                expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
-                updatedAt: new Date(),
-              },
+            await updateOAuthAccount(oauthAccount.id, {
+              name,
+              accessToken: account.access_token,
+              refreshToken: account.refresh_token,
+              expiresAt: account.expires_at ? new Date(account.expires_at * 1000).toISOString() : undefined,
             });
 
             return true;
           }
 
-          // 檢查是否已有相同 email 的使用者
-          const existingUser = await prisma.user.findUnique({
-            where: { email },
-          });
+          // 檢查是否已有相同 email 的使用者 - 改用 PocketBase
+          const existingUser = await findUserByEmail(email);
 
           if (existingUser) {
             // 連結現有使用者帳戶
-            await prisma.oAuthAccount.create({
-              data: {
-                provider: 'apple',
-                providerId,
-                userId: existingUser.id,
-                email,
-                name,
-                accessToken: account.access_token,
-                refreshToken: account.refresh_token,
-                expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
-              },
+            await createOAuthAccount(existingUser.id, 'apple', providerId, {
+              email,
+              name,
+              accessToken: account.access_token,
+              refreshToken: account.refresh_token,
+              expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : undefined,
             });
 
             user.id = existingUser.id;
@@ -322,22 +280,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name,
             accessToken: account.access_token,
             refreshToken: account.refresh_token,
-            expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
+            expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : undefined,
           };
 
-          // 將 OAuth 資料儲存到暫存表（1小時後過期）
-          const tempOAuth = await prisma.tempOAuth.create({
-            data: {
-              provider: 'apple',
-              providerId,
-              email,
-              name: name || '',
-              accessToken: account.access_token || '',
-              refreshToken: account.refresh_token || '',
-              tokenExpiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
-              data: JSON.stringify(tempOAuthData),
-              expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1小時後過期
-            },
+          // 將 OAuth 資料儲存到暫存表（1小時後過期） - 改用 PocketBase
+          const tempOAuth = await createTempOAuth('apple', providerId, {
+            email,
+            name: name || '',
+            accessToken: account.access_token || '',
+            refreshToken: account.refresh_token || '',
+            tokenExpiresAt: account.expires_at ? new Date(account.expires_at * 1000) : undefined,
           });
 
           // 重定向到 OAuth 註冊頁面，帶上暫存 ID

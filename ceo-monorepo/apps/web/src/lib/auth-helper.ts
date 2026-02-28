@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
 import { decode } from 'next-auth/jwt';
+import { findUserById, isUserActive } from '@/lib/pocketbase-auth';
 
 /**
  * Unified authentication helper for CEO團購電商平台
@@ -63,22 +63,20 @@ async function validateBearerToken(request: NextRequest) {
       return null;
     }
     
-    // Get user data from database
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-    
+    // Get user data from database - 改用 PocketBase
+    const user = await findUserById(userId);
+
     if (!user) {
       console.error('使用者不存在:', userId);
       return null;
     }
-    
+
     // Check user status
-    if (user.status !== 'ACTIVE') {
+    if (!isUserActive(user)) {
       console.error('使用者狀態非 ACTIVE:', user.status);
       return null;
     }
-    
+
     return {
       id: user.id,
       userId: user.id,
@@ -97,24 +95,22 @@ async function validateBearerToken(request: NextRequest) {
 async function validateSession() {
   try {
     const session = await auth();
-    
+
     if (!session?.user?.id) {
       return null;
     }
-    
+
     const userId = session.user.id;
-    
-    // Get user data from database
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-    
+
+    // Get user data from database - 改用 PocketBase
+    const user = await findUserById(userId);
+
     if (!user) {
       return null;
     }
-    
+
     // Check user status
-    if (user.status !== 'ACTIVE') {
+    if (!isUserActive(user)) {
       return null;
     }
     
@@ -236,22 +232,20 @@ export async function validateTokenForRefresh(token: string) {
       return null;
     }
     
-    // Get user data from database
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-    
+    // Get user data from database - 改用 PocketBase
+    const user = await findUserById(userId);
+
     if (!user) {
       console.error('使用者不存在:', userId);
       return null;
     }
-    
+
     // Check user status
-    if (user.status !== 'ACTIVE') {
+    if (!isUserActive(user)) {
       console.error('使用者狀態非 ACTIVE:', user.status);
       return null;
     }
-    
+
     return {
       decoded,
       user,
