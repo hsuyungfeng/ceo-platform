@@ -60,15 +60,7 @@ export function initSentryClient() {
       /^moz-extension:\/\//i,
     ],
 
-    // Performance monitoring
-    integrations: [
-      new Sentry.Replay({
-        maskAllText: true,
-        blockAllMedia: true,
-      }),
-    ],
-
-    // Session replay
+    // Session replay (replaces integrations.Replay for Sentry 8)
     replaysSessionSampleRate: environment === 'production' ? 0.1 : 1.0,
     replaysOnErrorSampleRate: 1.0,
 
@@ -105,17 +97,13 @@ export function trackPerformance(
   duration: number,
   tags?: Record<string, string>
 ) {
-  const transaction = Sentry.getCurrentHub().getTransaction();
-
-  if (transaction) {
-    const span = transaction.startChild({
-      op: operationName,
-      description: `${operationName} operation`,
-      data: tags,
-    });
-
-    span.finish();
-  }
+  // In Sentry 8, use startSpan instead of getActiveTransaction
+  Sentry.startSpan({
+    name: operationName,
+    attributes: tags,
+  }, () => {
+    // Span automatically tracks duration
+  });
 }
 
 /**

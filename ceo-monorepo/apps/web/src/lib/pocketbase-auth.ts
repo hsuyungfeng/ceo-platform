@@ -76,7 +76,7 @@ export async function findUserByTaxId(taxId: string): Promise<PBUser | null> {
     const record = await pb.collection('users').getFirstListItem(
       `taxId = "${taxId}"`
     );
-    return record as PBUser;
+    return record as unknown as PBUser;
   } catch (error: any) {
     if (error.status === 404) {
       return null;
@@ -96,7 +96,7 @@ export async function findUserByEmail(email: string): Promise<PBUser | null> {
     const record = await pb.collection('users').getFirstListItem(
       `email = "${email}"`
     );
-    return record as PBUser;
+    return record as unknown as PBUser;
   } catch (error: any) {
     if (error.status === 404) {
       return null;
@@ -114,7 +114,7 @@ export async function findUserByEmail(email: string): Promise<PBUser | null> {
 export async function findUserById(userId: string): Promise<PBUser | null> {
   try {
     const record = await pb.collection('users').getOne(userId);
-    return record as PBUser;
+    return record as unknown as PBUser;
   } catch (error: any) {
     if (error.status === 404) {
       return null;
@@ -162,8 +162,8 @@ export async function findOAuthAccount(
     const user = await pb.collection('users').getOne(account.userId);
 
     return {
-      account: account as PBOAuthAccount,
-      user: user as PBUser,
+      account: account as unknown as PBOAuthAccount,
+      user: user as unknown as PBUser,
     };
   } catch (error: any) {
     if (error.status === 404) {
@@ -188,7 +188,7 @@ export async function findOAuthAccountsByEmail(
       .getFullList({
         filter: `email = "${email}"`,
       });
-    return records as PBOAuthAccount[];
+    return records as unknown as PBOAuthAccount[];
   } catch (error: any) {
     console.error('查找 OAuth 帳戶失敗 (email):', error);
     throw error;
@@ -210,7 +210,7 @@ export async function updateOAuthAccount(
       ...data,
       updatedAt: new Date().toISOString(),
     });
-    return record as PBOAuthAccount;
+    return record as unknown as PBOAuthAccount;
   } catch (error) {
     console.error('更新 OAuth 帳戶失敗:', error);
     throw error;
@@ -251,7 +251,7 @@ export async function createOAuthAccount(
       expiresAt: data.expiresAt?.toISOString() || null,
       updatedAt: new Date().toISOString(),
     });
-    return record as PBOAuthAccount;
+    return record as unknown as PBOAuthAccount;
   } catch (error) {
     console.error('建立 OAuth 帳戶失敗:', error);
     throw error;
@@ -293,7 +293,7 @@ export async function createTempOAuth(
       data: JSON.stringify(data),
       expiresAt: expiresAt.toISOString(),
     });
-    return record as PBTempOAuth;
+    return record as unknown as PBTempOAuth;
   } catch (error) {
     console.error('建立臨時 OAuth 失敗:', error);
     throw error;
@@ -318,7 +318,7 @@ export async function getTempOAuth(
       return null;
     }
 
-    return record as PBTempOAuth;
+    return record as unknown as PBTempOAuth;
   } catch (error: any) {
     if (error.status === 404) {
       return null;
@@ -356,7 +356,7 @@ export async function createUser(
         ? await bcrypt.hash(userData.password, 12)
         : '',
     });
-    return record as PBUser;
+    return record as unknown as PBUser;
   } catch (error) {
     console.error('建立用戶失敗:', error);
     throw error;
@@ -380,7 +380,7 @@ export async function updateUser(
     }
 
     const record = await pb.collection('users').update(userId, data);
-    return record as PBUser;
+    return record as unknown as PBUser;
   } catch (error) {
     console.error('更新用戶失敗:', error);
     throw error;

@@ -16,7 +16,7 @@ if (typeof window === 'undefined') {
   }
 }
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserRole, UserStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 // Lazy-loaded singleton Prisma client
@@ -50,8 +50,8 @@ export type PrismaUser = {
   contactPerson: string | null;
   firmName?: string | null;
   points: number;
-  role: string;
-  status: string;
+  role: UserRole;
+  status: UserStatus;
   emailVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
