@@ -1,5 +1,101 @@
 # 每日進度 (Daily Progress)
 
+## 2026-02-28 (Phase 2.4 - API 路由驗證完成) ✅ 完成
+
+### 🎉 重大發現：所有 41 個 API 路由已 100% 遷移至 Prisma！
+
+**Phase 2.4 驗證結果**：✅ 所有路由已使用 Prisma + PostgreSQL
+- ✅ **Wave 1 (認證層)**: 5 個路由 - 100% Prisma ✅
+  - GET /api/auth/me
+  - POST /api/auth/login
+  - POST /api/auth/register
+  - POST /api/auth/refresh
+  - POST /api/auth/logout
+
+- ✅ **Wave 2 (公開路由)**: 8 個路由 - 100% Prisma ✅
+  - GET /api/health
+  - GET /api/home
+  - GET /api/categories
+  - GET /api/products + featured + latest + search + [id]
+
+- ✅ **Wave 3 (Email/OAuth)**: 7 個路由 - 100% Prisma ✅
+  - 郵件驗證、密碼重置、Google/Apple OAuth
+
+- ✅ **Wave 4 (用戶操作)**: 8 個 HTTP 操作 - 100% Prisma ✅
+  - GET /api/user/profile
+  - GET /api/cart + POST /api/cart + DELETE /api/cart
+  - GET /api/orders + POST /api/orders + GET /api/orders/[id] + PATCH /api/orders/[id]
+
+- ✅ **Wave 5 (管理路由)**: 20 個路由 - 100% Prisma ✅
+  - /admin/categories (4個)
+  - /admin/products (2個)
+  - /admin/orders (2個)
+  - /admin/users (4個)
+  - /admin/firms (2個)
+  - /admin/faqs (3個)
+  - /admin/contact-messages (2個)
+  - /admin/dashboard (1個)
+
+**驗證時間線**：2026-02-28
+- ✅ Wave 1 驗證完成
+- ✅ Wave 2 驗證完成
+- ✅ Wave 3 驗證完成
+- ✅ Wave 4 驗證完成
+- ✅ Wave 5 驗證完成
+
+**關鍵發現**：
+- 原計劃預期進行大規模遷移，但實際上所有路由已經使用 Prisma ORM
+- 所有路由都正確使用 `@/lib/prisma` 或認證 helper
+- 管理路由使用 `requireAdmin()` 進行適當的權限驗證
+- 用戶路由使用 `getAuthData()` 進行身份驗證
+- 沒有發現任何遺漏的或使用舊資料庫系統的路由
+
+---
+
+## 2026-02-28 (Phase 2.3 - PostgreSQL 認證層完成) ✅
+
+### 📌 重大進展：成功從 PocketBase 轉向 PostgreSQL + Prisma
+
+**Today's Achievements:**
+- ✅ **Decision Made**: 由於 PocketBase schema validation 問題，策略性轉向 PostgreSQL + Prisma v7
+- ✅ **Database Setup**: PostgreSQL 連接驗證成功
+- ✅ **Tables Created**: users, oauth_accounts, temp_oauth 表已建立
+- ✅ **Test Suite**: PostgreSQL 直連測試通過 (3/3 tests)
+- ✅ **Authentication Ready**: 密碼雜湊、user 查詢、狀態檢查皆正常
+
+**Test Results:**
+```
+============================================================
+🚀 PostgreSQL Direct Connection Test
+============================================================
+
+[✅] Test 1: PostgreSQL connection successful
+     Server time: Sat Feb 28 2026 15:29:06 GMT+0800
+[✅] Test 2: Users table exists
+[✅] Test 3: Test user can be created and queried
+
+📊 Test Results Summary
+✅ Passed: 3
+❌ Failed: 0
+🎉 All tests passed! PostgreSQL is ready for Prisma.
+```
+
+### 技術決策理由
+
+**為何從 PocketBase 轉向 PostgreSQL:**
+1. **PocketBase Schema Validation Issues**
+   - Password 字段驗證失敗 (即使發送了密碼，仍提示 "Cannot be blank")
+   - API authentication 複雜 (401/403/400 錯誤)
+   - Direct SQLite manipulation 無法被 PocketBase 識別
+
+2. **PostgreSQL 優勢**
+   - NextAuth 有完整支持文檔
+   - Prisma v7 提供豐富的 ORM 功能
+   - 更成熟的生態系統和社區支持
+   - 與現有 Prisma schema 完全兼容
+
+---
+
 ## 2026-02-28 (Phase 1 - 開始執行)
 
 ### 今日目標 (Today's Goals)
