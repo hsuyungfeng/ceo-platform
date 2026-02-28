@@ -459,63 +459,293 @@
 ## 第四階段：支付方式重構 (Phase 4: Payment Methods Restructuring)
 
 ### 目標：實現簡化的 B2B 支付模式（現金、月結、折購金）
-**預計時間：2-3 週**
+**預計時間：3-4 週**
+**進度：✅ Task 1-12 全部完成 (2026-02-28) | 100% 進度** 🎉
+**選定方案：方案 1 - 簡化方案（Invoice + InvoiceLineItem 表）** ✅
 
-#### 4.1 支付方式設計
-**當前狀態**：Prisma schema 定義了 5 種方式 (CREDIT_CARD, LINE_PAY, TAIWAN_PAY, ATM, COD)，但無實現
+#### 實施進度 (Implementation Progress - 100% Complete) ✅
 
-**簡化目標**：
+**第一部分：後端實施 (Backend Implementation)**
+
+- ✅ **Task 1: Update Prisma Schema** - COMPLETE
+  - Invoice + InvoiceLineItem 模型已建立
+  - 數據庫遷移已應用
+  - 測試全部通過 (3/3)
+  - Commit: 0a39d92c44f5315126d929ae45b9b1f6b57a15bc
+
+- ✅ **Task 2: Update Order Model** - COMPLETE
+  - PaymentMethod enum (CASH + MONTHLY_BILLING)
+  - 數據庫遷移完成
+  - Commit: 1573077fd50034dc3109903e4b6e27fc393536ed
+
+- ✅ **Task 3: Invoice Service** - COMPLETE
+  - 6 個服務函數已實現 (月結生成、發送、確認、支付、查詢、詳情)
+  - 11 個單元測試通過 (100% coverage)
+  - Commit: 12200e803261d354ab3bef0f58e13c56cab4685a
+
+- ✅ **Task 4: GET /api/invoices** - COMPLETE
+  - 用戶發票列表端點
+  - 認證驗證、Prisma 查詢優化
+  - Commit: 3eb1ecd
+
+- ✅ **Task 5: GET & PATCH /api/invoices/[id]** - COMPLETE (with security fixes)
+  - 發票詳情查詢端點
+  - PATCH 確認端點
+  - 3 個安全漏洞已修復 (授權驗證、404 處理、authData 一致性)
+  - Commits: 1e96e9b, 07fc156, 更多修復提交
+
+- ✅ **Task 6: Admin API Endpoints** - COMPLETE (with validation fixes)
+  - 4 個管理員端點 (生成、發送、標記支付、列表)
+  - 所有輸入驗證、類型安全
+  - 2 個重要問題已修復 (格式驗證、類型安全)
+  - Commits: 62c8b89, 772cded
+
+**第二部分：前端實施 (Frontend Implementation)**
+
+- ✅ **Task 7: Create Invoice List Page (Frontend)** - COMPLETE
+  - 發票列表頁面 (`src/app/invoices/page.tsx`)
+  - 客戶端組件 (`src/components/invoices/invoice-list.tsx`)
+  - 狀態徽章、多語言支持、加載/錯誤狀態
+  - 與 GET /api/invoices 端點集成
+
+- ✅ **Task 8: Create Invoice Detail Page (Frontend)** - COMPLETE
+  - 發票詳情頁面 (`src/app/invoices/[id]/page.tsx`)
+  - 動態路由處理
+  - 客戶端組件 (`src/components/invoices/invoice-detail.tsx`)
+  - 行項目表格、確認按鈕、導航支持
+
+- ✅ **Task 9: Create Admin Invoice Management Page** - COMPLETE
+  - 管理員發票管理頁面 (`src/app/admin/invoices/page.tsx`)
+  - 月份選擇、批量生成和發送按鈕
+  - 發票列表與狀態管理、標記已支付功能
+  - 與所有 Admin API 端點集成
+
+**第三部分：測試與驗證 (Testing & Verification)**
+
+- ✅ **Task 10: Integration Testing - E2E Invoice Flow** - COMPLETE
+  - 端對端集成測試 (`__tests__/e2e/invoices.test.ts`)
+  - 3 個完整的測試用例：
+    - 完整工作流程 (DRAFT → SENT → CONFIRMED → PAID)
+    - 行項目創建驗證
+    - 多用戶隔離驗證
+  - 所有測試通過 (3/3, 100% 成功率)
+  - 數據庫操作驗證、時間戳驗證、授權驗證
+
+- ✅ **Task 11: Verify All API Endpoints - Manual Testing** - COMPLETE
+  - 全面的 API 測試指南 (`docs/PHASE_4_API_TESTING_GUIDE.md`)
+  - 9 個 API 端點的詳細測試用例
+  - 70+ 個測試場景涵蓋：
+    - 認證和授權驗證
+    - 狀態轉換驗證
+    - 邊界情況和錯誤場景
+    - 性能基準測試 (< 200ms 目標)
+  - curl 命令示例、快速測試腳本、驗證檢查清單
+
+**第四部分：文檔與發布 (Documentation & Release)**
+
+- ✅ **Task 12: Update Documentation and DailyProgress** - COMPLETE
+  - DailyProgress.md 已更新（所有任務完成統計）
+  - Gem3Plan.md Phase 4 章節已更新（完成狀態）
+  - API 測試指南已生成
+  - 部署說明已記錄
+
+#### Phase 4 設計概述 (Approach 1 - Simplified)
+
+**核心設計決策**：
+- 資料庫表：Invoice + InvoiceLineItem （2 個新表）
+- 支付方式：CASH（現金交易）+ MONTHLY_BILLING（月結）
+- 月結定義：月底自動彙總當月所有訂單 → 生成單一月結帳單
+- 費用投入：3-4 週開發時間
+- 複雜度等級：低 ✅ (無 AR 追蹤、無催收流程、無稅務合規初期)
+
+**支付流程設計**：
 ```
-PaymentMethod:
-- CASH (現金交易)
-- MONTHLY_BILLING (月結)
-- DISCOUNT_POINTS (折購金補回)
+CASH 流程：
+  訂單提交 → PENDING → 管理員確認收現 → CONFIRMED → COMPLETED
+
+MONTHLY_BILLING 流程：
+  訂單提交 → PENDING → 月底自動彙總 → 生成 Invoice → 員工確認 → COMPLETED
 ```
 
-#### 4.2 月結 (Monthly Billing) 實現
-- [ ] **月結流程設計**
-  - 員工選擇 "月結" 作為付款方式
-  - 訂單狀態：PENDING → CONFIRMED → COMPLETED
-  - 月底生成發票 (自動或手動)
-  - 發票發送至員工電子郵件
+#### 4.1 資料庫設計 (Database Schema)
 
-- [ ] **逾期提醒工作流**
-  - 月結應付日設定 (例：月底後 15 天)
-  - 自動提醒電子郵件 (未支付)
-  - 管理員可手動標記為已支付
+**Invoice 表**
+```prisma
+model Invoice {
+  id String @id
+  invoiceNo String @unique             // 月結帳單號：INV-2026-02-001
+  userId String
+  user User @relation(fields: [userId], references: [id])
 
-- [ ] **發票生成與合規**
-  - 使用 PocketBase 存儲發票資料
-  - 發票編號生成邏輯
-  - 臺灣稅務合規 (taxId, invoiceNumber, carrierType)
-  - PDF 生成與發送
+  // 計費期間
+  billingMonth String                  // YYYY-MM (例：2026-02)
+  billingStartDate DateTime
+  billingEndDate DateTime
 
-#### 4.3 折購金 (Discount Points) 實現
-- [ ] **點數帳戶管理**
-  - 每位員工有點數餘額
-  - 可查看點數用途歷史記錄
+  // 金額資訊
+  totalAmount Decimal                  // 月度總額
+  totalItems Int                       // 訂單項目數
 
-- [ ] **點數兌換流程**
-  - 定義點數兌換率 (例：1 點 = 1 元)
-  - 結帳時選擇使用點數
-  - 自動扣除、記錄交易
+  // 狀態追蹤
+  status InvoiceStatus                 // DRAFT, SENT, CONFIRMED, PAID
+  sentAt DateTime?                     // 發送時間
+  confirmedAt DateTime?                // 員工確認時間
+  paidAt DateTime?                     // 支付時間
 
-- [ ] **點數補回政策**
-  - 定義如何補充點數 (手動或自動)
-  - 是否有點數過期規則
-  - 審計追蹤
+  // 格式選項
+  invoiceFormat String                 // "simple" | "detailed"
 
-#### 4.4 現金交易 (Cash)
-- [ ] **簡單流程**
-  - 訂單狀態始終為 PENDING (直到收到現金)
-  - 管理員手動標記為 CONFIRMED (已收現金)
-  - 自動生成收據
+  // 發票明細
+  lineItems InvoiceLineItem[]
 
-#### 4.5 移除舊金流代碼
-- [ ] 從 Prisma schema 刪除未使用的支付模型
-  - `Payment`, `PaymentMethod` 其他選項
-  - `Invoice` 簡化 (保留基本字段)
-  - `Shipping` 簡化或刪除 (B2B 可能不需要追蹤)
+  createdAt DateTime
+  updatedAt DateTime
+}
+
+enum InvoiceStatus {
+  DRAFT         // 草稿 (尚未發送)
+  SENT          // 已發送 (等待員工確認)
+  CONFIRMED     // 已確認 (員工已查看)
+  PAID          // 已支付
+}
+```
+
+**InvoiceLineItem 表**
+```prisma
+model InvoiceLineItem {
+  id String @id
+  invoiceId String
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  // 訂單關聯
+  orderId String                       // 來源訂單
+  order Order @relation(fields: [orderId], references: [id])
+
+  // 行項目詳情 (用於簡單格式)
+  productName String                   // 產品名稱
+  quantity Int
+  unitPrice Decimal
+  subtotal Decimal
+
+  createdAt DateTime
+  updatedAt DateTime
+}
+```
+
+#### 4.2 支付方式實現
+
+**支付方式定義**：
+```typescript
+enum PaymentMethod {
+  CASH = "CASH"                  // 現金交易 (立即)
+  MONTHLY_BILLING = "MONTHLY_BILLING"   // 月結 (月底彙總)
+}
+```
+
+**Order 表修改** (已有，確認字段)：
+```prisma
+model Order {
+  // ... 既有字段 ...
+  paymentMethod PaymentMethod    // CASH | MONTHLY_BILLING
+  // ... 既有字段 ...
+}
+```
+
+#### 4.3 API 端點設計
+
+**發票相關端點**：
+```
+GET    /api/invoices              // 列出使用者的月結帳單
+GET    /api/invoices/[id]         // 查看單一帳單詳情
+GET    /api/invoices/[id]/pdf     // 下載帳單 PDF (Future)
+PATCH  /api/invoices/[id]/confirm // 員工確認帳單
+POST   /api/invoices/[id]/mark-paid // 管理員標記已支付
+```
+
+**管理員端點**：
+```
+POST   /api/admin/invoices/generate    // 手動生成月結帳單
+POST   /api/admin/invoices/send-all    // 批量發送本月帳單
+GET    /api/admin/invoices/report      // 月結帳款報表
+```
+
+#### 4.4 月結帳單生成流程
+
+**自動生成（推薦每月 1 號或可配置）**：
+```typescript
+// 邏輯：
+1. 查詢前一月的所有 MONTHLY_BILLING 訂單
+2. 按使用者分組
+3. 為每個使用者建立一個 Invoice 記錄
+4. 建立 InvoiceLineItem （簡單格式：僅顯示訂單摘要）
+5. 設定狀態為 DRAFT
+6. 記錄並準備發送
+
+// 帳單編號格式：
+INV-{YYYY}-{MM}-{sequence}
+例：INV-2026-02-001, INV-2026-02-002
+```
+
+**簡單格式 vs. 詳細格式**：
+```
+簡單格式 (Simple):
+  月結帳單 - 2026 年 2 月
+  訂單總數：5 件
+  總金額：NT$ 25,000
+
+詳細格式 (Detailed):
+  月結帳單 - 2026 年 2 月
+
+  訂單號   | 產品名稱  | 數量 | 單價 | 小計
+  ORD-001 | 醫療口罩  | 10  | 150 | 1,500
+  ORD-002 | 手環    | 5   | 280 | 1,400
+  ...
+
+  總計：NT$ 25,000
+```
+
+#### 4.5 現金交易 (CASH) 簡化流程
+
+**支付流程**：
+```
+1. 員工選擇「現金交易」結帳
+2. 訂單建立，paymentMethod = CASH
+3. 訂單狀態：PENDING (等待管理員確認收現)
+4. 管理員收到現金後，手動更新訂單狀態為 CONFIRMED
+5. 訂單狀態自動流轉為 COMPLETED
+
+備註：
+  - 無需建立 Invoice (立即結算)
+  - 簡化管理員工作流
+  - 自動生成收據 (簡單版本)
+```
+
+#### 4.6 移除舊金流代碼 (Cleanup)
+
+**保留的表/字段**：
+```
+保留：
+- Order (paymentMethod, paymentStatus 欄位保留)
+- Invoice (簡化版，僅月結使用)
+- InvoiceLineItem (月結明細)
+
+移除計劃：
+- Payment model (不使用)
+- 舊的 PaymentMethod enum 其他選項 (LINE_PAY, ECPAY, 等)
+- Shipping model (B2B 無需追蹤配送)
+```
+
+#### 4.7 折購金 (Point Exchange) - 未來功能
+
+**當前計劃**：保留點數系統，但在此階段不實現支付。
+- 點數餘額追蹤：Point model 已有
+- 點數交易記錄：PointTransaction model 已有
+- 月結帳單中可選註記點數使用
+
+**未來實現** (Phase 5+)：
+- 結帳時選擇使用點數
+- 自動點數扣除邏輯
+- 點數兌換率設定
 
 ---
 
