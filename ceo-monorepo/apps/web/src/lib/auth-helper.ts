@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { decode } from 'next-auth/jwt';
-import { findUserById, isUserActive } from '@/lib/pocketbase-auth';
+import { findUserById, isUserActive } from '@/lib/prisma-auth';
 
 /**
  * Unified authentication helper for CEO團購電商平台

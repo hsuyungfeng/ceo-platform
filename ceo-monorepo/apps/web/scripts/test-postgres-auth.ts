@@ -1,10 +1,20 @@
-#!/usr/bin/env npx ts-node
+#!/usr/bin/env npx tsx
 
 /**
- * Phase 2.3 認證層測試腳本
- * 用途：驗證 PocketBase 認證函數是否正確工作
- * 執行方式：npx ts-node scripts/test-pocketbase-auth.ts
+ * PostgreSQL + Prisma Authentication Test
+ * Tests core authentication functions with PostgreSQL backend
  */
+
+// Load environment variables before importing anything else
+import * as dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+
+// Debug: Check if DATABASE_URL is loaded
+if (!process.env.DATABASE_URL) {
+  console.error('❌ DATABASE_URL not found in environment');
+  process.exit(1);
+}
+console.log('✅ DATABASE_URL found:', process.env.DATABASE_URL.split('@')[0] + '@***');
 
 import {
   findUserByTaxId,
@@ -15,28 +25,28 @@ import {
   createUser,
   createOAuthAccount,
   findOAuthAccount,
-} from '@/lib/pocketbase-auth';
+} from '@/lib/prisma-auth';
 
-// 測試用資料
+// Test data
 const TEST_USER = {
   taxId: '12345678',
   email: 'test@example.com',
   password: 'TestPassword123!',
   name: 'Test User',
   firmName: 'Test Company',
-  role: 'MEMBER' as const,
-  status: 'ACTIVE' as const,
+  role: 'MEMBER',
+  status: 'ACTIVE',
 };
 
 const TEST_OAUTH = {
-  provider: 'google' as const,
+  provider: 'google',
   providerId: 'google_12345',
   email: 'oauth@example.com',
   name: 'OAuth Test User',
   accessToken: 'test_access_token_12345',
 };
 
-// 彩色輸出
+// Color output
 const colors = {
   reset: '\x1b[0m',
   green: '\x1b[32m',
@@ -63,32 +73,26 @@ function log(type: 'success' | 'error' | 'info' | 'test', message: string) {
   console.log(`${colorMap[type]}${symbols[type]} ${message}${colors.reset}`);
 }
 
-async function testPocketBaseAuth() {
+async function testPostgresAuth() {
   console.log('\n' + '='.repeat(60));
-  console.log('🚀 Phase 2.3 認證層測試開始');
+  console.log('🚀 PostgreSQL + Prisma 認證層測試開始');
   console.log('='.repeat(60) + '\n');
 
   let testsPassed = 0;
   let testsFailed = 0;
 
   try {
-    // 測試 1: 檢查 PocketBase 連接
-    log('test', '測試 1: 檢查 PocketBase 連接...');
+    // 測試 1: 資料庫連接
+    log('test', '測試 1: 檢查 PostgreSQL 連接...');
     try {
       const testConnection = await findUserByTaxId('test_connection_check_12345');
-      log('success', '✓ PocketBase 連接成功 (可以查詢集合)');
+      log('success', '✓ PostgreSQL 連接成功');
       testsPassed++;
     } catch (error) {
-      log(
-        'error',
-        `✗ PocketBase 連接失敗: ${(error as any)?.message || '未知錯誤'}`
-      );
-      log(
-        'info',
-        '確保 PocketBase 正在運行：pocketbase serve 並且已建立 users 集合'
-      );
+      log('error', `✗ PostgreSQL 連接失敗: ${(error as any)?.message || '未知錯誤'}`);
+      log('info', '確保 PostgreSQL 伺服器正在運行且資料庫已初始化');
       testsFailed++;
-      return; // 若連接失敗，無法繼續其他測試
+      return;
     }
 
     // 測試 2: 建立測試用戶
@@ -100,14 +104,17 @@ async function testPocketBaseAuth() {
         password: TEST_USER.password,
         name: TEST_USER.name,
         firmName: TEST_USER.firmName,
+        points: 0,
         role: TEST_USER.role,
         status: TEST_USER.status,
         emailVerified: false,
+        phone: null,
+        address: null,
+        contactPerson: null,
       });
       log('success', `✓ 用戶已建立 (ID: ${newUser.id})`);
       testsPassed++;
 
-      // 保存用戶 ID 供後續測試使用
       const createdUserId = newUser.id;
 
       // 測試 3: 根據 taxId 查找用戶
@@ -146,10 +153,7 @@ async function testPocketBaseAuth() {
       // 測試 6: 驗證密碼
       log('test', '測試 6: 驗證用戶密碼...');
       if (userByTaxId) {
-        const isPasswordValid = await verifyPassword(
-          userByTaxId,
-          TEST_USER.password
-        );
+        const isPasswordValid = await verifyPassword(userByTaxId, TEST_USER.password);
         if (isPasswordValid) {
           log('success', '✓ 密碼驗證成功');
           testsPassed++;
@@ -160,10 +164,7 @@ async function testPocketBaseAuth() {
 
         // 測試 6b: 驗證錯誤密碼
         log('test', '測試 6b: 驗證錯誤密碼應被拒絕...');
-        const isInvalidPassword = await verifyPassword(
-          userByTaxId,
-          'WrongPassword123!'
-        );
+        const isInvalidPassword = await verifyPassword(userByTaxId, 'WrongPassword123!');
         if (!isInvalidPassword) {
           log('success', '✓ 錯誤密碼被正確拒絕');
           testsPassed++;
@@ -206,58 +207,26 @@ async function testPocketBaseAuth() {
           TEST_OAUTH.providerId
         );
         if (foundOAuthAccount) {
-          log(
-            'success',
-            `✓ 找到 OAuth 帳戶 (providerId: ${foundOAuthAccount.account.providerId})`
-          );
+          log('success', `✓ 找到 OAuth 帳戶 (providerId: ${foundOAuthAccount.account.providerId})`);
           testsPassed++;
         } else {
           log('error', '✗ 未能找到 OAuth 帳戶');
           testsFailed++;
         }
       } catch (error) {
-        log(
-          'error',
-          `✗ OAuth 帳戶建立失敗: ${(error as any)?.message}`
-        );
+        log('error', `✗ OAuth 帳戶建立失敗: ${(error as any)?.message}`);
         testsFailed += 2;
       }
     } catch (error) {
       log('error', `✗ 用戶建立失敗: ${(error as any)?.message}`);
-      log('info', '如果是 "duplicate" 錯誤，說明測試用戶已存在，可以跳過建立步驟');
       testsFailed++;
-
-      // 嘗試使用現有用戶進行後續測試
-      log('info', '嘗試使用現有測試用戶進行驗證...');
-      const existingUser = await findUserByTaxId(TEST_USER.taxId);
-      if (existingUser) {
-        log('success', '✓ 找到現有測試用戶');
-        testsPassed++;
-
-        const isPasswordValid = await verifyPassword(
-          existingUser,
-          TEST_USER.password
-        );
-        if (isPasswordValid) {
-          log('success', '✓ 密碼驗證成功');
-          testsPassed++;
-        } else {
-          log('error', '✗ 密碼驗證失敗');
-          testsFailed++;
-        }
-
-        if (isUserActive(existingUser)) {
-          log('success', '✓ 用戶狀態為 ACTIVE');
-          testsPassed++;
-        }
-      }
     }
   } catch (error) {
     log('error', `✗ 測試執行失敗: ${error}`);
     testsFailed++;
   }
 
-  // 總結結果
+  // 結果摘要
   console.log('\n' + '='.repeat(60));
   console.log('📊 測試結果摘要');
   console.log('='.repeat(60));
@@ -267,7 +236,7 @@ async function testPocketBaseAuth() {
 
   if (testsFailed === 0) {
     console.log(
-      `\n${colors.green}🎉 所有測試通過！可以進行 Phase 2.4${colors.reset}\n`
+      `\n${colors.green}🎉 所有測試通過！PostgreSQL + Prisma 認證層已就緒${colors.reset}\n`
     );
     process.exit(0);
   } else {
@@ -278,8 +247,7 @@ async function testPocketBaseAuth() {
   }
 }
 
-// 執行測試
-testPocketBaseAuth().catch((error) => {
+testPostgresAuth().catch((error) => {
   console.error('測試執行異常:', error);
   process.exit(1);
 });

@@ -14,7 +14,7 @@ import {
   createTempOAuth,
   verifyPassword,
   isUserActive,
-} from '@/lib/pocketbase-auth';
+} from '@/lib/prisma-auth';
 
 // 登入驗證 schema
 const credentialsSchema = z.object({
