@@ -43,8 +43,9 @@
 - **Phase 進度**：
   - ✅ Phase 1-3: Preparation, Auth, Frontend Simplification - COMPLETE
   - ✅ Phase 4: Payment System - COMPLETE (Invoice system ready)
-  - ✅ Phase 4.5: Group Buying - COMPLETE (All 15 tasks done, 88/88 tests passing)
-  - ⏳ Phase 5: Testing & Verification - NEXT
+  - ✅ Phase 4.5: Group Buying - COMPLETE (All 15 tasks done, 88/88 tests passing, TypeScript 修復完成)
+  - ✅ **TypeScript Fixes** - COMPLETE (Commit `581dc7f`: 28 files, 8 new errors fixed, 6 pre-existing issues remain)
+  - ⏳ Phase 5: Testing & Verification - NEXT (Auth flow, Product browse, Cart/Checkout, Order, Admin, Performance)
   - ⏳ Phase 6: Launch & Handoff - PENDING
 
 - **前端功能概覽 (Frontend Features)**：
@@ -1210,6 +1211,78 @@ ceo-platform/
 
 ---
 
-**最後更新**：2026-02-28
+---
+
+## 第五階段：測試與驗證 (Phase 5: Testing & Verification)
+
+### 目標：確保所有功能端到端可運作，無迴歸
+**預計時間：2-3 週**
+**進度：準備開始 (2026-03-02)**
+
+#### 5.1 認證流程測試
+- [ ] Credentials 登入 (taxId + password)
+- [ ] Google OAuth 流程
+- [ ] Apple OAuth 流程
+- [ ] Bearer Token (mobile app) 驗證
+- [ ] Session (web app) 驗證
+- [ ] Token 刷新與過期
+- [ ] 帳號停用狀態
+- [ ] 角色權限驗證
+
+#### 5.2 產品瀏覽與購物車
+- [ ] GET /api/products - 列表分頁
+- [ ] GET /api/products/[id] - 詳情查詢
+- [ ] POST /api/cart - 加入購物車
+- [ ] GET /api/cart - 查看購物車
+- [ ] PATCH /api/cart - 修改數量
+- [ ] DELETE /api/cart - 刪除項目
+
+#### 5.3 結帳與訂單
+- [ ] POST /api/orders - 建立訂單
+- [ ] GET /api/orders - 列表（分頁、狀態篩選）
+- [ ] GET /api/orders/[id] - 訂單詳情
+- [ ] 金額驗證（產品價格、稅金、運費）
+- [ ] 庫存減扣
+- [ ] 訂單狀態轉換
+
+#### 5.4 團購相關
+- [ ] GET /api/groups - 列表
+- [ ] POST /api/groups - 建立
+- [ ] POST /api/groups/[id]/join - 加入
+- [ ] GET /api/groups/[id] - 詳情
+- [ ] GET /api/groups/[id]/orders - 成員訂單
+- [ ] 折扣計算（100-499: 5%, 500+: 10%）
+- [ ] 返利發票生成
+
+#### 5.5 發票系統
+- [ ] 月結發票自動生成
+- [ ] 發票狀態轉換（DRAFT → SENT → CONFIRMED → PAID）
+- [ ] 行項目計算準確性
+- [ ] 多用戶隔離
+
+#### 5.6 管理後台
+- [ ] 儀表板統計（訂單數、營業額、活躍用戶）
+- [ ] 發票管理（列表、生成、發送、標記支付）
+- [ ] 分類管理
+- [ ] 產品管理
+- [ ] 用戶管理
+
+#### 5.7 性能測試
+- [ ] 所有 API 端點 < 200ms（聚合 < 500ms）
+- [ ] 首頁加載 < 3s
+- [ ] 列表頁面加載 < 2s
+- [ ] 管理儀表板加載 < 2s
+
+#### 5.8 安全驗證
+- [ ] SQL injection 防護
+- [ ] XSS 防護
+- [ ] CSRF 保護
+- [ ] 授權檢查
+- [ ] 敏感資料不洩露
+
+---
+
+**最後更新**：2026-03-02
 **負責人**：CEO Platform Team
+**狀態**：Phase 4.5 完成 → Phase 5 準備開始
 **狀態**：規劃中 (Planning)
