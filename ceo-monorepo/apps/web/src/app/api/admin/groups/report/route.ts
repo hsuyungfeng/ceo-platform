@@ -67,11 +67,22 @@ export async function GET(request: NextRequest) {
           note:           true,
           status:         true,
           createdAt:      true,
-          user: { select: { id: true, name: true, firmName: true, email: true } },
-          orderItems: {
+          user: { select: { id: true, name: true, email: true } },
+          items: {
             select: {
               quantity: true,
-              product:  { select: { id: true, name: true, unit: true, price: true } },
+              product:  {
+                select: {
+                  id: true,
+                  name: true,
+                  unit: true,
+                  priceTiers: {
+                    take: 1,
+                    orderBy: { minQty: 'asc' },
+                    select: { price: true },
+                  },
+                },
+              },
             },
           },
         },
@@ -91,31 +102,42 @@ export async function GET(request: NextRequest) {
           _count: { id: true },
         })
 
-        const leaderQty  = lo.orderItems.reduce((s, i) => s + i.quantity, 0)
+        const leaderQty  = lo.items.reduce((s, i) => s + i.quantity, 0)
         const memberQty  = memberAgg._sum.groupTotalItems ?? 0
         const totalQty   = leaderQty + memberQty
         const discount   = getGroupDiscount(totalQty)
         const isActive   = lo.groupDeadline ? lo.groupDeadline > now : false
 
-        // 計算已派發返利總額
-        const totalRebatePaid = Number(memberAgg._sum.groupRefund ?? 0) +
-          (lo.groupTotalItems ? Number(lo.orderItems.reduce((s, i) =>
-            s + i.quantity, 0)) * Number(lo.orderItems[0]?.product?.price ?? 0) * discount : 0)
+        // 計算已派發返利總額（成員返利 + 團長返利估算）
+        const memberRebatePaid = Number(memberAgg._sum.groupRefund ?? 0)
+        const leaderRebateEst  = leaderQty * Number(lo.items[0]?.product?.priceTiers[0]?.price ?? 0) * discount
+        const totalRebatePaid  = memberRebatePaid + leaderRebateEst
 
         // 檢查返利發票是否已發送
         const rebateInvoiceCount = await prisma.invoice.count({
           where: { groupId: lo.groupId!, isGroupInvoice: true },
         })
 
+        // 格式化商品（含價格）
+        const rawProduct = lo.items[0]?.product ?? null
+        const product = rawProduct
+          ? {
+              id:    rawProduct.id,
+              name:  rawProduct.name,
+              unit:  rawProduct.unit,
+              price: rawProduct.priceTiers[0]?.price ?? null,
+            }
+          : null
+
         return {
           groupId:         lo.groupId,
           leaderOrderId:   lo.id,
           title:           lo.note?.split('\n')[0] ?? '團購活動',
-          company:         lo.user.firmName ?? lo.user.name,
-          leaderEmail:     lo.user.email,
+          company:         lo.user?.name ?? '',
+          leaderEmail:     lo.user?.email ?? '',
           isActive,
           deadline:        lo.groupDeadline,
-          product:         lo.orderItems[0]?.product ?? null,
+          product,
           leaderQty,
           memberCount:     memberAgg._count.id,
           totalQty,
@@ -123,6 +145,7 @@ export async function GET(request: NextRequest) {
           discountPct:     `${(discount * 100).toFixed(0)}%`,
           qtyToNextTier:   getQtyToNextTier(totalQty),
           totalOrderAmount: Number(memberAgg._sum.totalAmount ?? 0),
+          totalRebatePaid,
           rebateInvoicesSent: rebateInvoiceCount,
           createdAt:       lo.createdAt,
         }

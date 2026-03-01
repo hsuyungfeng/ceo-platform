@@ -64,18 +64,25 @@ export async function GET(request: NextRequest) {
           note: true,
           createdAt: true,
           user: {
-            select: { id: true, name: true, firmName: true },
+            select: { id: true, name: true },
           },
-          orderItems: {
+          items: {
             select: {
               quantity: true,
               product: {
-                select: { id: true, name: true, unit: true, price: true },
+                select: {
+                  id: true,
+                  name: true,
+                  unit: true,
+                  priceTiers: {
+                    take: 1,
+                    orderBy: { minQty: 'asc' },
+                    select: { price: true },
+                  },
+                },
               },
             },
           },
-          // 聚合：計算已加入的成員訂單數量
-          _count: false,
         },
         orderBy: { groupDeadline: 'asc' },
         skip,
@@ -100,18 +107,28 @@ export async function GET(request: NextRequest) {
           _count: { id: true },
         })
 
-        const leaderQty   = g.orderItems.reduce((s, i) => s + i.quantity, 0)
+        const leaderQty   = g.items.reduce((s, i) => s + i.quantity, 0)
         const memberQty   = memberAgg._sum.groupTotalItems ?? 0
         const totalQty    = leaderQty + memberQty
         const currentDiscount = getGroupDiscount(totalQty)
+
+        const rawProduct = g.items[0]?.product ?? null
+        const product = rawProduct
+          ? {
+              id:    rawProduct.id,
+              name:  rawProduct.name,
+              unit:  rawProduct.unit,
+              price: rawProduct.priceTiers[0]?.price ?? null,
+            }
+          : null
 
         return {
           groupId:         g.groupId,
           leaderOrderId:   g.id,
           title:           g.note ?? '團購活動',
-          company:         g.user.firmName ?? g.user.name,
+          company:         g.user?.name ?? '',
           deadline:        g.groupDeadline,
-          product:         g.orderItems[0]?.product ?? null,
+          product,
           leaderQty,
           memberCount:     memberAgg._count.id,
           totalQty,
@@ -174,11 +191,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '截止時間必須在未來' }, { status: 400 })
     }
 
-    // 5. 建立團購（以團長訂單為代表）
+    // 5. 取得商品單價（使用最低起訂量的價格階梯）
+    const priceTier = await prisma.priceTier.findFirst({
+      where: { productId },
+      orderBy: { minQty: 'asc' },
+    })
+    if (!priceTier) {
+      return NextResponse.json({ error: '商品尚未設定價格，請聯繫管理員' }, { status: 422 })
+    }
+    const unitPrice = priceTier.price
+    const subtotal  = unitPrice.mul(quantity)
+
+    // 6. 建立團購（以團長訂單為代表）
     const groupId  = crypto.randomUUID()
     const orderNo  = `GRP-${Date.now()}-${groupId.slice(0, 6).toUpperCase()}`
-    const unitPrice = product.price
-    const subtotal  = unitPrice.mul(quantity)
 
     const order = await prisma.order.create({
       data: {
@@ -196,7 +222,7 @@ export async function POST(request: NextRequest) {
         groupDeadline: deadlineDate,
         groupTotalItems: quantity,
         groupRefund: 0,
-        orderItems: {
+        items: {
           create: {
             productId,
             quantity,
@@ -206,7 +232,7 @@ export async function POST(request: NextRequest) {
         },
       },
       include: {
-        orderItems: {
+        items: {
           include: { product: { select: { id: true, name: true, unit: true } } },
         },
       },
@@ -222,8 +248,9 @@ export async function POST(request: NextRequest) {
           orderNo: order.orderNo,
           title,
           deadline: deadlineDate,
-          product: order.orderItems[0]?.product,
+          product: order.items[0]?.product ?? null,
           leaderQty: quantity,
+          unitPrice: unitPrice.toNumber(),
           currentDiscount: getGroupDiscount(quantity),
           discountTiers: GROUP_DISCOUNT_TIERS,
         },

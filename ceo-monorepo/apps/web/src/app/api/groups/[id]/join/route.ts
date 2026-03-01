@@ -41,9 +41,20 @@ export async function POST(
         status: { in: ['PENDING', 'CONFIRMED'] },
       },
       include: {
-        orderItems: {
+        items: {
           include: {
-            product: { select: { id: true, name: true, unit: true, price: true } },
+            product: {
+              select: {
+                id: true,
+                name: true,
+                unit: true,
+                priceTiers: {
+                  take: 1,
+                  orderBy: { minQty: 'asc' },
+                  select: { price: true },
+                },
+              },
+            },
           },
         },
       },
@@ -94,13 +105,17 @@ export async function POST(
     const { quantity, note } = parsed.data
 
     // 7. 商品資訊（繼承團長訂單的商品）
-    const product = leaderOrder.orderItems[0]?.product
-    if (!product) {
+    const leaderProduct = leaderOrder.items[0]?.product
+    if (!leaderProduct) {
       return NextResponse.json({ error: '團購商品資訊不完整' }, { status: 500 })
     }
 
-    // 8. 計算金額（以目前未折扣的標準單價為準，折扣於結算時處理）
-    const unitPrice = product.price
+    // 8. 計算金額（以最低單價為準，折扣於結算時處理）
+    const priceTier = leaderProduct.priceTiers[0]
+    if (!priceTier) {
+      return NextResponse.json({ error: '商品尚未設定價格，請聯繫管理員' }, { status: 422 })
+    }
+    const unitPrice = priceTier.price
     const subtotal  = unitPrice.mul(quantity)
 
     // 9. 建立成員訂單
@@ -122,9 +137,9 @@ export async function POST(
         groupDeadline:  leaderOrder.groupDeadline,
         groupTotalItems: quantity,
         groupRefund:    0,
-        orderItems: {
+        items: {
           create: {
-            productId: product.id,
+            productId: leaderProduct.id,
             quantity,
             unitPrice,
             subtotal,
@@ -132,7 +147,7 @@ export async function POST(
         },
       },
       include: {
-        orderItems: {
+        items: {
           include: {
             product: { select: { id: true, name: true, unit: true } },
           },
@@ -146,7 +161,7 @@ export async function POST(
       _sum:  { groupTotalItems: true },
       _count: { id: true },
     })
-    const leaderQty   = leaderOrder.orderItems.reduce((s, i) => s + i.quantity, 0)
+    const leaderQty   = leaderOrder.items.reduce((s, i) => s + i.quantity, 0)
     const memberQty   = memberAgg._sum.groupTotalItems ?? 0
     const totalQty    = leaderQty + memberQty
     const newDiscount = getGroupDiscount(totalQty)
@@ -159,7 +174,7 @@ export async function POST(
           groupId,
           memberOrderId:  memberOrder.id,
           orderNo:        memberOrder.orderNo,
-          product:        { id: product.id, name: product.name, unit: product.unit },
+          product:        { id: leaderProduct.id, name: leaderProduct.name, unit: leaderProduct.unit },
           qty:            quantity,
           unitPrice:      unitPrice.toNumber(),
           subtotal:       subtotal.toNumber(),

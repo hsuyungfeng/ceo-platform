@@ -178,28 +178,31 @@ export async function PATCH(
       });
 
       // 記錄操作日誌
-      let logAction = 'INFO_UPDATE';
-      let oldValue = null;
-      let newValue = null;
-      let metadata = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const anyData = data as any;
+      let logAction: 'INFO_UPDATE' | 'STATUS_CHANGE' = 'INFO_UPDATE';
+      let oldValue: string | null = null;
+      let newValue: string | null = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let metadata: any = null;
 
       if (updateType === 'status') {
         logAction = 'STATUS_CHANGE';
         oldValue = user.status;
-        newValue = data.status;
-        metadata = { reason: data.reason };
+        newValue = anyData.status ?? null;
+        metadata = { reason: anyData.reason ?? null };
       } else {
         // 記錄變更的欄位
-        const changedFields: Record<string, { old: any; new: any }> = {};
-        Object.keys(data).forEach(key => {
-          if (user[key as keyof typeof user] !== data[key as keyof typeof data]) {
+        const changedFields: Record<string, { old: unknown; new: unknown }> = {};
+        Object.keys(anyData).forEach(key => {
+          if (user[key as keyof typeof user] !== anyData[key]) {
             changedFields[key] = {
               old: user[key as keyof typeof user],
-              new: data[key as keyof typeof data],
+              new: anyData[key],
             };
           }
         });
-        
+
         if (Object.keys(changedFields).length > 0) {
           metadata = { changedFields };
         }
@@ -212,8 +215,8 @@ export async function PATCH(
           action: logAction,
           oldValue,
           newValue,
-          reason: data.reason || null,
-          metadata,
+          reason: anyData.reason ?? null,
+          metadata: metadata ?? undefined,
         },
       });
 

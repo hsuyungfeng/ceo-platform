@@ -6,7 +6,7 @@
 
 import { logger } from '@/lib/logger';
 
-interface SecurityEventContext {
+export interface SecurityEventContext {
   userId?: string;
   sessionId?: string;
   ip?: string;
@@ -15,7 +15,7 @@ interface SecurityEventContext {
   [key: string]: any;
 }
 
-class SecurityEventTracker {
+export class SecurityEventTracker {
   /**
    * Track CSRF token validation failure
    */

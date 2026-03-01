@@ -75,7 +75,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         taxId: { label: '統一編號', type: 'text' },
         password: { label: '密碼', type: 'password' },
       },
-      async authorize(credentials) {
+      async authorize(credentials, _request) {
         try {
           // 驗證輸入資料
           const validatedCredentials = credentialsSchema.safeParse(credentials);
@@ -142,9 +142,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // 已有連結帳戶，更新使用者資訊
             const { account: oauthAccount, user: linkedUser } = existingOAuthResult;
             user.id = linkedUser.id;
-            user.name = linkedUser.name;
+            user.name = linkedUser.name ?? '';
             user.email = linkedUser.email;
-            user.taxId = linkedUser.taxId;
+            user.taxId = linkedUser.taxId ?? null;
             user.role = linkedUser.role;
             user.status = linkedUser.status;
             user.emailVerified = linkedUser.emailVerified;
@@ -153,8 +153,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             await updateOAuthAccount(oauthAccount.id, {
               name,
               picture,
-              accessToken: account.access_token,
-              refreshToken: account.refresh_token,
+              accessToken: account.access_token ?? '',
+              refreshToken: account.refresh_token ?? undefined,
               expiresAt: account.expires_at ? new Date(account.expires_at * 1000).toISOString() : undefined,
             });
 
@@ -170,15 +170,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               email,
               name,
               picture,
-              accessToken: account.access_token,
-              refreshToken: account.refresh_token,
+              accessToken: account.access_token ?? '',
+              refreshToken: account.refresh_token ?? undefined,
               expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : undefined,
             });
 
             user.id = existingUser.id;
-            user.name = existingUser.name;
+            user.name = existingUser.name ?? '';
             user.email = existingUser.email;
-            user.taxId = existingUser.taxId;
+            user.taxId = existingUser.taxId ?? null;
             user.role = existingUser.role;
             user.status = existingUser.status;
             user.emailVerified = existingUser.emailVerified;
@@ -194,8 +194,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             email,
             name,
             picture,
-            accessToken: account.access_token,
-            refreshToken: account.refresh_token,
+            accessToken: account.access_token ?? '',
+            refreshToken: account.refresh_token ?? undefined,
             expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : undefined,
           };
 
@@ -229,9 +229,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // 已有連結帳戶，更新使用者資訊
             const { account: oauthAccount, user: linkedUser } = existingOAuthResult;
             user.id = linkedUser.id;
-            user.name = linkedUser.name;
+            user.name = linkedUser.name ?? '';
             user.email = linkedUser.email;
-            user.taxId = linkedUser.taxId;
+            user.taxId = linkedUser.taxId ?? null;
             user.role = linkedUser.role;
             user.status = linkedUser.status;
             user.emailVerified = linkedUser.emailVerified;
@@ -239,8 +239,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // 更新 OAuth 帳戶資訊
             await updateOAuthAccount(oauthAccount.id, {
               name,
-              accessToken: account.access_token,
-              refreshToken: account.refresh_token,
+              accessToken: account.access_token ?? '',
+              refreshToken: account.refresh_token ?? undefined,
               expiresAt: account.expires_at ? new Date(account.expires_at * 1000).toISOString() : undefined,
             });
 
@@ -255,15 +255,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             await createOAuthAccount(existingUser.id, 'apple', providerId, {
               email,
               name,
-              accessToken: account.access_token,
-              refreshToken: account.refresh_token,
+              accessToken: account.access_token ?? '',
+              refreshToken: account.refresh_token ?? undefined,
               expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : undefined,
             });
 
             user.id = existingUser.id;
-            user.name = existingUser.name;
+            user.name = existingUser.name ?? '';
             user.email = existingUser.email;
-            user.taxId = existingUser.taxId;
+            user.taxId = existingUser.taxId ?? null;
             user.role = existingUser.role;
             user.status = existingUser.status;
             user.emailVerified = existingUser.emailVerified;
@@ -278,8 +278,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             providerId,
             email,
             name,
-            accessToken: account.access_token,
-            refreshToken: account.refresh_token,
+            accessToken: account.access_token ?? '',
+            refreshToken: account.refresh_token ?? undefined,
             expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : undefined,
           };
 
@@ -309,7 +309,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.taxId = user.taxId;
         token.role = user.role;
         token.status = user.status;
-        token.emailVerified = user.emailVerified;
+        token.emailVerified = user.emailVerified === true;
       }
       return token;
     },
@@ -319,7 +319,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.taxId = token.taxId as string;
         session.user.role = token.role as string;
         session.user.status = token.status as string;
-        session.user.emailVerified = token.emailVerified as boolean;
+        // NextAuth v5 uses Date|null for emailVerified; we store boolean in JWT
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(session.user as any).emailVerified = token.emailVerified as boolean;
       }
       return session;
     },

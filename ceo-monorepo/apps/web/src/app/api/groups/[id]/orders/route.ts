@@ -20,8 +20,9 @@ export async function GET(
     if (!authData) {
       return NextResponse.json({ error: '未授權，請先登入' }, { status: 401 })
     }
-    const { userId, role } = authData
-    const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN'
+    const { userId } = authData
+    const userRole = authData.user?.role
+    const isAdmin = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN'
 
     // 2. 取得 groupId
     const { id: groupId } = await params
@@ -38,13 +39,24 @@ export async function GET(
         status:         true,
         groupStatus:    true,
         note:           true,
-        orderItems: {
+        items: {
           select: {
             quantity: true,
-            product:  { select: { id: true, name: true, unit: true, price: true } },
+            product:  {
+              select: {
+                id: true,
+                name: true,
+                unit: true,
+                priceTiers: {
+                  take: 1,
+                  orderBy: { minQty: 'asc' },
+                  select: { price: true },
+                },
+              },
+            },
           },
         },
-        user: { select: { id: true, name: true, firmName: true } },
+        user: { select: { id: true, name: true } },
       },
     })
 
@@ -64,22 +76,21 @@ export async function GET(
       select: {
         id:             true,
         orderNo:        true,
+        userId:         true,
         groupTotalItems: true,
         totalAmount:    true,
         groupRefund:    true,
         status:         true,
         createdAt:      true,
         user: {
-          select: isAdmin
-            ? { id: true, name: true, firmName: true, email: true }
-            : { id: true, name: true, firmName: true },
+          select: { id: true, name: true, email: true },
         },
       },
       orderBy: { createdAt: 'asc' },
     })
 
     // 5. 統計
-    const leaderQty  = leaderOrder.orderItems.reduce((s, i) => s + i.quantity, 0)
+    const leaderQty  = leaderOrder.items.reduce((s, i) => s + i.quantity, 0)
     const memberQty  = memberOrders.reduce((s, o) => s + (o.groupTotalItems ?? 0), 0)
     const totalQty   = leaderQty + memberQty
     const discount   = getGroupDiscount(totalQty)
@@ -88,10 +99,23 @@ export async function GET(
       : false
 
     // 6. 是否包含當前用戶的訂單
-    const myOrder = memberOrders.find(o => o.user.id === userId)
-      ?? (leaderOrder.userId === userId
-          ? { role: 'leader', orderId: leaderOrder.id, qty: leaderQty }
-          : null)
+    const myMemberOrder = memberOrders.find(o => o.userId === userId)
+    const myRole = leaderOrder.userId === userId
+      ? 'leader'
+      : myMemberOrder
+        ? 'member'
+        : 'none'
+
+    // 格式化商品（含價格）
+    const rawProduct = leaderOrder.items[0]?.product ?? null
+    const product = rawProduct
+      ? {
+          id:    rawProduct.id,
+          name:  rawProduct.name,
+          unit:  rawProduct.unit,
+          price: rawProduct.priceTiers[0]?.price ?? null,
+        }
+      : null
 
     return NextResponse.json({
       success: true,
@@ -100,13 +124,13 @@ export async function GET(
         isActive,
         deadline: leaderOrder.groupDeadline,
         title:    leaderOrder.note?.split('\n')[0] ?? '團購活動',
-        product:  leaderOrder.orderItems[0]?.product ?? null,
+        product,
 
         // 團長訂單摘要
         leader: {
           orderId:  leaderOrder.id,
           orderNo:  leaderOrder.orderNo,
-          company:  leaderOrder.user.firmName ?? leaderOrder.user.name,
+          company:  leaderOrder.user?.name ?? '',
           qty:      leaderQty,
           status:   leaderOrder.status,
         },
@@ -115,21 +139,18 @@ export async function GET(
         members: memberOrders.map(o => ({
           orderId: o.id,
           orderNo: o.orderNo,
-          company: o.user.firmName ?? o.user.name,
+          company: o.user?.name ?? '',
           qty:     o.groupTotalItems ?? 0,
           amount:  o.totalAmount,
           refund:  o.groupRefund,
           status:  o.status,
           joinedAt: o.createdAt,
-          ...(isAdmin && { email: (o.user as { email?: string }).email }),
+          // 管理員才顯示 email
+          ...(isAdmin && { email: o.user?.email }),
         })),
 
         // 當前用戶在此團購的角色
-        myRole: leaderOrder.userId === userId
-          ? 'leader'
-          : myOrder && 'orderId' in myOrder
-            ? 'member'
-            : 'none',
+        myRole,
 
         // 統計
         stats: {

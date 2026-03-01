@@ -169,6 +169,7 @@ export async function POST(request: NextRequest) {
         name: name || '',
         identityToken: identityToken || '',
         authorizationCode: authorizationCode || '',
+        accessToken: '',  // Apple Sign-In uses identityToken instead
         data: JSON.stringify(tempOAuthData),
         expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
       },

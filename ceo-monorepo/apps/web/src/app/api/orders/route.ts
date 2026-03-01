@@ -205,8 +205,8 @@ export async function POST(request: NextRequest) {
 
     // 計算訂單總金額和明細
     let totalAmount = 0;
-    const orderItems = [];
-    const productUpdates = [];
+    const orderItems: Array<{ productId: string; quantity: number; unitPrice: number; subtotal: number }> = [];
+    const productUpdates: Array<{ productId: string; soldIncrement: number }> = [];
 
     for (const cartItem of cartItems) {
       // 計算商品單價（根據數量）
@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
         .sort((a, b) => b.minQty - a.minQty)
         .find(tier => tier.minQty <= cartItem.quantity);
       
-      const unitPrice = applicableTier?.price || cartItem.product.priceTiers[0].price;
+      const unitPrice = Number(applicableTier?.price ?? cartItem.product.priceTiers[0].price);
       const subtotal = unitPrice * cartItem.quantity;
       totalAmount += subtotal;
 
@@ -228,8 +228,8 @@ export async function POST(request: NextRequest) {
 
       // 記錄需要更新的商品銷售量
       productUpdates.push({
-        id: cartItem.productId,
-        quantity: cartItem.quantity,
+        productId: cartItem.productId,
+        soldIncrement: cartItem.quantity,
       });
     }
 
@@ -283,10 +283,10 @@ export async function POST(request: NextRequest) {
       // 更新商品銷售量
       for (const productUpdate of productUpdates) {
         await tx.product.update({
-          where: { id: productUpdate.id },
+          where: { id: productUpdate.productId },
           data: {
             totalSold: {
-              increment: productUpdate.quantity,
+              increment: productUpdate.soldIncrement,
             },
           },
         });

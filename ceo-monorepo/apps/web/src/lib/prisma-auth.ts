@@ -48,13 +48,21 @@ export type PrismaUser = {
   phone: string | null;
   address: string | null;
   contactPerson: string | null;
-  firmName?: string | null;
   points: number;
   role: UserRole;
   status: UserStatus;
   emailVerified: boolean;
+  lastLoginAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  // Optional included relations
+  member?: {
+    id: string;
+    userId: string;
+    points?: number;
+    totalSpent?: number;
+    lastPurchaseAt?: Date | null;
+  } | null;
 };
 
 /**
@@ -130,7 +138,7 @@ export function isUserActive(user: PrismaUser): boolean {
  * Create a new user
  */
 export async function createUser(
-  userData: Omit<PrismaUser, 'id' | 'createdAt' | 'updatedAt'>
+  userData: Omit<PrismaUser, 'id' | 'createdAt' | 'updatedAt' | 'member' | 'lastLoginAt'>
 ): Promise<PrismaUser> {
   try {
     // Hash password if provided
@@ -139,9 +147,10 @@ export async function createUser(
       hashedPassword = await bcrypt.hash(userData.password, 12);
     }
 
+    const { ...userFields } = userData;
     const user = await getPrisma().user.create({
       data: {
-        ...userData,
+        ...userFields,
         password: hashedPassword,
       },
     });

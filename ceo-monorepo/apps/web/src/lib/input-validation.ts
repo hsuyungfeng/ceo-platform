@@ -154,8 +154,8 @@ export function validateAndSanitize<T>(
     return { success: true, data: result };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const message = (error.errors && error.errors.length > 0 && error.errors[0]?.message) || '驗證失敗';
-      logger.warn({ errors: error.errors }, '輸入驗證失敗');
+      const message = (error.issues && error.issues.length > 0 && error.issues[0]?.message) || '驗證失敗';
+      logger.warn({ errors: error.issues }, '輸入驗證失敗');
       return { success: false, error: message };
     }
 

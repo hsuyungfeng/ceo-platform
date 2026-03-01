@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(tokenPair);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      logger.warn({ errors: error.errors }, '刷新請求驗證失敗');
+      logger.warn({ errors: error.issues }, '刷新請求驗證失敗');
       return NextResponse.json(
         { error: '無效的請求' },
         { status: 400 }

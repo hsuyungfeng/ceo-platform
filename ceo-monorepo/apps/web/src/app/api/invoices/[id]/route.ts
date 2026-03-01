@@ -27,7 +27,6 @@ export async function GET(
             id: true,
             name: true,
             email: true,
-            firmName: true
           }
         }
       }
@@ -41,7 +40,7 @@ export async function GET(
     }
 
     // Verify ownership: user can only access own invoices unless they're admin
-    if (invoice.userId !== authData.userId && authData.role !== 'ADMIN') {
+    if (invoice.userId !== authData.userId && authData.user?.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }

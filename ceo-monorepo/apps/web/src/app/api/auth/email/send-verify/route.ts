@@ -77,9 +77,9 @@ export async function POST(request: NextRequest) {
 
     // 發送郵件
     if (purpose === 'VERIFY_EMAIL' && user) {
-      await emailService.sendVerificationEmail(email, token, user.name);
+      await emailService.sendVerificationEmail(email, token, user.name ?? undefined);
     } else if (purpose === 'RESET_PASSWORD') {
-      await emailService.sendResetPasswordEmail(email, token, user?.name);
+      await emailService.sendResetPasswordEmail(email, token, user?.name ?? undefined);
     }
 
     logger.info(

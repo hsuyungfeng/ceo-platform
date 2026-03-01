@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     });
 
     // 發送重設密碼郵件
-    await emailService.sendResetPasswordEmail(email, token, user.name);
+    await emailService.sendResetPasswordEmail(email, token, user.name ?? undefined);
 
     return NextResponse.json({
       message: '重設密碼連結已發送到您的郵件',

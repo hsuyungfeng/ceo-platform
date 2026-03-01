@@ -92,7 +92,7 @@ export async function POST(
         totalAmount: true,
         status:     true,
         sentAt:     true,
-        user: { select: { name: true, firmName: true, email: true } },
+        user: { select: { name: true,  email: true } },
       },
       orderBy: { createdAt: 'asc' },
     })
@@ -112,7 +112,7 @@ export async function POST(
         invoices: invoices.map(inv => ({
           invoiceId:  inv.id,
           invoiceNo:  inv.invoiceNo,
-          company:    (inv.user as { firmName?: string }).firmName ?? (inv.user as { name?: string }).name,
+          company:    inv.user?.name ?? '',
           email:      (inv.user as { email?: string }).email,
           rebateAmt:  Number(inv.totalAmount),
           status:     inv.status,

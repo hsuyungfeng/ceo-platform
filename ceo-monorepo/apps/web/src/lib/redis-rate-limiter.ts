@@ -6,21 +6,22 @@
 import Redis from 'ioredis';
 
 interface RateLimitConfig {
-  windowMs: number; // Time window in milliseconds
-  maxRequests: number; // Max requests per window
+  windowMs?: number; // Time window in milliseconds
+  maxRequests?: number; // Max requests per window
   keyPrefix?: string; // Redis key prefix (default: "ratelimit:")
 }
 
 export class RedisRateLimiter {
-  private redis: Redis | null = null;
-  private config: RateLimitConfig;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private redis: any = null;
+  private config: Required<RateLimitConfig>;
   private isConnected = false;
 
   constructor(config: RateLimitConfig = {}) {
     this.config = {
-      windowMs: config.windowMs || 15 * 60 * 1000, // Default: 15 minutes
-      maxRequests: config.maxRequests || 5, // Default: 5 requests
-      keyPrefix: config.keyPrefix || 'ratelimit:',
+      windowMs: config.windowMs ?? 15 * 60 * 1000, // Default: 15 minutes
+      maxRequests: config.maxRequests ?? 5, // Default: 5 requests
+      keyPrefix: config.keyPrefix ?? 'ratelimit:',
     };
 
     // Initialize Redis connection if credentials are available
@@ -33,7 +34,7 @@ export class RedisRateLimiter {
     try {
       this.redis = new Redis(process.env.REDIS_URL!);
 
-      this.redis.on('error', (err) => {
+      this.redis.on('error', (err: unknown) => {
         console.error('Redis connection error:', err);
         this.isConnected = false;
       });

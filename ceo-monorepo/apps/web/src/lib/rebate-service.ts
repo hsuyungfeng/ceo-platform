@@ -49,7 +49,7 @@ export async function calcGroupRebates(groupId: string): Promise<GroupFinalizeSu
       totalAmount:    true,
       groupTotalItems: true,
       isGroupLeader:  true,
-      user: { select: { name: true, firmName: true } },
+      user: { select: { name: true } },
     },
   })
 
@@ -69,7 +69,7 @@ export async function calcGroupRebates(groupId: string): Promise<GroupFinalizeSu
       orderId:      o.id,
       orderNo:      o.orderNo,
       userId:       o.userId,
-      company:      o.user.firmName ?? o.user.name ?? '未知',
+      company:      o.user?.name ?? '未知',
       originalAmt,
       qty:          o.groupTotalItems ?? 0,
       rebateAmt,

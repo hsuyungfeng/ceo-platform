@@ -18,7 +18,7 @@ export const authOptions = {
         taxId: { label: '統一編號', type: 'text' },
         password: { label: '密碼', type: 'password' },
       },
-      async authorize(credentials) {
+      async authorize(credentials, _request) {
         try {
           // 驗證輸入資料
           const validatedCredentials = credentialsSchema.safeParse(credentials);
@@ -78,7 +78,8 @@ export const authOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30天
   },
   callbacks: {
-    async jwt({ token, user }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async jwt({ token, user }: { token: any; user?: any }) {
       if (user) {
         token.id = user.id;
         token.taxId = user.taxId;
@@ -88,13 +89,14 @@ export const authOptions = {
       }
       return token;
     },
-    async session({ session, token }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async session({ session, token }: { session: any; token: any }) {
       if (session.user && token) {
-        session.user.id = token.id as string;
-        session.user.taxId = token.taxId as string;
-        session.user.role = token.role as string;
-        session.user.status = token.status as string;
-        session.user.emailVerified = token.emailVerified as boolean;
+        session.user.id = token.id;
+        session.user.taxId = token.taxId;
+        session.user.role = token.role;
+        session.user.status = token.status;
+        session.user.emailVerified = token.emailVerified;
       }
       return session;
     },

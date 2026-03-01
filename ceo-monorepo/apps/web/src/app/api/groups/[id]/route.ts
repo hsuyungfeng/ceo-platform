@@ -22,10 +22,21 @@ export async function GET(
     const leaderOrder = await prisma.order.findFirst({
       where: { groupId, isGroupLeader: true },
       include: {
-        user: { select: { id: true, name: true, firmName: true } },
-        orderItems: {
+        user: { select: { id: true, name: true } },
+        items: {
           include: {
-            product: { select: { id: true, name: true, unit: true, price: true } },
+            product: {
+              select: {
+                id: true,
+                name: true,
+                unit: true,
+                priceTiers: {
+                  take: 1,
+                  orderBy: { minQty: 'asc' },
+                  select: { price: true },
+                },
+              },
+            },
           },
         },
       },
@@ -45,13 +56,13 @@ export async function GET(
         totalAmount: true,
         groupRefund: true,
         createdAt: true,
-        user: { select: { id: true, name: true, firmName: true } },
+        user: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'asc' },
     })
 
     // 計算統計數據
-    const leaderQty  = leaderOrder.orderItems.reduce((s, i) => s + i.quantity, 0)
+    const leaderQty  = leaderOrder.items.reduce((s, i) => s + i.quantity, 0)
     const memberQty  = memberOrders.reduce((s, o) => s + (o.groupTotalItems ?? 0), 0)
     const totalQty   = leaderQty + memberQty
     const discount   = getGroupDiscount(totalQty)
@@ -62,6 +73,17 @@ export async function GET(
     // 計算下一階梯需要多少件數
     const nextTier = GROUP_DISCOUNT_TIERS.find(t => t.minQty > totalQty)
     const qtyToNextTier = nextTier ? nextTier.minQty - totalQty : null
+
+    // 格式化商品（含價格）
+    const rawProduct = leaderOrder.items[0]?.product ?? null
+    const product = rawProduct
+      ? {
+          id:    rawProduct.id,
+          name:  rawProduct.name,
+          unit:  rawProduct.unit,
+          price: rawProduct.priceTiers[0]?.price ?? null,
+        }
+      : null
 
     return NextResponse.json({
       success: true,
@@ -75,18 +97,18 @@ export async function GET(
         leader: {
           orderId:  leaderOrder.id,
           orderNo:  leaderOrder.orderNo,
-          company:  leaderOrder.user.firmName ?? leaderOrder.user.name,
+          company:  leaderOrder.user?.name ?? '',
           qty:      leaderQty,
         },
 
         // 商品資訊
-        product: leaderOrder.orderItems[0]?.product ?? null,
+        product,
 
         // 成員列表（僅公開公司名稱與件數）
         members: memberOrders.map(o => ({
           orderId: o.id,
           orderNo: o.orderNo,
-          company: o.user.firmName ?? o.user.name,
+          company: o.user?.name ?? '',
           qty:     o.groupTotalItems ?? 0,
           joinedAt: o.createdAt,
         })),

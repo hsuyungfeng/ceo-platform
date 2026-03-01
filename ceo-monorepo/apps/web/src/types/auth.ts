@@ -5,29 +5,29 @@ declare module 'next-auth' {
   interface Session {
     user: {
       id: string;
-      taxId: string;
-      role: string;
-      status: string;
-      emailVerified: boolean;
+      taxId?: string | null;
+      role?: string;
+      status?: string;
+      emailVerified?: boolean;
     } & DefaultSession['user'];
   }
 
   interface User {
     id: string;
-    taxId: string;
-    role: string;
-    status: string;
-    emailVerified: boolean;
+    taxId?: string | null;
+    role?: string;
+    status?: string;
+    emailVerified?: boolean;
   }
 }
 
 declare module 'next-auth/jwt' {
   interface JWT {
-    id: string;
-    taxId: string;
-    role: string;
-    status: string;
-    emailVerified: boolean;
+    id?: string;
+    taxId?: string | null;
+    role?: string;
+    status?: string;
+    emailVerified?: boolean;
   }
 }
 

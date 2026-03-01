@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { csrfProtection } from '@/lib/csrf-protection';
 import { logger } from '@/lib/logger';
-import { securityEventTracker, type SecurityEventContext } from '@/lib/security-event-tracker';
+import { securityEventTracker, type SecurityEventContext, SecurityEventTracker } from '@/lib/security-event-tracker';
 
 /**
  * Validate CSRF token with security event tracking
@@ -40,7 +40,7 @@ export async function validateCSRFTokenWithMonitoring(
   // Get security context
   const context: SecurityEventContext = getContext
     ? getContext(request)
-    : securityEventTracker.constructor.getContextFromRequest(request);
+    : (securityEventTracker.constructor as typeof SecurityEventTracker).getContextFromRequest(request);
 
   // Get CSRF token from header or body
   let token = request.headers.get('x-csrf-token');
