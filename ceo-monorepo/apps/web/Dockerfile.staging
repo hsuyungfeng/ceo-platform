@@ -1,0 +1,34 @@
+# Simplified Dockerfile for Local Staging
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm@latest
+
+# Copy lock files from root (ceo-platform/)
+COPY package.json pnpm-lock.yaml ./
+# Copy workspace config if it exists in ceo-monorepo
+COPY ceo-monorepo/pnpm-workspace.yaml ./pnpm-workspace.yaml
+
+# Install dependencies (allow lock file updates for staging)
+RUN pnpm install --no-frozen-lockfile
+
+# Copy entire monorepo
+COPY ../../../. .
+
+# Generate Prisma client
+RUN pnpm db:generate
+
+# Build the web app
+RUN cd ceo-monorepo/apps/web && pnpm build
+
+# Expose port
+EXPOSE 3000
+
+# Set environment
+ENV NODE_ENV=staging
+
+# Start the app
+WORKDIR /app/ceo-monorepo/apps/web
+CMD ["pnpm", "start"]

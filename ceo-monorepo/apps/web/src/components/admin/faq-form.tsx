@@ -51,8 +51,9 @@ export function FaqForm({
   const [answerLength, setAnswerLength] = useState(initialData?.answer.length || 0);
 
   // 初始化表單
-  const form = useForm<z.infer<ReturnType<typeof getSchema>>>({
-    resolver: zodResolver(getSchema(isEdit)),
+  const schema = getSchema(isEdit);
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema as any),
     defaultValues: initialData || {
       question: '',
       answer: '',

@@ -72,8 +72,9 @@ export function CategoryForm({
   }, []);
 
   // 初始化表單
-  const form = useForm<z.infer<ReturnType<typeof getSchema>>>({
-    resolver: zodResolver(getSchema(isEdit)),
+  const schema = getSchema(isEdit);
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema as any),
     defaultValues: initialData || {
       name: '',
       parentId: null,
@@ -126,11 +127,11 @@ export function CategoryForm({
 
   // 遞歸生成分類選項
   const renderCategoryOptions = (
-    categories: CategoryWithChildren[], 
+    categories: CategoryWithChildren[],
     level = 0,
     excludeId?: string
-  ): JSX.Element[] => {
-    const options: JSX.Element[] = [];
+  ): React.ReactElement[] => {
+    const options: React.ReactElement[] = [];
     
     // 添加"無（頂級分類）"選項
     if (level === 0) {

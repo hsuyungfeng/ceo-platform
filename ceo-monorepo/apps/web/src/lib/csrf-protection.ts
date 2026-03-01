@@ -16,7 +16,7 @@ export class CSRFProtection {
   private tokens: Map<string, CSRFTokenData> = new Map();
   private tokenLength: number = 32;
   private maxAge: number = 3600; // 1 hour
-  private cleanupInterval: NodeJS.Timer | null = null;
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(options?: { tokenLength?: number; maxAge?: number }) {
     this.tokenLength = options?.tokenLength || 32;

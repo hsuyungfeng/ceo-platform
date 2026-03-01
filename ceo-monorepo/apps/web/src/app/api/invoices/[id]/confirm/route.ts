@@ -5,9 +5,11 @@ import { prisma } from '@/lib/prisma'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+
     // Authenticate user using unified auth helper (supports Bearer Token and Session Cookies)
     const authData = await getAuthData(request)
 
@@ -20,7 +22,7 @@ export async function PATCH(
 
     // Check if invoice exists and get userId for authorization check
     const invoice = await prisma.invoice.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { userId: true, status: true }
     })
 
@@ -40,7 +42,7 @@ export async function PATCH(
     }
 
     // Confirm the invoice (marks as CONFIRMED and sets timestamp)
-    const updated = await confirmInvoice(params.id)
+    const updated = await confirmInvoice(id)
 
     return NextResponse.json({
       success: true,

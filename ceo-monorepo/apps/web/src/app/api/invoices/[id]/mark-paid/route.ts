@@ -4,16 +4,18 @@ import { markInvoicePaid } from '@/lib/invoice-service'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+
     // 驗證管理員權限
     const adminCheck = await requireAdmin()
     if ('error' in adminCheck) {
       return adminCheck.error
     }
 
-    const invoiceId = params.id
+    const invoiceId = id
 
     if (!invoiceId) {
       return NextResponse.json(

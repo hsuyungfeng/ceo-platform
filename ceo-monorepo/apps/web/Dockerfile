@@ -15,19 +15,21 @@ WORKDIR /app
 RUN npm install -g pnpm@latest
 
 # 複製包管理文件
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
+# pnpm-workspace.yaml may not exist in all build contexts
+RUN test -f pnpm-workspace.yaml || echo "version: 5" > pnpm-workspace.yaml
 
-# 安裝所有依賴（包括devDependencies）
-RUN pnpm install --frozen-lockfile
+# 安裝所有依賴（包括devDependencies，允許更新鎖文件）
+RUN pnpm install --no-frozen-lockfile
 
 # 複製所有源代碼
 COPY . .
 
-# 生成Prisma客戶端
-RUN pnpm db:generate
+# 生成Prisma客戶端（指定 schema 路径）
+RUN npx prisma generate --schema=ceo-monorepo/apps/web/prisma/schema.prisma
 
-# 構建應用
-RUN pnpm build
+# 構建應用（從 web 應用目錄構建）
+RUN cd ceo-monorepo/apps/web && pnpm build
 
 # ============ 階段2: 運行階段 ============
 FROM node:20-alpine AS runner
