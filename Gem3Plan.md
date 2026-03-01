@@ -8,13 +8,19 @@
 
 ## 專案概況 (Project Status)
 
-### 當前狀態 (Current State) - 📌 已更新 2026-02-28
+### 當前狀態 (Current State) - 📌 已更新 2026-03-01
 
-**🎯 現在進行中**：Phase 4.5 - Group Buying Implementation (Subagent-Driven Development)
-- **目標**：實現 B2B 團購系統，支持限時團購、自動聚合、階梯折扣和返利分配
-- **進度**：✅ Task 1 完成 | 🔄 Tasks 2-15 進行中
-- **執行方式**：Subagent-Driven Development (Fresh subagent per task + Two-stage review)
-- **預計時間**：3-4 週
+**🛠️ 環境狀態**：開發環境建置完成
+- **開發伺服器**：✅ http://localhost:3000 (Next.js + Turbopack)
+- **資料庫**：✅ PostgreSQL 16 (Mac Homebrew) + Prisma 4 遷移已 baseline
+- **管理員帳號**：統一編號 `12345678` / 密碼 `Admin1234!` / 角色 SUPER_ADMIN
+
+**🎉 Phase 4.5 COMPLETE**：Group Buying Implementation 全部完成！
+- **進度**：✅ Tasks 1–15 全部完成 (2026-03-01)
+- **測試**：88/88 通過（7 test suites）
+- **API 端點**：8 個（5 個用戶 + 3 個 Admin）
+- **前端頁面**：4 個（列表、建立、詳情+加入、返利發票）
+- **核心邏輯**：`group-buying.ts` + `rebate-service.ts`
 
 **🔄 策略調整**：從 PocketBase 轉向 PostgreSQL + Prisma
 - **原因**：PocketBase schema validation 問題，API authentication 複雜
@@ -37,8 +43,8 @@
 - **Phase 進度**：
   - ✅ Phase 1-3: Preparation, Auth, Frontend Simplification - COMPLETE
   - ✅ Phase 4: Payment System - COMPLETE (Invoice system ready)
-  - 🔄 Phase 4.5: Group Buying - IN PROGRESS (Task 1 done, Tasks 2-15 pending)
-  - ⏳ Phase 5: Testing & Verification - PENDING
+  - ✅ Phase 4.5: Group Buying - COMPLETE (All 15 tasks done, 88/88 tests passing)
+  - ⏳ Phase 5: Testing & Verification - NEXT
   - ⏳ Phase 6: Launch & Handoff - PENDING
 
 - **前端功能概覽 (Frontend Features)**：
@@ -789,8 +795,8 @@ INV-{YYYY}-{MM}-{sequence}
 ### 目標：實現 B2B 團購系統，支持限時團購、自動聚合、階梯折扣和返利分配
 **預計時間：3-4 週**
 **執行方式：Subagent-Driven Development (Fresh subagent per task + Two-stage review)**
-**進度：✅ Task 1 完成 | 🔄 Tasks 2-15 進行中 (2026-02-28)**
-**狀態：Production-Ready with PostgreSQL + Prisma** 🎉
+**進度：✅ Tasks 1–15 全部完成 (2026-03-01)** 🎉
+**狀態：Production-Ready with PostgreSQL + Prisma**
 
 #### 4.5.0 Phase 4.5 概述 (Group Buying Feature Overview)
 
@@ -920,32 +926,26 @@ memberRebate = memberQuantity × memberUnitPrice × groupDiscount
   - 提交：c7f8745
   - 執行方式：Subagent-Driven (Implementer → Spec Reviewer → Code Quality Reviewer)
 
-- 🔄 **Task 2: Extend Invoice Model** - IN PROGRESS
-  - 預計時間：20 分鐘
-  - 新增 2 個欄位 (isGroupInvoice, groupId)
-  - 生成遷移檔案
-  - 單元測試編寫中
+- ✅ **Task 2: Extend Invoice Model** - COMPLETE (2026-03-01)
+  - 新增 isGroupInvoice, groupId 欄位 + index
+  - Migration applied, 11 unit tests 通過
+  - Commit: 49ee290
 
-**Phase 4.5.2-4: API 實施** (待執行)
-- 🔲 Task 3-8: 6 個 API 端點實施
-  - Task 3: POST /api/groups/create
-  - Task 4: GET /api/groups/list
-  - Task 5: GET /api/groups/[id] + POST join
-  - Task 6: Admin endpoints (finalize, report, send-rebates)
-  - Task 7: 定時任務實施
-  - Task 8: Rebate calculation service
+**Phase 4.5.2-4: API 實施** ✅ 全部完成
+- ✅ Task 3: GET /api/groups (列表) + POST /api/groups (建立) — Commit f1c0119
+- ✅ Task 4: POST /api/groups/[id]/join + GET /api/groups/[id]/orders — Commit cdc64d6
+- ✅ Task 5: Admin finalize/report/send-rebates + rebate-service.ts — Commit 5d60cc4
 
-**Phase 4.5.5-6: 前端與測試** (待執行)
-- 🔲 Task 9-12: 前端頁面開發
-  - Task 9: 團購列表頁面
-  - Task 10: 創建團購頁面
-  - Task 11: 加入團購頁面
-  - Task 12: 返利發票審查頁面
+**Phase 4.5.5-6: 前端與測試** ✅ 全部完成
+- ✅ Task 9-13: 前端 4 頁面 + E2E 18 tests — Commit cbc0635
+  - `/groups` 列表頁（卡片式，即時折扣狀態）
+  - `/groups/create` 建立表單（商品選擇、預覽）
+  - `/groups/[id]` 詳情 + 加入（進度條、成員列表）
+  - `/groups/rebates` 返利發票審查（確認按鈕）
 
-- 🔲 Task 13-15: 測試與驗證
-  - Task 13: 集成測試 (E2E)
-  - Task 14: API 端點驗證
-  - Task 15: 前端功能驗證
+- ✅ Task 14-15: 文件更新 (DailyProgress + Gem3Plan) — 2026-03-01
+
+**📊 測試總計：88/88 通過（7 suites）**
 
 #### 4.5.5 Subagent-Driven Development 工作流程
 

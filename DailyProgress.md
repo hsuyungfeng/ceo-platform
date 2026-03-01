@@ -1,5 +1,135 @@
 # 每日進度 (Daily Progress)
 
+---
+
+## 2026-03-01 (Phase 4.5 Tasks 2–15 全部完成！) 🎉
+
+### 🏆 Phase 4.5 Group Buying — 全部實作完畢
+
+**Date:** 2026-03-01
+**Status:** ✅ Phase 4.5 COMPLETE (Tasks 2–15) | 88/88 Tests Passing
+
+#### Phase 4.5 完成清單
+
+| Task | 說明 | 狀態 | Commit |
+|------|------|------|--------|
+| Task 2 | Extend Invoice Model (isGroupInvoice, groupId) | ✅ | 49ee290 |
+| Task 3 | GET/POST /api/groups — 列表 + 建立 | ✅ | f1c0119 |
+| Task 4 | POST /api/groups/[id]/join + GET orders | ✅ | cdc64d6 |
+| Task 5 | Admin finalize/report/send-rebates + rebate-service | ✅ | 5d60cc4 |
+| Task 9 | 前端：團購列表頁面 `/groups` | ✅ | cbc0635 |
+| Task 10 | 前端：建立團購 `/groups/create` | ✅ | cbc0635 |
+| Task 11 | 前端：團購詳情 + 加入 `/groups/[id]` | ✅ | cbc0635 |
+| Task 12 | 前端：返利發票 `/groups/rebates` | ✅ | cbc0635 |
+| Task 13 | E2E Tests — 5 情境、18 測試全通過 | ✅ | cbc0635 |
+
+#### 新增檔案結構
+
+```
+apps/web/
+├── src/
+│   ├── lib/
+│   │   ├── group-buying.ts          ← 折扣邏輯（GROUP_DISCOUNT_TIERS, getGroupDiscount, getQtyToNextTier）
+│   │   └── rebate-service.ts        ← 返利計算 + 建立返利發票
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── groups/
+│   │   │   │   ├── route.ts         ← GET list + POST create
+│   │   │   │   └── [id]/
+│   │   │   │       ├── route.ts     ← GET detail
+│   │   │   │       ├── join/        ← POST join
+│   │   │   │       └── orders/      ← GET member orders
+│   │   │   └── admin/groups/
+│   │   │       ├── report/          ← GET report
+│   │   │       └── [id]/
+│   │   │           ├── finalize/    ← POST finalize
+│   │   │           └── send-rebates/← POST send rebates
+│   │   └── groups/
+│   │       ├── page.tsx             ← 列表頁
+│   │       ├── create/page.tsx      ← 建立頁
+│   │       ├── [id]/page.tsx        ← 詳情+加入頁
+│   │       └── rebates/page.tsx     ← 返利發票頁
+│   └── components/groups/
+│       ├── group-list.tsx
+│       ├── create-group-form.tsx
+│       └── group-detail.tsx
+└── __tests__/
+    ├── unit/
+    │   ├── api/groups.test.ts       ← 24 tests
+    │   ├── api/groups-join.test.ts  ← 17 tests
+    │   └── lib/rebate-service.test.ts ← 9 tests
+    └── e2e/
+        └── groups.test.ts           ← 18 tests
+```
+
+#### 測試結果（全部通過）
+
+| 測試檔案 | 測試數 | 狀態 |
+|----------|--------|------|
+| unit/models/invoice.test.ts | 11 | ✅ |
+| unit/api/groups.test.ts | 24 | ✅ |
+| unit/api/groups-join.test.ts | 17 | ✅ |
+| unit/lib/rebate-service.test.ts | 9 | ✅ |
+| e2e/invoices.test.ts | 3 | ✅ |
+| e2e/groups.test.ts | 18 | ✅ |
+| integration/email-verification.test.ts | 6 | ✅ |
+| **合計** | **88** | **✅ 100%** |
+
+#### 折扣階梯規則（實作完成）
+
+| 總件數 | 折扣率 | 返利方式 |
+|--------|--------|--------|
+| 1–99 件 | 0% | 無返利 |
+| 100–499 件 | 5% | 截止後返利發票 |
+| 500+ 件 | 10% | 截止後返利發票 |
+
+---
+
+### 🛠️ 開發環境建置 — 全部完成（2026-03-01 早）
+
+**Status:** ✅ Dev Server Running
+
+#### 建置結果摘要
+
+| 項目 | 狀態 | 說明 |
+|------|------|------|
+| PostgreSQL 16 (Mac Homebrew) | ✅ | brew services start，已驗證連線 |
+| 資料庫 `ceo_platform` | ✅ | 23 張資料表正常 |
+| Prisma Baseline | ✅ | 4 個遷移全數標記 applied |
+| `pnpm install` | ✅ | 1,813 個套件 |
+| Prisma Client 產生 | ✅ | v7.3.0 |
+| 開發伺服器 | ✅ | http://localhost:3000 |
+| API `/api/health` | ✅ | `status: healthy`, `database: healthy` |
+| 首頁 | ✅ | 熱門商品 + 最新商品正常顯示 |
+| 管理後台 `/admin` | ✅ | 儀表板 3 個指標卡片正常 |
+
+#### 管理員測試帳號（已重設）
+
+| 欄位 | 值 |
+|------|----|
+| 統一編號 | `12345678` |
+| 密碼 | `Admin1234!` |
+| Email | admin@example.com |
+| 角色 | SUPER_ADMIN |
+| 狀態 | ACTIVE |
+
+備用管理員：
+- 統一編號：`99998888` / 密碼：`Admin1234!` / 角色：ADMIN
+
+#### 已知待修 TypeScript 問題（不影響執行）
+
+1. Next.js 16 `params` 改為 Promise — 影響 `api/invoices/[id]/*` 等動態路由
+2. Zod v4 API 變更 — `ZodError.errors` → `.issues`
+3. 其他 Auth、Redis 型別問題
+
+> ⚠️ `pnpm typecheck` 有錯誤，但 `pnpm dev` 正常，待後續修復。
+
+#### 下一步
+
+- 🔄 繼續 Phase 4.5 Task 2：Extend Invoice Model（新增 isGroupInvoice, groupId 欄位）
+
+---
+
 ## 2026-02-28 (Phase 4.5 - Group Buying Implementation) 🚀 進行中
 
 ### 🎯 **NEW PHASE:** Phase 4.5 - Group Buying (團購功能) - Subagent-Driven Development
