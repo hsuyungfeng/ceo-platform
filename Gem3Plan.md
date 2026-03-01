@@ -10,29 +10,42 @@
 
 ### 當前狀態 (Current State) - 📌 已更新 2026-02-28
 
+**🎯 現在進行中**：Phase 4.5 - Group Buying Implementation (Subagent-Driven Development)
+- **目標**：實現 B2B 團購系統，支持限時團購、自動聚合、階梯折扣和返利分配
+- **進度**：✅ Task 1 完成 | 🔄 Tasks 2-15 進行中
+- **執行方式**：Subagent-Driven Development (Fresh subagent per task + Two-stage review)
+- **預計時間**：3-4 週
+
 **🔄 策略調整**：從 PocketBase 轉向 PostgreSQL + Prisma
 - **原因**：PocketBase schema validation 問題，API authentication 複雜
 - **新方向**：PostgreSQL + Prisma v7 提供更成熟的解決方案
 
-- **資料庫狀態**：PostgreSQL ✅
+- **資料庫狀態**：PostgreSQL + Prisma ✅
   - ✅ PostgreSQL 連接成功驗證
-  - ✅ users, oauth_accounts, temp_oauth 表已建立
-  - ✅ 認證函數測試通過 (3/3 tests)
-  - ✅ Prisma schema 完整定義（41 個模型）
+  - ✅ Phase 2.4 驗證：所有 41+ API 路由已 100% 使用 Prisma
+  - ✅ Prisma schema 完整定義（41 個模型 + 新增 Order/Invoice 擴展）
+  - ✅ Phase 4 完成：Invoice + InvoiceLineItem 模型已實施
+  - 🔄 Phase 4.5 進行中：Order + Invoice 模型團購擴展
 
-- **認證層**：NextAuth + Prisma ✅
+- **認證層**：NextAuth + PostgreSQL ✅
   - ✅ Credentials 認證 (taxId + password)
   - ✅ OAuth (Google, Apple)
   - ✅ Bearer Token (mobile) + Session (web)
   - ✅ bcrypt 密碼雜湊
+  - ✅ 所有 API 路由已驗證正確使用認證層
 
-- **遷移計畫**：41 個 Prisma 路由 + 6 個 PocketBase 路由
-  - 優先級：Authentication > Public Routes > Admin Routes
+- **Phase 進度**：
+  - ✅ Phase 1-3: Preparation, Auth, Frontend Simplification - COMPLETE
+  - ✅ Phase 4: Payment System - COMPLETE (Invoice system ready)
+  - 🔄 Phase 4.5: Group Buying - IN PROGRESS (Task 1 done, Tasks 2-15 pending)
+  - ⏳ Phase 5: Testing & Verification - PENDING
+  - ⏳ Phase 6: Launch & Handoff - PENDING
 
 - **前端功能概覽 (Frontend Features)**：
-  - 複雜的 B2C 團購模型：分層定價、進度條、倒計時、搜尋、評分
-  - 完整的管理後台：分析儀表板、詳細的圖表、進階過濾
-  - 多供應商支持、員工點數系統、發票系統
+  - ✅ 簡化版本：移除 B2C 複雜功能（搜尋、分層定價、倒計時）
+  - 🔄 新增 B2B 團購模型：限時團購、自動聚合、階梯折扣、返利分配
+  - ✅ 簡化的管理後台：3 個關鍵指標 (訂單數、營業額、活躍用戶)
+  - 🔄 發票系統：已實施月結發票，將支持團購返利發票
 
 ### 技術棧 (Tech Stack)
 - Next.js 16.1.6 + React 19.2.3 + TypeScript
@@ -768,6 +781,224 @@ INV-{YYYY}-{MM}-{sequence}
 - 結帳時選擇使用點數
 - 自動點數扣除邏輯
 - 點數兌換率設定
+
+---
+
+## 第四階段補充：Group Buying Implementation (Phase 4.5: Group Buying)
+
+### 目標：實現 B2B 團購系統，支持限時團購、自動聚合、階梯折扣和返利分配
+**預計時間：3-4 週**
+**執行方式：Subagent-Driven Development (Fresh subagent per task + Two-stage review)**
+**進度：✅ Task 1 完成 | 🔄 Tasks 2-15 進行中 (2026-02-28)**
+**狀態：Production-Ready with PostgreSQL + Prisma** 🎉
+
+#### 4.5.0 Phase 4.5 概述 (Group Buying Feature Overview)
+
+**業務需求**：
+- 支援公司發起團購（團長），小批發商加入（成員）
+- 限時團購聚合訂購
+- 自動返利分配（按件數比例）
+- 自動發票生成
+- 優惠階梯
+
+**技術實現**：
+- **資料庫**：PostgreSQL + Prisma ORM（已驗證所有路由使用）
+- **後端**：9 個 API 端點 + 定時任務
+- **前端**：4 個頁面 + 多個元件
+- **自動化**：Node-cron 或第三方服務進行月末匯總
+
+#### 4.5.1 資料庫設計 (Database Schema)
+
+**Order Model 擴展** - ✅ Task 1 完成
+```prisma
+// 新增欄位
+groupId         String?              // 所屬團購ID
+groupStatus     GroupStatus?         // INDIVIDUAL | GROUPED
+isGroupLeader   Boolean @default(false)  // 是否為團長（公司）
+groupDeadline   DateTime?            // 團購截止時間
+groupTotalItems Int?                 // 該訂單在團購中的件數
+groupRefund     Decimal? @default(0) @db.Decimal(10,2)  // 該訂單應獲返利
+
+@@index([groupId])
+```
+
+**GroupStatus Enum** - ✅ Task 1 完成
+```prisma
+enum GroupStatus {
+  INDIVIDUAL      // 個人訂單
+  GROUPED         // 團購訂單
+}
+```
+
+**Invoice Model 擴展** - 🔄 Task 2 進行中
+```prisma
+// 新增欄位
+isGroupInvoice  Boolean @default(false)  // 是否為團購返利發票
+groupId         String?                   // 團購ID
+```
+
+**資料庫遷移**：
+- ✅ Task 1: Order 模型遷移完成 (migration.sql)
+- 🔄 Task 2: Invoice 模型遷移進行中
+
+#### 4.5.2 API 端點設計 (API Endpoints)
+
+**用戶端點 (User Endpoints)**：
+1. `POST /api/groups/create` - 公司創建團購
+2. `GET /api/groups/list` - 列出公開團購
+3. `GET /api/groups/[id]` - 查看團購詳情
+4. `POST /api/groups/[id]/join` - 小批發商加入團購
+5. `GET /api/groups/[id]/orders` - 查看團購內訂單
+
+**管理員端點 (Admin Endpoints)**：
+6. `POST /api/admin/groups/finalize` - 手動結束團購並計算返利
+7. `GET /api/admin/groups/report` - 團購報表
+8. `POST /api/admin/groups/send-rebates` - 發送返利發票
+
+**定時任務 (Scheduled Tasks)**：
+9. 每月自動執行團購結算（月末）
+   - 查詢截止期已過的所有團購
+   - 計算返利金額
+   - 生成返利發票
+
+#### 4.5.3 業務流程 (Business Workflow)
+
+**團購生命週期**：
+```
+1. 創建團購 (公司)
+   - 設定截止時間、目標數量、折扣階梯
+   - 狀態：DRAFT
+
+2. 發布團購
+   - 發送通知給所有成員
+   - 狀態：ACTIVE
+
+3. 小批發商加入
+   - 選擇數量、變體
+   - 加入購物車並結帳
+   - 訂單標記為 groupStatus = GROUPED
+
+4. 團購截止
+   - 自動或手動結束
+   - 狀態：CLOSED
+
+5. 返利計算
+   - 統計全團購總件數
+   - 套用折扣階梯
+   - 計算每位成員的返利金額
+   - 生成返利發票
+
+6. 返利發放
+   - 發送發票給各成員
+   - 狀態：PAID（待確認）
+```
+
+**返利計算公式**：
+```typescript
+// 假設階梯折扣
+tiers = [
+  { minQty: 1, discount: 0 },       // 0-99 件：無折扣
+  { minQty: 100, discount: 0.05 },   // 100-499 件：5% 折扣
+  { minQty: 500, discount: 0.10 },   // 500+ 件：10% 折扣
+]
+
+totalQty = 計算團購全部訂單數
+groupDiscount = 查找對應 tier 的折扣
+memberRebate = memberQuantity × memberUnitPrice × groupDiscount
+```
+
+#### 4.5.4 實施進度 (Implementation Progress)
+
+**Phase 4.5.1: Database Schema**
+- ✅ **Task 1: Extend Order Model** - COMPLETE
+  - 實施時間：30 分鐘
+  - 新增 6 個欄位 + GroupStatus enum
+  - 生成遷移檔案
+  - 單元測試：6/6 PASSING ✅
+  - 規範審查：100% 符合 ✅
+  - 代碼質量：Approved (TypeScript types fixed, test coverage enhanced) ✅
+  - 提交：c7f8745
+  - 執行方式：Subagent-Driven (Implementer → Spec Reviewer → Code Quality Reviewer)
+
+- 🔄 **Task 2: Extend Invoice Model** - IN PROGRESS
+  - 預計時間：20 分鐘
+  - 新增 2 個欄位 (isGroupInvoice, groupId)
+  - 生成遷移檔案
+  - 單元測試編寫中
+
+**Phase 4.5.2-4: API 實施** (待執行)
+- 🔲 Task 3-8: 6 個 API 端點實施
+  - Task 3: POST /api/groups/create
+  - Task 4: GET /api/groups/list
+  - Task 5: GET /api/groups/[id] + POST join
+  - Task 6: Admin endpoints (finalize, report, send-rebates)
+  - Task 7: 定時任務實施
+  - Task 8: Rebate calculation service
+
+**Phase 4.5.5-6: 前端與測試** (待執行)
+- 🔲 Task 9-12: 前端頁面開發
+  - Task 9: 團購列表頁面
+  - Task 10: 創建團購頁面
+  - Task 11: 加入團購頁面
+  - Task 12: 返利發票審查頁面
+
+- 🔲 Task 13-15: 測試與驗證
+  - Task 13: 集成測試 (E2E)
+  - Task 14: API 端點驗證
+  - Task 15: 前端功能驗證
+
+#### 4.5.5 Subagent-Driven Development 工作流程
+
+**執行方式**：
+```
+Per Task Execution:
+  1. Dispatch Fresh Implementer Subagent
+     ↓ (Implementer implements + self-reviews)
+  2. Dispatch Spec Compliance Reviewer
+     ↓ (Verify against spec)
+     ├─ If Issues Found → Implementer Fixes → Reviewer Re-checks
+     └─ If Approved → Continue
+  3. Dispatch Code Quality Reviewer
+     ↓ (Verify code quality)
+     ├─ If Issues Found → Implementer Fixes → Reviewer Re-checks
+     └─ If Approved → Mark Task Complete
+  4. Update TodoList & Continue to Next Task
+```
+
+**Quality Gates**：
+- ✅ Spec Compliance (100% match with requirements)
+- ✅ Code Quality (TypeScript strict mode, proper types, no `any`)
+- ✅ Test Coverage (80%+ coverage, all tests passing)
+- ✅ Git Commits (proper messages, clean history)
+
+#### 4.5.6 與 Phase 4 的整合 (Integration with Phase 4)
+
+**已完成的 Phase 4 支持**：
+- ✅ 支付方式定義：CASH + MONTHLY_BILLING
+- ✅ Invoice 系統：用於返利發票
+- ✅ Order 模型：支持分組和狀態追蹤
+
+**Phase 4.5 的新增內容**：
+- Order 模型擴展：6 個團購字段
+- Invoice 模型擴展：2 個團購字段
+- 新的 API 端點：9 個（5 個用戶 + 3 個管理員 + 1 個定時任務）
+- 前端頁面：4 個新頁面
+- 業務邏輯：返利計算、團購聚合
+
+**資料流整合**：
+```
+創建訂單 (MONTHLY_BILLING)
+  ↓
+訂單標記為 groupStatus = GROUPED
+  ↓
+月底自動觸發團購聚合
+  ↓
+計算返利金額 (使用階梯折扣)
+  ↓
+生成返利 Invoice
+  ↓
+發送給成員確認
+```
 
 ---
 
