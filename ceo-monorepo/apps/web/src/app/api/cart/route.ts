@@ -135,8 +135,17 @@ export async function POST(request: NextRequest) {
 
     const { userId } = authData;
 
-    const body = await request.json();
-    
+    // Parse and handle JSON errors
+    let body;
+    try {
+      body = await request.json();
+    } catch (error) {
+      return NextResponse.json(
+        { error: '無效的 JSON 請求體' },
+        { status: 400 }
+      );
+    }
+
     // 驗證請求資料
     const validationResult = addToCartSchema.safeParse(body);
     if (!validationResult.success) {
@@ -180,55 +189,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 檢查購物車是否已有此商品
-    const existingCartItem = await prisma.cartItem.findUnique({
+    // 使用 upsert 實現原子操作，避免競態條件
+    const cartItem = await prisma.cartItem.upsert({
       where: {
         userId_productId: {
           userId,
           productId,
         },
       },
+      update: {
+        // 如果存在，增加數量
+        quantity: {
+          increment: quantity,
+        },
+      },
+      create: {
+        // 如果不存在，新建項目
+        userId,
+        productId,
+        quantity,
+      },
+      include: {
+        product: {
+          include: {
+            priceTiers: {
+              orderBy: { minQty: 'asc' },
+            },
+          },
+        },
+      },
     });
-
-    let cartItem;
-    if (existingCartItem) {
-      // 更新現有商品數量
-      cartItem = await prisma.cartItem.update({
-        where: {
-          id: existingCartItem.id,
-        },
-        data: {
-          quantity: existingCartItem.quantity + quantity,
-        },
-        include: {
-          product: {
-            include: {
-              priceTiers: {
-                orderBy: { minQty: 'asc' },
-              },
-            },
-          },
-        },
-      });
-    } else {
-      // 新增購物車項目
-      cartItem = await prisma.cartItem.create({
-        data: {
-          userId,
-          productId,
-          quantity,
-        },
-        include: {
-          product: {
-            include: {
-              priceTiers: {
-                orderBy: { minQty: 'asc' },
-              },
-            },
-          },
-        },
-      });
-    }
 
     // 計算價格
     const applicableTier = [...cartItem.product.priceTiers]

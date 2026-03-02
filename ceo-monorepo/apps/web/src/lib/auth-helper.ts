@@ -63,7 +63,7 @@ async function validateBearerToken(request: NextRequest) {
       return null;
     }
     
-    // Get user data from database - 改用 PocketBase
+    // Get user data from database
     const user = await findUserById(userId);
 
     if (!user) {
@@ -102,7 +102,7 @@ async function validateSession() {
 
     const userId = session.user.id;
 
-    // Get user data from database - 改用 PocketBase
+    // Get user data from database
     const user = await findUserById(userId);
 
     if (!user) {
@@ -232,7 +232,7 @@ export async function validateTokenForRefresh(token: string) {
       return null;
     }
     
-    // Get user data from database - 改用 PocketBase
+    // Get user data from database
     const user = await findUserById(userId);
 
     if (!user) {

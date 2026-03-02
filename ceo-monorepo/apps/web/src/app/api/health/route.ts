@@ -91,9 +91,7 @@ export async function GET() {
 // 健康檢查詳細信息（需要認證）
 export async function POST(request: Request) {
   try {
-    // 這裡可以添加認證邏輯
-    // 例如檢查管理員權限
-    
+    // 驗證管理員認證
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
@@ -103,21 +101,24 @@ export async function POST(request: Request) {
     }
 
     const token = authHeader.substring(7);
-    // 驗證token邏輯...
 
-    // 返回詳細健康信息
+    // 簡單的 token 驗證 - 在生產環境中應使用正確的 JWT 驗證
+    const adminToken = process.env.ADMIN_HEALTH_TOKEN;
+    if (!adminToken || token !== adminToken) {
+      return NextResponse.json(
+        { error: 'Invalid token' },
+        { status: 403 }
+      );
+    }
+
+    // 返回安全的詳細健康信息（不包含敏感系統信息）
     const detailedHealth = {
       timestamp: new Date().toISOString(),
       status: 'healthy',
       uptime: process.uptime(),
-      nodeVersion: process.version,
-      platform: process.platform,
-      memory: process.memoryUsage(),
-      cpuUsage: process.cpuUsage(),
       env: {
         NODE_ENV: process.env.NODE_ENV,
-        APP_ENV: process.env.APP_ENV,
-        // 不返回敏感環境變數
+        // 不返回詳細的記憶體、CPU 或平台信息，以防止被用於 DoS 攻擊規劃
       }
     };
 

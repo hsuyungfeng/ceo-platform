@@ -145,8 +145,17 @@ export async function POST(request: NextRequest) {
 
     const { userId } = authData;
 
-    const body = await request.json();
-    
+    // Parse and handle JSON errors
+    let body;
+    try {
+      body = await request.json();
+    } catch (error) {
+      return NextResponse.json(
+        { error: '無效的 JSON 請求體' },
+        { status: 400 }
+      );
+    }
+
     // 驗證請求資料
     const validationResult = createOrderSchema.safeParse(body);
     if (!validationResult.success) {
