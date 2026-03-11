@@ -1,10 +1,10 @@
 generator client {
   provider = "prisma-client-js"
-  engine   = "binary"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum TwoFactorMethod {
@@ -14,38 +14,58 @@ enum TwoFactorMethod {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  password      String?
-  name          String?
-  taxId         String?   @unique
-  phone         String?   @unique
-  fax           String?
-  address       String?
-  contactPerson String?
-  points        Int       @default(0)
-  role          UserRole  @default(MEMBER)
-  loginAttempts Int       @default(0)
-  lockedUntil   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  emailVerified Boolean   @default(false)
-  lastLoginAt   DateTime?
-  status        UserStatus @default(ACTIVE)
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  password           String?
+  name               String?
+  taxId              String?             @unique
+  phone              String?             @unique
+  fax                String?
+  address            String?
+  contactPerson      String?
+  points             Int                 @default(0)
+  role               UserRole            @default(MEMBER)
+  loginAttempts      Int                 @default(0)
+  lockedUntil        DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  emailVerified      Boolean             @default(false)
+  lastLoginAt        DateTime?
+  status             UserStatus          @default(ACTIVE)
   twoFactorEnabled   Boolean             @default(false)
   twoFactorMethod    TwoFactorMethod?    @default(EMAIL)
   emailVerifications EmailVerification[]
   oauthAccounts      OAuthAccount[]
-  cartItems     CartItem[]
-  member        Member?
-  orders        Order[]
-  sessions      Session[]
-  accounts      Account[]
-  userLogs      UserLog[]          @relation("UserLogs")
-  adminLogs     UserLog[]          @relation("AdminLogs")
-  pointTransactions PointTransaction[]
-  deviceTokens      DeviceToken[]
-  invoices Invoice[] @relation("UserInvoices")
+  cartItems          CartItem[]
+  member             Member?
+  orders             Order[]
+  sessions           Session[]
+  accounts           Account[]
+  userLogs           UserLog[]           @relation("UserLogs")
+  adminLogs          UserLog[]           @relation("AdminLogs")
+  pointTransactions  PointTransaction[]
+  deviceTokens       DeviceToken[]
+  invoices           Invoice[]           @relation("UserInvoices")
+
+  // Phase 7: 供應商關聯（通過 UserSupplier 表關聯）
+  userSuppliers        UserSupplier[]
+  supplierApplications SupplierApplication[] // 申請記錄
+  supplierAsMain       Supplier?             @relation("SupplierMainAccount") // 如果我是供應商主帳號
+
+  // Phase 7: 附屬帳號管理
+  mainAccountId String? // 主帳號 ID（如果我是附屬帳號）
+  mainAccount   User?   @relation("MainSubAccount", fields: [mainAccountId], references: [id])
+  subAccounts   User[]  @relation("MainSubAccount")
+
+  // Phase 8: 採購推薦系統關聯
+  purchaseRecommendations PurchaseRecommendation[]
+  purchaseTemplates       PurchaseTemplate[]
+  supplierRatings         SupplierRating[]
+  userPurchaseHistories   UserPurchaseHistory[]
+
+  // Phase 9: 通知系統關聯
+  notifications           Notification[]
+  notificationPreference  NotificationPreference?
 
   @@map("users")
 }
@@ -121,29 +141,47 @@ model Firm {
 }
 
 model Product {
-  id               String      @id @default(cuid())
-  name             String      @unique
-  subtitle         String?
-  description      String?
-  image            String?
-  unit             String?
-  spec             String?
-  firmId           String?
-  categoryId       String?
-  isActive         Boolean     @default(true)
-  isFeatured       Boolean     @default(false)
-  startDate        DateTime?
-  endDate          DateTime?
-  totalSold        Int         @default(0)
-  minGroupQty      Int         @default(1)
-  sortOrder        Int         @default(0)
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  cartItems        CartItem[]
-  orderItems       OrderItem[]
-  priceTiers       PriceTier[]
-  category         Category?   @relation(fields: [categoryId], references: [id])
-  firm             Firm?       @relation(fields: [firmId], references: [id])
+  id          String    @id @default(cuid())
+  name        String    @unique
+  subtitle    String?
+  description String?
+  image       String?
+  unit        String?
+  spec        String?
+  firmId      String?
+  categoryId  String?
+  isActive    Boolean   @default(true)
+  isFeatured  Boolean   @default(false)
+  startDate   DateTime?
+  endDate     DateTime?
+  totalSold   Int       @default(0)
+  minGroupQty Int       @default(1)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // 尺寸資訊（物流用）- Phase 7
+  length Decimal? @db.Decimal(10, 2) // 長度（cm）
+  width  Decimal? @db.Decimal(10, 2) // 寬度（cm）
+  height Decimal? @db.Decimal(10, 2) // 高度（cm）
+  weight Decimal? @db.Decimal(10, 3) // 重量（kg）
+
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+  priceTiers      PriceTier[]
+  category        Category?   @relation(fields: [categoryId], references: [id])
+  firm            Firm?       @relation(fields: [firmId], references: [id])
+  // Phase 8: 推薦系統字段
+  popularityScore Float       @default(0.0) // 熱門度分數（0.0-1.0）
+  purchaseCount   Int         @default(0) // 總採購次數（用於推薦）
+  lastPurchasedAt DateTime? // 最後被採購時間
+
+  supplierProducts SupplierProduct[]
+
+  // Phase 8: 採購推薦系統關聯
+  purchaseRecommendations PurchaseRecommendation[]
+  purchaseTemplateItems   PurchaseTemplateItem[]
+  userPurchaseHistories   UserPurchaseHistory[]
 
   @@map("products")
 }
@@ -174,27 +212,36 @@ model CartItem {
 }
 
 model Order {
-  id           String      @id @default(cuid())
-  orderNo      String      @unique
-  userId       String
-  status       OrderStatus @default(PENDING)
-  paymentMethod PaymentMethod @default(CASH)
-  totalAmount  Decimal     @db.Decimal(10, 2)
-  note         String?
-  pointsEarned Int         @default(0)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  items        OrderItem[]
-  user         User        @relation(fields: [userId], references: [id])
-  invoiceItems InvoiceLineItem[] @relation("OrderInvoiceItems")
+  id            String            @id @default(cuid())
+  orderNo       String            @unique
+  userId        String
+  status        OrderStatus       @default(PENDING)
+  paymentMethod PaymentMethod     @default(CASH)
+  totalAmount   Decimal           @db.Decimal(10, 2)
+  note          String?
+  pointsEarned  Int               @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  items         OrderItem[]
+  user          User              @relation(fields: [userId], references: [id])
+  invoiceItems  InvoiceLineItem[] @relation("OrderInvoiceItems")
 
   // 新增团购字段
-  groupId         String?                                 // 关联团购 ID
-  groupStatus     GroupStatus?                            // INDIVIDUAL | GROUPED
-  isGroupLeader   Boolean   @default(false)              // 是否是团长（公司）
-  groupDeadline   DateTime?                               // 团购截止时间
-  groupTotalItems Int?                                    // 该订单在团购中的件数
-  groupRefund     Decimal?  @default(0) @db.Decimal(10,2) // 该订单应获返利
+  groupId         String? // 关联团购 ID
+  groupStatus     GroupStatus? // INDIVIDUAL | GROUPED
+  isGroupLeader   Boolean      @default(false) // 是否是团长（公司）
+  groupDeadline   DateTime? // 团购截止时间
+  groupTotalItems Int? // 该订单在团购中的件数
+  groupRefund     Decimal?     @default(0) @db.Decimal(10, 2) // 该订单应获返利
+
+  // Phase 8: 推薦系統字段
+  recommendationId     String? // 關聯推薦記錄 ID
+  isFromRecommendation Boolean                 @default(false) // 是否來自推薦
+  recommendation       PurchaseRecommendation? @relation(fields: [recommendationId], references: [id]) // 推薦記錄關聯
+
+  // Phase 8: 評分與交貨表現關聯
+  supplierRatings     SupplierRating[]     @relation("OrderSupplierRatings")
+  deliveryPerformance DeliveryPerformance?
 
   @@index([groupId])
   @@map("orders")
@@ -234,27 +281,27 @@ model UserLog {
   oldValue  String?
   newValue  String?
   reason    String?
-  metadata  Json?      // 額外元數據（如點數調整金額）
-  createdAt DateTime  @default(now())
-  
-  user      User      @relation("UserLogs", fields: [userId], references: [id])
-  admin     User      @relation("AdminLogs", fields: [adminId], references: [id])
-  
+  metadata  Json? // 額外元數據（如點數調整金額）
+  createdAt DateTime   @default(now())
+
+  user  User @relation("UserLogs", fields: [userId], references: [id])
+  admin User @relation("AdminLogs", fields: [adminId], references: [id])
+
   @@map("user_logs")
 }
 
 model PointTransaction {
-  id          String                @id @default(cuid())
+  id          String               @id @default(cuid())
   userId      String
-  amount      Int                   // 正數為增加，負數為減少
-  balance     Int                   // 調整後餘額
+  amount      Int // 正數為增加，負數為減少
+  balance     Int // 調整後餘額
   type        PointTransactionType
   reason      String?
-  referenceId String?               // 關聯訂單ID或其他參考
-  createdAt   DateTime              @default(now())
-  
-  user        User                  @relation(fields: [userId], references: [id])
-  
+  referenceId String? // 關聯訂單ID或其他參考
+  createdAt   DateTime             @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
   @@map("point_transactions")
 }
 
@@ -368,23 +415,23 @@ enum OrderStatus {
 }
 
 enum GroupStatus {
-  INDIVIDUAL      // 个人订单
-  GROUPED         // 团购订单
+  INDIVIDUAL // 个人订单
+  GROUPED // 团购订单
 }
 
 enum UserAction {
-  STATUS_CHANGE    // 狀態變更
-  POINTS_ADJUST    // 點數調整
-  INFO_UPDATE      // 資訊更新
-  ACCOUNT_LOCK     // 帳號鎖定
-  ACCOUNT_UNLOCK   // 帳號解鎖
+  STATUS_CHANGE // 狀態變更
+  POINTS_ADJUST // 點數調整
+  INFO_UPDATE // 資訊更新
+  ACCOUNT_LOCK // 帳號鎖定
+  ACCOUNT_UNLOCK // 帳號解鎖
 }
 
 enum PointTransactionType {
-  ORDER_EARNED     // 訂單獲得
-  ORDER_REFUND     // 訂單退款
-  MANUAL_ADJUST    // 手動調整
-  SYSTEM_ADJUST    // 系統調整
+  ORDER_EARNED // 訂單獲得
+  ORDER_REFUND // 訂單退款
+  MANUAL_ADJUST // 手動調整
+  SYSTEM_ADJUST // 系統調整
 }
 
 model EmailVerificationToken {
@@ -410,12 +457,12 @@ model DeviceToken {
   userId    String
   token     String         @unique
   platform  DevicePlatform
-  deviceId  String?        // Optional device identifier
+  deviceId  String? // Optional device identifier
   isActive  Boolean        @default(true)
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
 
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([platform])
@@ -424,10 +471,10 @@ model DeviceToken {
 }
 
 enum InvoiceStatus {
-  DRAFT      // 草稿 (尚未發送)
-  SENT       // 已發送 (等待員工確認)
-  CONFIRMED  // 已確認 (員工已查看)
-  PAID       // 已支付
+  DRAFT // 草稿 (尚未發送)
+  SENT // 已發送 (等待員工確認)
+  CONFIRMED // 已確認 (員工已查看)
+  PAID // 已支付
 }
 
 enum PaymentMethod {
@@ -436,28 +483,28 @@ enum PaymentMethod {
 }
 
 model Invoice {
-  id String @id @default(cuid())
+  id        String @id @default(cuid())
   invoiceNo String @unique
-  userId String
-  user User @relation("UserInvoices", fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User   @relation("UserInvoices", fields: [userId], references: [id], onDelete: Cascade)
 
-  billingMonth String                   // YYYY-MM
+  billingMonth     String // YYYY-MM
   billingStartDate DateTime
-  billingEndDate DateTime
+  billingEndDate   DateTime
 
   totalAmount Decimal @db.Decimal(10, 2)
-  totalItems Int
+  totalItems  Int
 
-  status InvoiceStatus @default(DRAFT)
-  sentAt DateTime?
+  status      InvoiceStatus @default(DRAFT)
+  sentAt      DateTime?
   confirmedAt DateTime?
-  paidAt DateTime?
+  paidAt      DateTime?
 
   invoiceFormat String @default("simple")
 
   // Phase 4.5: Group Buying 團購返利發票欄位
-  isGroupInvoice Boolean @default(false)  // 是否為團購返利發票
-  groupId        String?                   // 所屬團購 ID
+  isGroupInvoice Boolean @default(false) // 是否為團購返利發票
+  groupId        String? // 所屬團購 ID
 
   lineItems InvoiceLineItem[]
 
@@ -472,17 +519,17 @@ model Invoice {
 }
 
 model InvoiceLineItem {
-  id String @id @default(cuid())
+  id        String  @id @default(cuid())
   invoiceId String
-  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   orderId String
-  order Order @relation("OrderInvoiceItems", fields: [orderId], references: [id], onDelete: Cascade)
+  order   Order  @relation("OrderInvoiceItems", fields: [orderId], references: [id], onDelete: Cascade)
 
   productName String
-  quantity Int
-  unitPrice Decimal @db.Decimal(10, 2)
-  subtotal Decimal @db.Decimal(10, 2)
+  quantity    Int
+  unitPrice   Decimal @db.Decimal(10, 2)
+  subtotal    Decimal @db.Decimal(10, 2)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -491,3 +538,677 @@ model InvoiceLineItem {
   @@index([orderId])
   @@map("invoice_line_items")
 }
+
+// ============================================
+// Phase 7: 供應商系統 (Supplier System)
+// ============================================
+
+// 供應商 (Supplier) - 主表
+model Supplier {
+  id            String         @id @default(cuid())
+  taxId         String         @unique // 統一編號
+  companyName   String // 公司名稱
+  contactPerson String // 聯絡人
+  phone         String // 電話
+  email         String         @unique // Email
+  address       String // 地址
+  industry      String? // 產業類別
+  description   String? // 公司描述
+  status        SupplierStatus @default(PENDING) // 狀態
+  isVerified    Boolean        @default(false) // 是否驗證
+  verifiedAt    DateTime? // 驗證時間
+  verifiedBy    String? // 驗證人
+  mainAccountId String         @unique // 主帳號 ID
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  mainAccount   User                  @relation("SupplierMainAccount", fields: [mainAccountId], references: [id])
+  products      SupplierProduct[]
+  applications  SupplierApplication[]
+  userSuppliers UserSupplier[]
+  account       SupplierAccount?
+  transactions  SupplierTransaction[]
+  invoices      SupplierInvoice[]
+  reminders     PaymentReminder[]
+
+  // Phase 8: 評分系統字段
+  avgRating          Float @default(0.0) // 平均評分（1.0-5.0）
+  totalRatings       Int   @default(0) // 總評分數量
+  onTimeDeliveryRate Float @default(0.0) // 準時交貨率（0.0-1.0）
+  totalDeliveries    Int   @default(0) // 總交貨次數
+
+  // Phase 8: 採購推薦系統關聯
+  purchaseRecommendations PurchaseRecommendation[]
+  supplierRatings         SupplierRating[]
+  deliveryPerformances    DeliveryPerformance[]
+  userPurchaseHistories   UserPurchaseHistory[]
+  purchaseTemplateItems   PurchaseTemplateItem[] // 模板項目關聯
+
+  @@map("suppliers")
+}
+
+enum SupplierStatus {
+  PENDING // 等待審批
+  ACTIVE // 活躍
+  SUSPENDED // 停用
+  REJECTED // 拒絕
+}
+
+// 供應商申請 (Supplier Application) - 批發商申請加入供應商
+model SupplierApplication {
+  id          String @id @default(cuid())
+  supplierId  String
+  applicantId String // 申請者 userId
+
+  // 申請資料
+  companyName     String // 公司名稱
+  contactPerson   String // 聯絡人
+  phone           String // 電話
+  businessLicense String? // 營業執照 URL
+  note            String? // 備註
+
+  status          ApplicationStatus @default(PENDING)
+  reviewedBy      String? // 審批人
+  reviewedAt      DateTime? // 審批時間
+  rejectionReason String? // 拒絕原因
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  supplier  Supplier @relation(fields: [supplierId], references: [id])
+  applicant User     @relation(fields: [applicantId], references: [id])
+
+  @@unique([supplierId, applicantId]) // 每個批發商只能申請一次
+  @@index([supplierId])
+  @@index([applicantId])
+  @@map("supplier_applications")
+}
+
+enum ApplicationStatus {
+  PENDING // 等待審批
+  APPROVED // 已批准
+  REJECTED // 已拒絕
+}
+
+// 供應商產品 (Supplier Product) - 供應商提供的產品
+model SupplierProduct {
+  id         String  @id @default(cuid())
+  supplierId String
+  productId  String? // 關聯平台產品（可選）
+
+  // 產品資訊
+  name        String // 產品名稱
+  SKU         String? // SKU
+  description String? // 產品描述
+  category    String? // 分類
+  unit        String? // 單位
+  imageUrl    String? // 產品圖片
+
+  // 價格資訊
+  price    Decimal @db.Decimal(10, 2) // 供應商報價
+  moq      Int     @default(1) // 最小訂購量
+  leadTime Int? // 交貨天數
+
+  // 尺寸資訊（物流用）
+  length Decimal? @db.Decimal(10, 2) // 長度（cm）
+  width  Decimal? @db.Decimal(10, 2) // 寬度（cm）
+  height Decimal? @db.Decimal(10, 2) // 高度（cm）
+  weight Decimal? @db.Decimal(10, 3) // 重量（kg）
+
+  // 庫存
+  stock    Int     @default(0)
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+  product  Product? @relation(fields: [productId], references: [id])
+
+  @@unique([supplierId, SKU])
+  @@index([supplierId])
+  @@map("supplier_products")
+}
+
+// 用戶關聯供應商 (User-Supplier Relation)
+model UserSupplier {
+  id         String           @id @default(cuid())
+  userId     String
+  supplierId String
+  role       SupplierUserRole @default(SUB_ACCOUNT) // MAIN_ACCOUNT, SUB_ACCOUNT
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id])
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@unique([userId, supplierId])
+  @@map("user_suppliers")
+}
+
+enum SupplierUserRole {
+  MAIN_ACCOUNT // 主帳號
+  SUB_ACCOUNT // 附屬帳號
+}
+
+// 供應商帳戶（儲值餘額）
+model SupplierAccount {
+  id         String @id @default(cuid())
+  supplierId String @unique
+
+  // 餘額資訊
+  balance     Decimal @default(0) @db.Decimal(10, 2) // 當前餘額
+  totalSpent  Decimal @default(0) @db.Decimal(10, 2) // 累計已繳
+  creditLimit Decimal @default(0) @db.Decimal(10, 2) // 信用額度
+
+  // 繳費狀態
+  lastPaymentAt  DateTime?
+  paymentDueDate DateTime? // 繳費截止日
+  isSuspended    Boolean   @default(false) // 是否停權
+  suspendedAt    DateTime?
+  suspendReason  String?
+
+  // 設定
+  billingRate Decimal @default(0.001) @db.Decimal(5, 4) // 收費率（預設 1‰ = 0.001，可設定 0.001-0.003）
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@map("supplier_accounts")
+}
+
+// 系統設定（管理員可配置）
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String // JSON string for complex values
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+// 供應商交易記錄
+model SupplierTransaction {
+  id         String @id @default(cuid())
+  supplierId String
+
+  // 交易類型
+  type SupplierTransactionType
+
+  // 金額
+  amount        Decimal @db.Decimal(10, 2) // 變動金額
+  balanceBefore Decimal @db.Decimal(10, 2) // 變動前餘額
+  balanceAfter  Decimal @db.Decimal(10, 2) // 變動後餘額
+
+  // 關聯
+  orderId   String? // 訂單ID（計算費用時）
+  invoiceId String? // 帳單ID
+
+  // 備註
+  note String?
+
+  createdAt DateTime @default(now())
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@index([supplierId])
+  @@map("supplier_transactions")
+}
+
+enum SupplierTransactionType {
+  DEPOSIT // 儲值
+  MONTHLY_CHARGE // 月費扣款
+  REFUND // 退款
+  ADJUSTMENT // 調整
+}
+
+// 供應商帳單
+model SupplierInvoice {
+  id         String @id @default(cuid())
+  invoiceNo  String @unique // 帳單編號
+  supplierId String
+
+  // 帳單類型
+  type SupplierInvoiceType
+
+  // 金額
+  amount      Decimal @db.Decimal(10, 2)
+  tax         Decimal @default(0) @db.Decimal(10, 2)
+  totalAmount Decimal @db.Decimal(10, 2)
+
+  // 產生期間
+  billingMonth String? // YYYY-MM（月結）
+  periodStart  DateTime?
+  periodEnd    DateTime?
+
+  // 狀態
+  status  InvoicePaymentStatus @default(UNPAID)
+  dueDate DateTime
+  paidAt  DateTime?
+
+  // 備註
+  note String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@index([supplierId])
+  @@index([billingMonth])
+  @@map("supplier_invoices")
+}
+
+enum SupplierInvoiceType {
+  MONTHLY_FEE // 月租費
+  PRODUCT_FEE // 產品上架費
+  TRANSACTION_FEE // 交易手續費
+  SERVICE_FEE // 額外服務費
+}
+
+enum InvoicePaymentStatus {
+  UNPAID // 未付款
+  PAID // 已付款
+  OVERDUE // 逾期
+  CANCELLED // 已取消
+}
+
+// 繳費提醒記錄
+model PaymentReminder {
+  id         String @id @default(cuid())
+  supplierId String
+
+  // 提醒類型
+  type ReminderType
+
+  // 提醒內容
+  balance     Decimal @db.Decimal(10, 2) // 當時餘額
+  dueAmount   Decimal @db.Decimal(10, 2) // 應繳金額
+  daysOverdue Int // 逾期天數
+
+  // 狀態
+  isSent Boolean   @default(false)
+  sentAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@index([supplierId])
+  @@map("payment_reminders")
+}
+
+enum ReminderType {
+  LOW_BALANCE // 餘額不足提醒（< NT$ 1,000）
+  FIRST_WARNING // 首次警告（逾期第7天）
+  WEEKLY_REMINDER // 每週提醒（逾期每7天）
+  FINAL_WARNING // 最終警告（逾期第21天）
+  SUSPEND_WARNING // 停權前最後警告（逾期第28天）
+}
+
+// ============================================
+// Phase 8: 批發商採購流程優化 - 新增模型
+// ============================================
+
+// 採購推薦記錄
+model PurchaseRecommendation {
+  id         String  @id @default(cuid())
+  userId     String // 推薦目標用戶
+  productId  String // 推薦產品
+  supplierId String? // 推薦供應商（可選）
+
+  // 推薦分數與原因
+  score     Float   @default(0.0) // 推薦分數 (0.0-1.0)
+  reason    String? // 推薦原因（熱門、歷史採購、協同過濾等）
+  algorithm String  @default("POPULARITY") // 推薦演算法（POPULARITY, HISTORY, COLLABORATIVE）
+
+  // 推薦狀態
+  viewed    Boolean @default(false) // 用戶是否查看過
+  clicked   Boolean @default(false) // 用戶是否點擊/購買
+  dismissed Boolean @default(false) // 用戶是否忽略
+
+  // 時間戳記
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 關聯
+  user     User      @relation(fields: [userId], references: [id])
+  product  Product   @relation(fields: [productId], references: [id])
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+  orders   Order[]
+
+  @@index([userId])
+  @@index([productId])
+  @@index([score])
+  @@map("purchase_recommendations")
+}
+
+// 採購模板
+model PurchaseTemplate {
+  id          String  @id @default(cuid())
+  userId      String // 模板擁有者
+  name        String // 模板名稱
+  description String? // 模板描述
+  isPublic    Boolean @default(false) // 是否公開模板
+
+  // 使用統計
+  usageCount Int       @default(0) // 使用次數
+  lastUsedAt DateTime? // 最後使用時間
+
+  // 時間戳記
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 關聯
+  user  User                   @relation(fields: [userId], references: [id])
+  items PurchaseTemplateItem[]
+
+  @@index([userId])
+  @@map("purchase_templates")
+}
+
+// 採購模板項目
+model PurchaseTemplateItem {
+  id         String  @id @default(cuid())
+  templateId String
+  productId  String
+  supplierId String? // 指定供應商（可選）
+  quantity   Int     @default(1)
+  notes      String? // 備註
+  sortOrder  Int     @default(0) // 排序順序
+
+  // 關聯
+  template PurchaseTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  product  Product          @relation(fields: [productId], references: [id])
+  supplier Supplier?        @relation(fields: [supplierId], references: [id])
+
+  @@unique([templateId, productId])
+  @@map("purchase_template_items")
+}
+
+// 供應商評分記錄
+model SupplierRating {
+  id         String  @id @default(cuid())
+  supplierId String // 被評分供應商
+  userId     String // 評分者（批發商）
+  orderId    String? // 關聯訂單（可選）
+
+  // 評分維度 (1-5)
+  overallScore  Int @default(5) // 總體評分
+  qualityScore  Int @default(5) // 產品品質
+  deliveryScore Int @default(5) // 交貨準時
+  serviceScore  Int @default(5) // 客戶服務
+
+  // 評價內容
+  comment   String? // 文字評價
+  photoUrls String[] // 照片 URL 陣列
+
+  // 狀態
+  isVerified Boolean @default(false) // 是否驗證（管理員審核）
+  isPublic   Boolean @default(true) // 是否公開顯示
+
+  // 時間戳記
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 關聯
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+  order    Order?   @relation("OrderSupplierRatings", fields: [orderId], references: [id])
+
+  @@unique([supplierId, userId, orderId])
+  @@index([supplierId])
+  @@index([userId])
+  @@map("supplier_ratings")
+}
+
+// 交貨表現記錄
+model DeliveryPerformance {
+  id         String @id @default(cuid())
+  supplierId String
+  orderId    String @unique // 每個訂單一條記錄
+
+  // 交貨時間
+  promisedDays Int     @default(7) // 承諾交貨天數
+  actualDays   Int // 實際交貨天數
+  isOnTime     Boolean @default(true) // 是否準時
+
+  // 延遲原因（如果延遲）
+  delayReason String? // 延遲原因
+  delayDays   Int? // 延遲天數
+
+  // 預測相關欄位 (Phase 8)
+  estimatedDays Int? // 預測交貨天數
+  accuracy      Float? // 預測準確度 (0-1)
+  recordedAt    DateTime? // 記錄時間
+
+  // 時間戳記
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 關聯
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+  order    Order    @relation(fields: [orderId], references: [id])
+
+  @@index([supplierId])
+  @@index([orderId])
+  @@map("delivery_performances")
+}
+
+// 用戶採購歷史聚合（用於快速分析）
+model UserPurchaseHistory {
+  id         String  @id @default(cuid())
+  userId     String
+  productId  String
+  supplierId String?
+
+  // 採購統計
+  totalQuantity       Int       @default(0) // 總採購數量
+  totalOrders         Int       @default(0) // 採購次數
+  lastPurchasedAt     DateTime? // 最後採購時間
+  avgPurchaseInterval Int? // 平均採購間隔（天）
+
+  // 時間戳記
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 關聯
+  user     User      @relation(fields: [userId], references: [id])
+  product  Product   @relation(fields: [productId], references: [id])
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+
+  @@unique([userId, productId, supplierId])
+  @@index([userId])
+  @@index([productId])
+  @@map("user_purchase_histories")
+}
+
+// ============================================
+// Phase 9: 通知與即時更新系統 - 新增模型
+// ============================================
+
+// 通知類型枚舉
+enum NotificationType {
+  SUPPLIER_APPLICATION // 供應商申請相關
+  ORDER_STATUS // 訂單狀態更新
+  PAYMENT_REMINDER // 繳費提醒
+  PURCHASE_RECOMMENDATION // 採購推薦
+  SUPPLIER_RATING // 供應商評分
+  DELIVERY_PREDICTION // 交貨預測
+  SYSTEM_ANNOUNCEMENT // 系統公告
+  SECURITY_ALERT // 安全警示
+}
+
+// 通知狀態枚舉
+enum NotificationStatus {
+  UNREAD // 未讀
+  READ // 已讀
+  ARCHIVED // 已歸檔
+  DELETED // 已刪除
+}
+
+// 通知傳送方式枚舉
+enum NotificationChannel {
+  IN_APP // 站內通知
+  EMAIL // 電子郵件
+  PUSH // 推播通知
+  SMS // 簡訊
+  ALL // 所有渠道
+}
+
+// 通知主表
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   // 接收用戶
+  
+  // 通知內容
+  type      NotificationType
+  title     String   @db.VarChar(200)
+  content   String   @db.Text
+  data      Json?    // 附加數據（JSON格式）
+  
+  // 狀態與時間
+  status    NotificationStatus @default(UNREAD)
+  channels  NotificationChannel[] // 實際發送渠道
+  isRead    Boolean  @default(false)
+  readAt    DateTime?
+  isSent    Boolean  @default(false)
+  sentAt    DateTime?
+  
+  // 關聯與引用
+  relatedId   String? // 相關記錄ID（如訂單ID、申請ID等）
+  relatedType String? // 相關記錄類型
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
+  
+  @@index([userId])
+  @@index([userId, status])
+  @@index([userId, type])
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// 用戶通知偏好設定
+model NotificationPreference {
+  id       String @id @default(cuid())
+  userId   String @unique
+  
+  // 各類型通知偏好
+  supplierApplicationEnabled Boolean @default(true)
+  orderStatusEnabled         Boolean @default(true)
+  paymentReminderEnabled     Boolean @default(true)
+  purchaseRecommendationEnabled Boolean @default(true)
+  supplierRatingEnabled      Boolean @default(true)
+  deliveryPredictionEnabled  Boolean @default(true)
+  systemAnnouncementEnabled  Boolean @default(true)
+  securityAlertEnabled       Boolean @default(true)
+  
+  // 渠道偏好
+  preferredChannels NotificationChannel[] @default([IN_APP, EMAIL])
+  
+  // 靜默時段
+  quietStartHour Int? @default(22) // 22:00
+  quietEndHour   Int? @default(8)  // 08:00
+  quietEnabled   Boolean @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("notification_preferences")
+}
+
+// 通知模板
+model NotificationTemplate {
+  id      String @id @default(cuid())
+  
+  // 模板識別
+  name        String @unique
+  type        NotificationType
+  description String?
+  
+  // 模板內容
+  titleTemplate   String @db.Text
+  contentTemplate String @db.Text
+  emailSubject    String? @db.VarChar(200)
+  emailBody       String? @db.Text
+  pushTitle       String? @db.VarChar(100)
+  pushBody        String? @db.VarChar(200)
+  
+  // 變數定義
+  variables Json? // 可用變數定義
+  
+  // 狀態
+  isActive   Boolean @default(true)
+  isSystem   Boolean @default(false) // 系統內建模板
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("notification_templates")
+}
+
+// 通知發送記錄
+model NotificationDelivery {
+  id             String @id @default(cuid())
+  notificationId String
+  channel        NotificationChannel
+  
+  // 發送狀態
+  status      String @default("PENDING") // PENDING, SENT, FAILED, RETRYING
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  error       String?
+  retryCount  Int @default(0)
+  
+  // 收件人資訊
+  recipient   String // Email、裝置令牌等
+  externalId  String? // 外部服務ID（如 Twilio Message SID）
+  metadata    Json?  // 發送相關元數據
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  
+  @@index([notificationId])
+  @@index([channel])
+  @@index([status])
+  @@index([createdAt])
+  @@map("notification_deliveries")
+}
+
+// SMS 回調記錄
+model SmsCallbackLog {
+  id           String   @id @default(cuid())
+  messageSid   String   // Twilio Message SID
+  status       String   // Twilio 狀態
+  toNumber     String?  // 接收號碼
+  fromNumber   String?  // 發送號碼
+  errorCode    String?  // 錯誤代碼
+  errorMessage String?  // 錯誤訊息
+  rawData      Json?    // 原始回調數據
+  processed    Boolean  @default(false) // 是否已處理
+  processedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([messageSid])
+  @@index([status])
+  @@index([createdAt])
+  @@index([processed])
+  @@map("sms_callback_logs")
+}
+
+

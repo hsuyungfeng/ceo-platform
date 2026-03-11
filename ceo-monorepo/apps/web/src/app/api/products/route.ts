@@ -94,7 +94,6 @@ export async function GET(request: NextRequest) {
         include: {
           priceTiers: {
             orderBy: { minQty: 'asc' },
-            take: 1, // 只取最低價格
           },
           firm: {
             select: { name: true },
@@ -111,22 +110,78 @@ export async function GET(request: NextRequest) {
     ]);
 
     // 格式化回應資料
-    const formattedProducts = products.map(product => ({
-      id: product.id,
-      name: product.name,
-      subtitle: product.subtitle,
-      description: product.description,
-      image: product.image,
-      unit: product.unit,
-      spec: product.spec,
-      isFeatured: product.isFeatured,
-      startDate: product.startDate,
-      endDate: product.endDate,
-      totalSold: product.totalSold,
-      createdAt: product.createdAt,
-      price: product.priceTiers[0]?.price || 0,
-      firm: product.firm?.name || null,
-      category: product.category?.name || null,
+    const formattedProducts = await Promise.all(products.map(async product => {
+      // 計算團購期間
+      const now = new Date();
+      const isGroupBuyActive = !product.startDate || !product.endDate || 
+        (product.startDate <= now && product.endDate >= now);
+
+      // 計算目前集購數量
+      let currentGroupBuyQty = 0;
+      if (isGroupBuyActive && product.startDate && product.endDate) {
+        const orderItems = await prisma.orderItem.findMany({
+          where: {
+            productId: product.id,
+            order: {
+              status: {
+                in: ['CONFIRMED', 'PENDING', 'SHIPPED', 'COMPLETED'],
+              },
+              createdAt: {
+                gte: product.startDate,
+                lte: product.endDate,
+              },
+            },
+          },
+          select: {
+            quantity: true,
+          },
+        });
+        currentGroupBuyQty = orderItems.reduce((sum, item) => sum + item.quantity, 0);
+      }
+
+      // 計算建議購買數量
+      let suggestedQty = 1;
+      if (product.priceTiers.length > 1) {
+        const nextTier = product.priceTiers.find(tier => tier.minQty > currentGroupBuyQty);
+        if (nextTier) {
+          suggestedQty = nextTier.minQty;
+        }
+      }
+
+      // 計算距離下一個階梯
+      let qtyToNextTier = 0;
+      if (product.priceTiers.length > 1) {
+        const nextTier = product.priceTiers.find(tier => tier.minQty > currentGroupBuyQty);
+        if (nextTier) {
+          qtyToNextTier = nextTier.minQty - currentGroupBuyQty;
+        }
+      }
+
+      return {
+        id: product.id,
+        name: product.name,
+        subtitle: product.subtitle,
+        description: product.description,
+        image: product.image,
+        unit: product.unit,
+        spec: product.spec,
+        isFeatured: product.isFeatured,
+        startDate: product.startDate,
+        endDate: product.endDate,
+        totalSold: product.totalSold,
+        createdAt: product.createdAt,
+        price: product.priceTiers[0]?.price || 0,
+        priceTiers: product.priceTiers.map(tier => ({
+          minQty: tier.minQty,
+          price: tier.price,
+        })),
+        currentGroupBuyQty,
+        qtyToNextTier,
+        suggestedQty,
+        isGroupBuyActive,
+        firm: product.firm?.name || null,
+        category: product.category?.name || null,
+      };
     }));
 
     return NextResponse.json({

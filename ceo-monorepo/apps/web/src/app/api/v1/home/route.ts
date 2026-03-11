@@ -1,0 +1,199 @@
+import { NextRequest } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { 
+  withOptionalAuth, 
+  createSuccessResponse, 
+  createErrorResponse,
+  ErrorCode
+} from '@/lib/api-middleware';
+import { 
+  SYSTEM_ERRORS 
+} from '@/lib/constants';
+
+/**
+ * 首頁 API - v1 版本
+ * 
+ * 提供首頁需要的所有數據，包括：
+ * 1. 熱門商品
+ * 2. 商品分類
+ * 3. 最新商品
+ * 4. 統計數據
+ * 
+ * 此 API 使用新的中介層系統，提供標準化的響應格式和錯誤處理。
+ * 
+ * @version 1.0.0
+ * @route GET /api/v1/home
+ */
+export const GET = withOptionalAuth(async (request: NextRequest, { authData }) => {
+  try {
+    // 並行獲取所有首頁需要的數據
+    const [featuredProducts, categories, latestProducts] = await Promise.all([
+      // 獲取熱門商品（最多4個）
+      prisma.product.findMany({
+        where: {
+          isActive: true,
+          isFeatured: true,
+          endDate: {
+            gt: new Date(), // 只取未結束的團購
+          },
+        },
+        include: {
+          firm: {
+            select: {
+              name: true,
+            },
+          },
+          category: {
+            select: {
+              name: true,
+            },
+          },
+          priceTiers: {
+            orderBy: {
+              minQty: 'asc',
+            },
+            take: 1,
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 4,
+      }),
+      // 獲取分類（只取頂級分類）
+      prisma.category.findMany({
+        where: {
+          level: 1,
+          isActive: true,
+        },
+        include: {
+          _count: {
+            select: {
+              products: {
+                where: {
+                  isActive: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          sortOrder: 'asc',
+        },
+        take: 6,
+      }),
+      // 獲取最新商品（最多4個）
+      prisma.product.findMany({
+        where: {
+          isActive: true,
+          endDate: {
+            gt: new Date(),
+          },
+        },
+        include: {
+          firm: {
+            select: {
+              name: true,
+            },
+          },
+          category: {
+            select: {
+              name: true,
+            },
+          },
+          priceTiers: {
+            orderBy: {
+              minQty: 'asc',
+            },
+            take: 1,
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 4,
+      }),
+    ]);
+
+    // 格式化熱門商品
+    const formattedFeaturedProducts = featuredProducts.map(product => {
+      const lowestPrice = product.priceTiers[0]?.price || 0;
+      const endDate = new Date(product.endDate!);
+      const now = new Date();
+      const timeLeftMs = endDate.getTime() - now.getTime();
+      
+      return {
+        id: product.id,
+        name: product.name,
+        subtitle: product.subtitle,
+        image: product.image,
+        unit: product.unit,
+        isFeatured: product.isFeatured,
+        startDate: product.startDate,
+        endDate: product.endDate,
+        totalSold: product.totalSold,
+        price: lowestPrice,
+        firm: product.firm?.name || '未知廠商',
+        category: product.category?.name || '未分類',
+        timeLeft: {
+          days: Math.floor(timeLeftMs / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((timeLeftMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        },
+      };
+    });
+
+    // 格式化分類
+    const formattedCategories = categories.map(category => ({
+      id: category.id,
+      name: category.name,
+      level: category.level,
+      sortOrder: category.sortOrder,
+      productCount: category._count.products,
+    }));
+
+    // 格式化最新商品
+    const formattedLatestProducts = latestProducts.map(product => {
+      const lowestPrice = product.priceTiers[0]?.price || 0;
+      
+      return {
+        id: product.id,
+        name: product.name,
+        subtitle: product.subtitle,
+        image: product.image,
+        unit: product.unit,
+        isFeatured: product.isFeatured,
+        startDate: product.startDate,
+        endDate: product.endDate,
+        totalSold: product.totalSold,
+        price: lowestPrice,
+        firm: product.firm?.name || '未知廠商',
+        category: product.category?.name || '未分類',
+      };
+    });
+
+    return createSuccessResponse({
+      featuredProducts: formattedFeaturedProducts,
+      categories: formattedCategories,
+      latestProducts: formattedLatestProducts,
+      stats: {
+        totalProducts: await prisma.product.count({ where: { isActive: true } }),
+        totalCategories: await prisma.category.count({ where: { isActive: true } }),
+        activeGroupBuys: await prisma.product.count({
+          where: {
+            isActive: true,
+            endDate: {
+              gt: new Date(),
+            },
+          },
+        }),
+      },
+    });
+  } catch (error) {
+    console.error('獲取首頁數據時發生錯誤:', error);
+    return createErrorResponse(
+      ErrorCode.INTERNAL_ERROR,
+      SYSTEM_ERRORS.INTERNAL_ERROR,
+      error instanceof Error ? error.message : '未知錯誤'
+    );
+  }
+});

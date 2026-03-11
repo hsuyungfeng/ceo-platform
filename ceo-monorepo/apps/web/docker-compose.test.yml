@@ -1,0 +1,71 @@
+# ============================================
+# CEO Platform - Docker Compose for Testing
+# ============================================
+# 測試環境專用：PostgreSQL 測試資料庫
+# 使用：docker-compose -f docker-compose.test.yml up -d
+# 停止：docker-compose -f docker-compose.test.yml down -v
+
+version: '3.8'
+
+# 定義網路
+networks:
+  ceo-test-network:
+    driver: bridge
+
+# 定義卷（測試環境通常不持久化）
+volumes:
+  postgres-test-data:
+    driver: local
+
+# 服務定義
+services:
+  # ============ PostgreSQL 測試資料庫 ============
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: ceo-postgres-test
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ceo_platform_test
+      POSTGRES_USER: ceo_test
+      POSTGRES_PASSWORD: TestPassword123!
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+      - ./prisma/test-init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5433:5432"  # 使用不同端口，避免與開發環境衝突
+    networks:
+      - ceo-test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ceo_test -d ceo_platform_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    command: >
+      postgres
+      -c max_connections=50
+      -c shared_buffers=128MB
+      -c effective_cache_size=512MB
+      -c maintenance_work_mem=32MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=8MB
+      -c default_statistics_target=100
+
+# ============================================
+# 使用說明:
+# 1. 啟動測試資料庫: docker-compose -f docker-compose.test.yml up -d
+# 2. 檢查狀態: docker-compose -f docker-compose.test.yml ps
+# 3. 執行遷移: npm run db:push:test 或 npm run db:migrate:test
+# 4. 執行測試: npm run test:integration
+# 5. 停止並清理: docker-compose -f docker-compose.test.yml down -v
+#
+# 環境變數配置:
+# 測試環境應使用 DATABASE_URL_TEST 變數:
+# DATABASE_URL_TEST="postgresql://ceo_test:TestPassword123!@localhost:5433/ceo_platform_test"
+#
+# 注意事項:
+# - 測試資料庫使用不同端口 (5433) 避免與開發環境衝突
+# - 測試資料不持久化，每次測試應重新建立乾淨的資料庫
+# - 建議在測試前執行資料庫重置以確保測試隔離性
+# ============================================

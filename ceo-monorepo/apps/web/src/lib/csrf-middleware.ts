@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { csrfProtection } from '@/lib/csrf-protection';
+import { enhancedCSRFProtection } from '@/lib/csrf-protection-enhanced';
+import { auditLogger } from '@/lib/audit-logger';
 import { logger } from '@/lib/logger';
 
 /**
@@ -44,10 +45,15 @@ export async function validateCSRFToken(request: NextRequest) {
   const sessionId = request.cookies.get('sessionId')?.value;
 
   if (!token || !sessionId) {
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip');
+    
     logger.warn(
       { pathname, hasToken: !!token, hasSession: !!sessionId },
       'CSRF 令牌或會話 ID 缺失'
     );
+
+    // 記錄審計日誌
+    auditLogger.csrfFailure(sessionId || 'unknown', pathname, ip || undefined);
 
     return NextResponse.json(
       {
@@ -59,13 +65,29 @@ export async function validateCSRFToken(request: NextRequest) {
   }
 
   // Verify CSRF token
-  const isValid = csrfProtection.verifyToken(sessionId, token);
+  if (!enhancedCSRFProtection) {
+    logger.error('CSRF 保護未初始化，請檢查 CSRF_SECRET 環境變數');
+    return NextResponse.json(
+      {
+        error: '伺服器配置錯誤',
+        code: 'CSRF_CONFIG_ERROR',
+      },
+      { status: 500 }
+    );
+  }
+  
+  const isValid = await enhancedCSRFProtection.verifyToken(token, sessionId);
 
   if (!isValid) {
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip');
+    
     logger.warn(
       { pathname, sessionId: sessionId.substring(0, 8) },
       'CSRF 令牌驗證失敗'
     );
+
+    // 記錄審計日誌
+    auditLogger.csrfFailure(sessionId, pathname, ip || undefined);
 
     return NextResponse.json(
       {
@@ -83,18 +105,23 @@ export async function validateCSRFToken(request: NextRequest) {
 /**
  * Generate CSRF token for API endpoints
  */
-export function generateCSRFToken(sessionId: string): string {
-  return csrfProtection.generateToken(sessionId);
+export async function generateCSRFToken(sessionId: string): Promise<string> {
+  if (!enhancedCSRFProtection) {
+    throw new Error('CSRF 保護未初始化，請檢查 CSRF_SECRET 環境變數');
+  }
+  
+  const tokenData = await enhancedCSRFProtection.createToken(sessionId);
+  return tokenData.token;
 }
 
 /**
  * Add CSRF token to response cookies
  */
-export function addCSRFTokenToResponse(
+export async function addCSRFTokenToResponse(
   response: NextResponse,
   sessionId: string
-): NextResponse {
-  const token = generateCSRFToken(sessionId);
+): Promise<NextResponse> {
+  const token = await generateCSRFToken(sessionId);
 
   response.cookies.set('x-csrf-token', token, {
     httpOnly: false, // Allow JavaScript access for AJAX requests

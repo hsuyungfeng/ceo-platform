@@ -30,9 +30,9 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <AdminSidebar />
-      <div className="lg:pl-64">
+      <div className="lg:pl-64 transition-all duration-300">
         <AdminHeader user={safeUser} />
         <main className="py-6">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

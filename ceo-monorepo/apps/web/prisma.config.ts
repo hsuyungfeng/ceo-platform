@@ -9,6 +9,6 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"] || "postgresql://ceo_admin:SecureDevPass_2026!@localhost:5432/ceo_platform",
+    url: process.env["DATABASE_URL"] || "postgresql://ceo_admin:ChangeThisPassword123!@localhost:5432/ceo_platform_production",
   },
 });

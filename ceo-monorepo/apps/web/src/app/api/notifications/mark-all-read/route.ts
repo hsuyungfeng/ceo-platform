@@ -1,0 +1,31 @@
+// PATCH /api/notifications/mark-all-read - 標記所有通知為已讀
+import { NextRequest, NextResponse } from 'next/server'
+import { getAuthData } from '@/lib/auth-helper'
+import { NotificationService } from '@/lib/notification-service'
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const authData = await getAuthData(request)
+    if (!authData) {
+      return NextResponse.json({ error: '未授權' }, { status: 401 })
+    }
+
+    const result = await NotificationService.markAllAsRead(authData.user.id)
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        count: result.count,
+      },
+    })
+  } catch (error) {
+    console.error('標記所有通知為已讀失敗:', error)
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : '標記所有通知為已讀失敗' 
+      },
+      { status: 500 }
+    )
+  }
+}

@@ -9,7 +9,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { getGroupDiscount } from '@/lib/group-buying'
-import { Decimal } from '@prisma/client/runtime/library'
+import { Prisma } from '@prisma/client'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -93,7 +93,7 @@ export async function applyGroupRebates(summary: GroupFinalizeSummary): Promise<
     summary.orders.map(o =>
       prisma.order.update({
         where: { id: o.orderId },
-        data:  { groupRefund: new Decimal(o.rebateAmt) },
+        data:  { groupRefund: new Prisma.Decimal(o.rebateAmt) },
       })
     )
   )
@@ -140,7 +140,7 @@ export async function createRebateInvoices(
         billingMonth,
         billingStartDate: now,
         billingEndDate:   now,
-        totalAmount:    new Decimal(o.rebateAmt),
+        totalAmount:    new Prisma.Decimal(o.rebateAmt),
         totalItems:     o.qty,
         status:         'DRAFT',
         isGroupInvoice: true,
@@ -151,7 +151,7 @@ export async function createRebateInvoices(
             productName: item.product?.name ?? '商品',
             quantity:   item.quantity,
             unitPrice:  item.unitPrice,
-            subtotal:   new Decimal(
+            subtotal:   new Prisma.Decimal(
               Math.round(Number(item.subtotal) * summary.discountRate * 100) / 100
             ),
           })),

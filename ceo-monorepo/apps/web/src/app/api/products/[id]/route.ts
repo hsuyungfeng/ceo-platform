@@ -67,6 +67,29 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // 計算目前集購數量（統計團購期間內的訂單數量）
+    let currentGroupBuyQty = 0;
+    if (product.startDate && product.endDate) {
+      const orderItems = await prisma.orderItem.findMany({
+        where: {
+          productId: id,
+          order: {
+            status: {
+              in: ['CONFIRMED', 'PENDING', 'SHIPPED', 'COMPLETED'],
+            },
+            createdAt: {
+              gte: product.startDate,
+              lte: product.endDate,
+            },
+          },
+        },
+        select: {
+          quantity: true,
+        },
+      });
+      currentGroupBuyQty = orderItems.reduce((sum, item) => sum + item.quantity, 0);
+    }
+
     // 計算價格區間
     const priceTiers = product.priceTiers.map(tier => ({
       minQty: tier.minQty,
@@ -80,6 +103,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       const nextTier = priceTiers.find(tier => tier.minQty > 1);
       if (nextTier) {
         suggestedQty = nextTier.minQty;
+      }
+    }
+
+    // 計算距離下一個階梯還需要多少數量
+    let qtyToNextTier = 0;
+    if (priceTiers.length > 1) {
+      const nextTier = priceTiers.find(tier => tier.minQty > currentGroupBuyQty);
+      if (nextTier) {
+        qtyToNextTier = nextTier.minQty - currentGroupBuyQty;
       }
     }
 
@@ -112,6 +144,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       updatedAt: product.updatedAt,
       priceTiers,
       suggestedQty,
+      currentGroupBuyQty,
+      qtyToNextTier,
       isGroupBuyActive,
       firm: product.firm,
       category: product.category ? {

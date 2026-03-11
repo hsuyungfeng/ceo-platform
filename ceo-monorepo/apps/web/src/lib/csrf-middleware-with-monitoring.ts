@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { csrfProtection } from '@/lib/csrf-protection';
+import { enhancedCSRFProtection } from '@/lib/csrf-protection-enhanced';
 import { logger } from '@/lib/logger';
 import { securityEventTracker, type SecurityEventContext, SecurityEventTracker } from '@/lib/security-event-tracker';
 
@@ -52,6 +52,19 @@ export async function validateCSRFTokenWithMonitoring(
     }
   }
 
+  // Check if CSRF protection is initialized
+  if (!enhancedCSRFProtection) {
+    logger.error('CSRF protection not initialized');
+    
+    return NextResponse.json(
+      {
+        error: '伺服器配置錯誤',
+        code: 'CSRF_NOT_INITIALIZED',
+      },
+      { status: 500 }
+    );
+  }
+
   // Get session ID from cookie
   const sessionId = request.cookies.get('sessionId')?.value;
 
@@ -77,8 +90,10 @@ export async function validateCSRFTokenWithMonitoring(
     );
   }
 
-  // Verify CSRF token
-  const isValid = csrfProtection.verifyToken(sessionId, token);
+  // Verify CSRF token using enhanced protection
+  const isValid = enhancedCSRFProtection 
+    ? await enhancedCSRFProtection.verifyCSRFToken(sessionId, token)
+    : false;
 
   if (!isValid) {
     logger.warn(
@@ -144,8 +159,12 @@ export async function validateCSRFWithPerformance(
 /**
  * Generate CSRF token with logging
  */
-export function generateCSRFTokenWithTracking(sessionId: string): string {
-  const token = csrfProtection.generateToken(sessionId);
+export async function generateCSRFTokenWithTracking(sessionId: string): Promise<string> {
+  if (!enhancedCSRFProtection) {
+    throw new Error('CSRF protection not initialized');
+  }
+
+  const token = await enhancedCSRFProtection.generateCSRFToken(sessionId);
 
   logger.info(
     { sessionId: sessionId.substring(0, 8) },

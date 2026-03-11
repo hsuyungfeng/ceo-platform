@@ -4,6 +4,9 @@ import "./globals.css";
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { SonnerToaster } from '@/components/ui/sonner';
+import AuthProvider from '@/components/auth-provider';
+import { WebSocketProvider } from '@/contexts/websocket-context';
+import { ThemeProvider } from '@/contexts/theme-context';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,14 +29,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-TW">
+    <html lang="zh-TW" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Header />
-        <main className="min-h-screen">{children}</main>
-        <Footer />
-        <SonnerToaster />
+        <ThemeProvider>
+          <AuthProvider>
+            <WebSocketProvider>
+              <Header />
+              <main className="min-h-screen">{children}</main>
+              <Footer />
+              <SonnerToaster />
+            </WebSocketProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

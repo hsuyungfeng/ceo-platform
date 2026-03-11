@@ -89,16 +89,43 @@ export class EmailService {
   }
 
   async sendWelcomeEmail(email: string, userName?: string) {
-    const dashboardLink = `${process.env.NEXTAUTH_URL}/dashboard`;
     const html = createWelcomeEmailTemplate({
       ...this.baseTemplateProps,
       userName,
-      dashboardLink,
+      dashboardLink: `${process.env.NEXTAUTH_URL || 'https://ceo-buy.com'}/dashboard`,
     });
 
     return this.sendEmail(
       email,
       `歡迎加入${EMAIL_CONFIG.companyName}`,
+      html
+    );
+  }
+
+  async sendNotificationEmail(
+    email: string,
+    notificationTitle: string,
+    notificationMessage: string,
+    notificationType: string,
+    notificationDate: string,
+    userName?: string,
+    actionUrl?: string,
+    actionText?: string
+  ) {
+    const html = createNotificationEmailTemplate({
+      ...this.baseTemplateProps,
+      userName,
+      notificationTitle,
+      notificationMessage,
+      notificationType,
+      notificationDate,
+      actionUrl,
+      actionText
+    });
+
+    return this.sendEmail(
+      email,
+      `[${EMAIL_CONFIG.companyName}] ${notificationTitle}`,
       html
     );
   }

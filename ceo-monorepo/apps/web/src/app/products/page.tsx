@@ -3,29 +3,38 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, SlidersHorizontal } from 'lucide-react';
+import { Search, SlidersHorizontal, Users, TrendingUp } from 'lucide-react';
 
-// Mock data for products
-const mockProducts = [
-  { id: 1, name: '醫療口罩', price: 150, originalPrice: 200, discount: 25, image: '/placeholder-product.svg', category: '醫療耗材', firm: '健康醫療器材', featured: true },
-  { id: 2, name: '酒精乾洗手', price: 280, originalPrice: 350, discount: 20, image: '/placeholder-product.svg', category: '衛生用品', firm: '潔淨生活', featured: true },
-  { id: 3, name: '血壓計', price: 2450, originalPrice: 2900, discount: 15, image: '/placeholder-product.svg', category: '醫療設備', firm: '精密儀器', featured: true },
-  { id: 4, name: '血糖儀', price: 1800, originalPrice: 2200, discount: 18, image: '/placeholder-product.svg', category: '檢測設備', firm: '健康科技', featured: true },
-  { id: 5, name: '體溫槍', price: 1200, originalPrice: 1500, discount: 20, image: '/placeholder-product.svg', category: '檢測設備', firm: '智慧醫療', featured: false },
-  { id: 6, name: '輪椅', price: 8500, originalPrice: 10000, discount: 15, image: '/placeholder-product.svg', category: '輔具', firm: '康復器材', featured: false },
-  { id: 7, name: '拐杖', price: 650, originalPrice: 800, discount: 19, image: '/placeholder-product.svg', category: '輔具', firm: '康復器材', featured: false },
-  { id: 8, name: '病床', price: 15000, originalPrice: 18000, discount: 17, image: '/placeholder-product.svg', category: '醫療家具', firm: '醫院設備', featured: false },
-];
+interface PriceTier {
+  minQty: number;
+  price: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  subtitle?: string;
+  image?: string;
+  unit?: string;
+  category?: string;
+  firm?: string;
+  isFeatured: boolean;
+  priceTiers: PriceTier[];
+  currentGroupBuyQty: number;
+  qtyToNextTier: number;
+  isGroupBuyActive: boolean;
+}
 
 function ProductsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  const [products, setProducts] = useState(mockProducts);
-  const [filteredProducts, setFilteredProducts] = useState(mockProducts);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState('featured');
@@ -38,15 +47,35 @@ function ProductsContent() {
     }
   }, [searchParams]);
 
+  // Fetch products from API
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const response = await fetch('/api/products?limit=100');
+        const data = await response.json();
+        
+        if (data.data) {
+          setProducts(data.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch products:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProducts();
+  }, []);
+
   // Filter and sort products
   useEffect(() => {
-    let result = [...mockProducts];
+    let result = [...products];
     
     // Apply search filter
     if (searchTerm) {
       result = result.filter(product => 
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchTerm.toLowerCase())
+        product.category?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
@@ -58,25 +87,33 @@ function ProductsContent() {
     // Apply sorting
     switch (sortOption) {
       case 'price-low':
-        result.sort((a, b) => a.price - b.price);
+        result.sort((a, b) => {
+          const priceA = a.priceTiers?.[0]?.price ? Number(a.priceTiers[0].price) : 0;
+          const priceB = b.priceTiers?.[0]?.price ? Number(b.priceTiers[0].price) : 0;
+          return priceA - priceB;
+        });
         break;
       case 'price-high':
-        result.sort((a, b) => b.price - a.price);
+        result.sort((a, b) => {
+          const priceA = a.priceTiers?.[0]?.price ? Number(a.priceTiers[0].price) : 0;
+          const priceB = b.priceTiers?.[0]?.price ? Number(b.priceTiers[0].price) : 0;
+          return priceB - priceA;
+        });
         break;
       case 'name':
         result.sort((a, b) => a.name.localeCompare(b.name));
         break;
       case 'featured':
       default:
-        result.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+        result.sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0));
         break;
     }
     
     setFilteredProducts(result);
-  }, [searchTerm, selectedCategory, sortOption]);
+  }, [products, searchTerm, selectedCategory, sortOption]);
 
   // Extract unique categories
-  const categories = Array.from(new Set(mockProducts.map(p => p.category)));
+  const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +123,149 @@ function ProductsContent() {
       router.push('?');
     }
   };
+
+  const getLowestPrice = (product: Product) => {
+    if (!product.priceTiers?.length) return null;
+    return product.priceTiers.reduce((min, tier) => 
+      Number(tier.price) < Number(min.price) ? tier : min
+    , product.priceTiers[0]);
+  };
+
+  const renderProductCard = (product: Product) => {
+    const lowestPrice = getLowestPrice(product);
+    const hasTierPricing = product.priceTiers && product.priceTiers.length > 1;
+
+    return (
+      <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+        <div 
+          className="relative h-48 bg-gray-200 cursor-pointer"
+          onClick={() => router.push(`/products/${product.id}`)}
+        >
+          <img 
+            src={product.image || '/placeholder-product.svg'} 
+            alt={product.name} 
+            className="w-full h-full object-cover"
+          />
+          {product.isFeatured && (
+            <Badge className="absolute top-2 left-2 bg-red-500">熱門</Badge>
+          )}
+          {hasTierPricing && (
+            <Badge className="absolute top-2 right-2 bg-green-500 flex items-center gap-1">
+              <TrendingUp className="w-3 h-3" />
+              階梯價
+            </Badge>
+          )}
+        </div>
+        <CardHeader className="pb-2">
+          <CardTitle 
+            className="text-lg cursor-pointer hover:text-blue-600"
+            onClick={() => router.push(`/products/${product.id}`)}
+          >
+            {product.name}
+          </CardTitle>
+          <div className="text-sm text-muted-foreground">
+            <div>{product.category || '未分類'}</div>
+            <div className="text-xs text-gray-500">{product.firm || '未知供應商'}</div>
+          </div>
+        </CardHeader>
+        
+        {/* 狀態條 - 集購進度 */}
+        {product.isGroupBuyActive && (
+          <CardContent className="pt-0">
+            <div className="bg-blue-50 rounded-lg p-3 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-1 text-blue-600">
+                  <Users className="w-4 h-4" />
+                  <span>集購進度</span>
+                </div>
+                <span className="font-bold text-blue-600">
+                  {product.currentGroupBuyQty} {product.unit || '個'}
+                </span>
+              </div>
+              
+              {/* 進度條 */}
+              {product.priceTiers && product.priceTiers.length > 0 && (
+                <>
+                  <div className="h-2 bg-blue-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-300"
+                      style={{ 
+                        width: `${Math.min(100, (product.currentGroupBuyQty / (product.priceTiers[product.priceTiers.length - 1]?.minQty || 1)) * 100)}%` 
+                      }}
+                    />
+                  </div>
+                  
+                  {/* 下一個目標 */}
+                  {product.qtyToNextTier > 0 ? (
+                    <p className="text-xs text-blue-600">
+                      再 <span className="font-bold">{product.qtyToNextTier}</span> {product.unit || '個'} 享更低價！
+                    </p>
+                  ) : (
+                    <p className="text-xs text-green-600 font-medium">
+                      已達最低價！
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+            
+            <div className="flex justify-between items-center mt-3">
+              <div>
+                {hasTierPricing ? (
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-red-600 font-bold">NT${lowestPrice?.price}</span>
+                    <span className="text-gray-400 text-xs">起</span>
+                  </div>
+                ) : (
+                  <span className="text-red-600 font-bold">NT${lowestPrice?.price || '-'}</span>
+                )}
+              </div>
+              <Button 
+                size="sm" 
+                onClick={() => router.push(`/products/${product.id}`)}
+              >
+                詳情
+              </Button>
+            </div>
+          </CardContent>
+        )}
+        
+        {!product.isGroupBuyActive && (
+          <CardContent>
+            <div className="flex justify-between items-center">
+              <div>
+                {hasTierPricing ? (
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-red-600 font-bold">NT${lowestPrice?.price}</span>
+                    <span className="text-gray-400 text-xs">起</span>
+                  </div>
+                ) : (
+                  <span className="text-red-600 font-bold">NT${lowestPrice?.price || '-'}</span>
+                )}
+              </div>
+              <Button 
+                size="sm" 
+                onClick={() => router.push(`/products/${product.id}`)}
+              >
+                詳情
+              </Button>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">載入中...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -109,14 +289,14 @@ function ProductsContent() {
                     className="w-full justify-start"
                     onClick={() => setSelectedCategory(null)}
                   >
-                    全部 ({mockProducts.length})
+                    全部 ({products.length})
                   </Button>
                   {categories.map(category => (
                     <Button
                       key={category}
                       variant={selectedCategory === category ? "secondary" : "ghost"}
                       className="w-full justify-start"
-                      onClick={() => setSelectedCategory(category)}
+                      onClick={() => setSelectedCategory(category as string)}
                     >
                       {category}
                     </Button>
@@ -177,42 +357,8 @@ function ProductsContent() {
             </form>
             
             {/* Products grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredProducts.map((product) => (
-                <Card key={product.id} className="overflow-hidden">
-                  <div className="relative h-48 bg-gray-200">
-                    <img 
-                      src={product.image} 
-                      alt={product.name} 
-                      className="w-full h-full object-cover"
-                    />
-                    {product.featured && (
-                      <Badge className="absolute top-2 left-2 bg-red-500">熱門</Badge>
-                    )}
-                  </div>
-                   <CardHeader>
-                     <CardTitle className="text-lg">{product.name}</CardTitle>
-                     <div className="text-sm text-muted-foreground">
-                       <div>{product.category}</div>
-                       <div className="text-xs text-gray-500">{product.firm}</div>
-                     </div>
-                   </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <span className="text-red-600 font-bold">${product.price}</span>
-                        <span className="line-through text-gray-500 ml-2 text-sm">${product.originalPrice}</span>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        onClick={() => router.push(`/products/${product.id}`)}
-                      >
-                        詳情
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-4 gap-6">
+              {filteredProducts.map(renderProductCard)}
             </div>
             
             {filteredProducts.length === 0 && (

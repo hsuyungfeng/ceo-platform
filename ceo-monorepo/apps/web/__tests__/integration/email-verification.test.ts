@@ -4,16 +4,35 @@ import { describe, it, expect, beforeAll, afterAll, jest } from '@jest/globals';
 // Mock the email service before imports
 jest.mock('@/lib/email/service', () => ({
   emailService: {
+    // @ts-ignore
     sendVerificationEmail: jest.fn().mockResolvedValue({ id: 'mock-email-id' }),
+    // @ts-ignore
     sendResetPasswordEmail: jest.fn().mockResolvedValue({ id: 'mock-email-id' }),
+    // @ts-ignore
     sendTwoFactorCode: jest.fn().mockResolvedValue({ id: 'mock-email-id' }),
   },
 }));
+
+// Mock Resend module to avoid API key requirement
+jest.mock('resend', () => {
+  console.log('🔄 Mocking resend module');
+  return {
+    Resend: jest.fn().mockImplementation(() => {
+      console.log('🔄 Resend constructor called');
+      return {
+        emails: {
+          send: jest.fn().mockResolvedValue({ data: { id: 'mock-email-id' }, error: null }),
+        },
+      };
+    }),
+  };
+});
 
 // Mock Resend to avoid API key issues
 jest.mock('@/lib/email/config', () => ({
   resend: {
     emails: {
+      // @ts-ignore
       send: jest.fn().mockResolvedValue({ data: { id: 'mock-email-id' }, error: null }),
     },
   },
@@ -31,8 +50,35 @@ jest.mock('@/lib/email/config', () => ({
   },
 }));
 
+// Mock rate limiter to always allow
+jest.mock('@/lib/rate-limiter', () => ({
+  emailRateLimiter: {
+    check: jest.fn().mockReturnValue({ allowed: true, remaining: 10, resetTime: Date.now() + 60000 }),
+  },
+}));
+
+// Mock logger
+jest.mock('@/lib/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
+}));
+
 import { prisma } from '@/lib/prisma';
 import { hash } from 'bcryptjs';
+
+// Import email route handlers
+import { POST as sendVerifyEmail } from '@/app/api/auth/email/send-verify/route';
+import { POST as verifyEmail } from '@/app/api/auth/email/verify/route';
+import { POST as forgotPassword } from '@/app/api/auth/email/forgot/route';
+import { POST as resetPassword } from '@/app/api/auth/email/reset/route';
+
+// Helper to create mock NextRequest
+const createMockNextRequest = (url: string, init?: RequestInit): any => {
+  return new Request(url, init);
+};
 
 // Set environment variables
 process.env.NEXTAUTH_URL = 'http://localhost:3000';
@@ -84,7 +130,7 @@ describe('Email Verification System Integration Tests', () => {
     });
 
     // 測試發送驗證郵件API
-    const response = await fetch('http://localhost:3000/api/auth/email/send-verify', {
+    const request = createMockNextRequest('http://localhost:3000/api/auth/email/send-verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -92,6 +138,7 @@ describe('Email Verification System Integration Tests', () => {
         purpose: 'VERIFY_EMAIL',
       }),
     });
+    const response = await sendVerifyEmail(request);
 
     expect(response.status).toBe(200);
     const result = await response.json();
@@ -134,13 +181,14 @@ describe('Email Verification System Integration Tests', () => {
     });
 
     // 測試驗證郵件API
-    const response = await fetch('http://localhost:3000/api/auth/email/verify', {
+    const request = createMockNextRequest('http://localhost:3000/api/auth/email/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         token: 'test-verification-token',
       }),
     });
+    const response = await verifyEmail(request);
 
     expect(response.status).toBe(200);
     const result = await response.json();
@@ -212,13 +260,14 @@ describe('Email Verification System Integration Tests', () => {
     });
 
     // 測試忘記密碼API
-    const response = await fetch('http://localhost:3000/api/auth/email/forgot', {
+    const request = createMockNextRequest('http://localhost:3000/api/auth/email/forgot', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email: testEmail,
       }),
     });
+    const response = await forgotPassword(request);
 
     expect(response.status).toBe(200);
     const result = await response.json();

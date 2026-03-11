@@ -1,7 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { 
+  withOptionalAuth, 
+  createSuccessResponse, 
+  createErrorResponse,
+  ErrorCode
+} from '@/lib/api-middleware';
+import { 
+  SYSTEM_ERRORS 
+} from '@/lib/constants';
 
-export async function GET(request: NextRequest) {
+export const GET = withOptionalAuth(async (request: NextRequest, { authData }) => {
   try {
     // 並行獲取所有首頁需要的數據
     const [featuredProducts, categories, latestProducts] = await Promise.all([
@@ -148,7 +157,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({
+    return createSuccessResponse({
       featuredProducts: formattedFeaturedProducts,
       categories: formattedCategories,
       latestProducts: formattedLatestProducts,
@@ -167,9 +176,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('獲取首頁數據時發生錯誤:', error);
-    return NextResponse.json(
-      { error: '獲取首頁數據失敗' },
-      { status: 500 }
+    return createErrorResponse(
+      ErrorCode.INTERNAL_ERROR,
+      SYSTEM_ERRORS.INTERNAL_ERROR,
+      error instanceof Error ? error.message : '未知錯誤'
     );
   }
-}
+});

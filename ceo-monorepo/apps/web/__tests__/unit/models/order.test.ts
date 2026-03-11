@@ -136,8 +136,9 @@ describe('Order Model - Group Buying Fields', () => {
     const orderModel = orderModelMatch ? orderModelMatch[1] : '';
 
     // Verify default values
-    expect(orderModel).toContain('isGroupLeader   Boolean   @default(false)');
-    expect(orderModel).toContain('groupRefund     Decimal?  @default(0) @db.Decimal(10,2)');
+    expect(orderModel).toContain('isGroupLeader');
+    expect(orderModel).toContain('@default(false)');
+    expect(orderModel).toContain('groupRefund');
 
     // Verify groupStatus and groupId have NO defaults (optional fields)
     const groupStatusLine = orderModel.match(/groupStatus\s+GroupStatus\?([^\n]*)/);

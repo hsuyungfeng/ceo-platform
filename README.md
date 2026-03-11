@@ -1,109 +1,135 @@
-# CEO Platform Gem3 Transformation
+# CEO 平台 - 多供應商 B2B 批發平台
 
-**Status**: Phase 2.4 Ready to Launch 🚀 | Last Updated: 2026-02-28
+## 專案概述
 
-## Quick Links
+CEO 平台是一個現代化的多供應商 B2B 批發平台，專為批發商、零售商和供應商設計。平台提供完整的電子商務解決方案，包括供應商管理、批量採購、庫存管理、訂單處理和即時通知系統。
 
-### 📌 Current Phase (Phase 2.4: API Route Migration)
-- **[QUICK_START.md](./QUICK_START.md)** - 5-minute quick start guide
-- **[Gem3Plan.md](./Gem3Plan.md)** - Complete 6-phase plan with Phase 2.4 details
-- **[DailyProgress.md](./DailyProgress.md)** - Daily progress tracking
+## 技術架構
 
-### 📚 Phase 2.4 Documentation
-See [docs/phase-2.4/](./docs/phase-2.4/) for:
-- PHASE_2.4_KICKOFF.md - Launch plan and timeline
-- PHASE_2.4_ROUTE_MIGRATION.md - Implementation guide with 4 templates
+### 前端
+- **Web 應用**: Next.js 16.1.6 + React 19.2.3 + TypeScript + Tailwind CSS
+- **移動應用**: React Native / Expo
+- **UI 框架**: shadcn/ui + Radix UI
 
-### 📖 Phase 2.3 Reference
-See [docs/phase-2.3-reference/](./docs/phase-2.3-reference/) for:
-- PHASE_2.3_COMPLETION_SUMMARY.md - What was completed
-- POSTGRES_AUTH_TESTING.md - Testing guide and troubleshooting
+### 後端
+- **API 框架**: Next.js API Routes
+- **資料庫**: PostgreSQL + Prisma ORM
+- **認證**: NextAuth v5 (beta)
+- **緩存**: Redis
+- **隊列**: Celery (Python)
 
-### 🗂️ Archive & Context
-See [docs/archive/](./docs/archive/) for:
-- PROJECT_STATUS.md - Full project overview
-- Additional reference documentation
+### 開發工具
+- **包管理器**: pnpm (JavaScript/TypeScript), uv (Python)
+- **代碼檢查**: ESLint + Prettier
+- **測試**: Jest + Playwright + Docker 測試環境
+- **CI/CD**: GitHub Actions
+- **部署**: Vercel (Web), Railway (後端服務)
 
----
+## 專案狀態
 
-## 🎯 Phase 2.4 Overview
+### ✅ 已完成階段
+- Phase 1: 專案初始化與基礎架構
+- Phase 2: 使用者認證與授權系統
+- Phase 3: 核心資料模型與 API
+- Phase 4: 供應商管理系統
+- Phase 4.5: 產品目錄與庫存管理
+- Phase 5: 購物車與訂單系統
+- Phase 6: 支付整合與發票系統
+- Phase 7: 供應商系統增強
+- Phase 8: 批量採購優化
 
-**Goal**: Migrate 41 API routes from old system to PostgreSQL + Prisma
+### 📋 當前階段
+- Phase 9: 通知與即時更新系統 (規劃中)
 
-**Timeline**: 3 weeks (5 waves)
-```
-Wave 1 (Week 1):   Auth layer verification (5 routes)
-Wave 2 (Week 1-2): Public routes (8 routes)  
-Wave 3 (Week 2):   Email & OAuth routes (7 routes)
-Wave 4 (Week 2-3): User routes (7 routes)
-Wave 5 (Week 3):   Admin routes (22 routes)
-```
+## 快速開始
 
-**Status**: ✅ Phase 2.3 Complete | 🟢 Phase 2.4 Ready
+### 環境設置
+```bash
+# 安裝 Node.js 依賴
+cd ceo-monorepo
+pnpm install
 
----
+# 安裝 Python 依賴
+uv sync
 
-## 🚀 Get Started
-
-1. Read [QUICK_START.md](./QUICK_START.md) (5 minutes)
-2. Verify environment: `npx tsx scripts/test-postgres-raw.ts`
-3. Read [docs/phase-2.4/PHASE_2.4_KICKOFF.md](./docs/phase-2.4/PHASE_2.4_KICKOFF.md)
-4. Begin Wave 1 following [docs/phase-2.4/PHASE_2.4_ROUTE_MIGRATION.md](./docs/phase-2.4/PHASE_2.4_ROUTE_MIGRATION.md)
-
----
-
-## 📊 Project Structure
-
-```
-ceo-platform/
-├── README.md                    ← You are here
-├── QUICK_START.md              ← Start here for Phase 2.4
-├── Gem3Plan.md                 ← Complete 6-phase plan
-├── DailyProgress.md            ← Track daily progress
-│
-├── docs/
-│  ├── phase-2.4/               ← Phase 2.4 implementation
-│  │  ├── PHASE_2.4_KICKOFF.md
-│  │  └── PHASE_2.4_ROUTE_MIGRATION.md
-│  ├── phase-2.3-reference/     ← Phase 2.3 documentation
-│  │  ├── PHASE_2.3_COMPLETION_SUMMARY.md
-│  │  └── POSTGRES_AUTH_TESTING.md
-│  └── archive/                 ← Historical documentation
-│
-└── ceo-monorepo/apps/web/
-   ├── src/lib/prisma-auth.ts       ← Auth functions (✅)
-   ├── src/auth.ts                   ← NextAuth config (✅)
-   ├── scripts/test-postgres-raw.ts  ← DB tests (✅)
-   └── src/app/api/                  ← 41 routes to migrate
+# 啟動開發環境
+cd apps/web
+pnpm dev
 ```
 
----
+### 測試環境
+```bash
+# 啟動測試資料庫
+npm run test:db:start
 
-## ✅ What's Done (Phase 2.3)
+# 運行測試
+npm run test:integration
+```
 
-- PostgreSQL connection verified (3/3 tests)
-- 10 authentication functions implemented
-- NextAuth integration complete
-- Database initialized with 3 core tables
-- All authentication tests passing
+## 文件結構
 
-## 🟢 What's Ready (Phase 2.4)
+```
+ceo-monorepo/                    # 主要代碼庫
+├── apps/
+│   ├── web/                    # Next.js Web 應用
+│   └── mobile/                 # React Native 移動應用
+├── packages/                   # 共享包
+└── docs/                      # 專案文件
 
-- Complete implementation guide (20+ pages)
-- 4 route migration templates
-- Risk assessment and wave strategy
-- Testing framework and checklist
-- All prerequisites verified
+docs/                           # 當前文件
+├── README.md                  # 本文件
+├── AGENTS.md                  # OpenCode 代理配置
+└── DailyProgress.md           # 每日進度追蹤
 
----
+doc/                           # 歷史文件歸檔
+└── archive/                   # 歸檔項目
+```
 
-## 📞 Support
+## 開發指南
 
-**Quick Questions?** → [QUICK_START.md](./QUICK_START.md)
-**Implementation Help?** → [docs/phase-2.4/PHASE_2.4_ROUTE_MIGRATION.md](./docs/phase-2.4/PHASE_2.4_ROUTE_MIGRATION.md)
-**Full Context?** → [Gem3Plan.md](./Gem3Plan.md)
-**Testing Issues?** → [docs/phase-2.3-reference/POSTGRES_AUTH_TESTING.md](./docs/phase-2.3-reference/POSTGRES_AUTH_TESTING.md)
+### 代碼風格
+- 使用 TypeScript 嚴格模式
+- 遵循 ESLint 和 Prettier 配置
+- 使用繁體中文註解
+- 遵循現有代碼模式和結構
 
----
+### 測試要求
+- 新功能需包含單元測試
+- 重要功能需包含整合測試
+- 測試覆蓋率需達到 85% 以上
+- 使用 Docker 測試環境確保一致性
 
-**Ready to start Phase 2.4? Open [QUICK_START.md](./QUICK_START.md)** 🚀
+### 提交規範
+- 使用語義化提交訊息
+- 每個提交應專注於單一功能或修復
+- 提交前需通過所有測試和代碼檢查
+
+## 配置管理
+
+### 環境變數
+- 使用 `.env.local` 進行本地開發
+- 使用 `.env.test` 進行測試環境
+- 敏感資訊使用環境變數管理
+
+### 代理配置
+- OpenCode 配置: `opencode.jsonc`
+- 代理工作流程: `AGENTS.md`
+- Python 環境: `pyproject.toml`
+
+## 貢獻指南
+
+1. 創建功能分支
+2. 遵循代碼風格指南
+3. 添加相應測試
+4. 提交 Pull Request
+5. 通過代碼審查
+
+## 授權
+
+MIT License - 詳見 LICENSE 文件
+
+## 聯繫方式
+
+- 專案維護: CEO Platform Team
+- 問題回報: GitHub Issues
+- 文件更新: 定期更新 DailyProgress.md

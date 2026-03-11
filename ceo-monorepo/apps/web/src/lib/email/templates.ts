@@ -3,16 +3,13 @@
  * Professional, responsive HTML emails with consistent branding
  */
 
-const COLORS = {
-  primary: '#2563eb',
-  secondary: '#1e40af',
-  success: '#16a34a',
-  warning: '#ea580c',
-  error: '#dc2626',
-  gray: '#6b7280',
-  lightGray: '#e5e7eb',
-  darkGray: '#1f2937',
-} as const;
+  const COLORS = {
+    primary: "#2563eb",
+    success: "#16a34a",
+    warning: "#ea580c",
+    danger: "#dc2626",
+    gray: "#6b7280",
+  };
 
 const STYLES = {
   container: `
@@ -307,6 +304,126 @@ export function createWelcomeEmailTemplate(
           <div style="${STYLES.footer}">
             <p>© ${year} ${companyName}。保留所有權利。</p>
             <p>如有疑問，請聯絡我們：<a href="mailto:${supportEmail}" style="color: ${COLORS.primary}; text-decoration: none;">${supportEmail}</a></p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
+
+export function createNotificationEmailTemplate(params: {
+  companyName: string;
+  supportEmail: string;
+  year: number;
+  userName?: string;
+  notificationTitle: string;
+  notificationMessage: string;
+  notificationType: string;
+  notificationDate: string;
+  actionUrl?: string;
+  actionText?: string;
+}) {
+  const {
+    companyName,
+    supportEmail,
+    year,
+    userName,
+    notificationTitle,
+    notificationMessage,
+    notificationType,
+    notificationDate,
+    actionUrl,
+    actionText = '查看詳情'
+  } = params;
+
+  // 根據通知類型設置顏色
+  let typeColor = COLORS.primary;
+  let typeText = notificationType;
+  
+  switch (notificationType.toLowerCase()) {
+    case 'system_announcement':
+    case 'system':
+      typeColor = COLORS.primary;
+      typeText = '系統公告';
+      break;
+    case 'order_status':
+    case 'order':
+      typeColor = COLORS.success;
+      typeText = '訂單狀態';
+      break;
+    case 'payment_reminder':
+    case 'payment':
+      typeColor = COLORS.warning;
+      typeText = '付款提醒';
+      break;
+    case 'security_alert':
+    case 'security':
+      typeColor = COLORS.error;
+      typeText = '安全提醒';
+      break;
+    default:
+      typeColor = COLORS.gray;
+  }
+
+  return `
+    <!DOCTYPE html>
+    <html lang="zh-TW">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${notificationTitle} - ${companyName}</title>
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #f5f5f5;">
+        <div style="${STYLES.container}">
+          <!-- Header -->
+          <div style="${STYLES.header}">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 600;">${companyName}</h1>
+            <p style="margin: 10px 0 0; opacity: 0.9; font-size: 14px;">專業的醫療機構團購平台</p>
+          </div>
+
+          <!-- Body -->
+          <div style="${STYLES.body}">
+            \${userName ? \`<p style="margin: 0 0 20px; font-size: 16px;">親愛的 \${userName}，</p>\` : ''}
+            
+            <div style="margin-bottom: 25px; padding: 20px; background-color: #f8fafc; border-radius: 8px; border-left: 4px solid \${typeColor};">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 style="margin: 0; font-size: 20px; color: \${COLORS.darkGray};">\${notificationTitle}</h2>
+                <span style="background-color: \${typeColor}; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">
+                  \${typeText}
+                </span>
+              </div>
+              
+              <div style="color: \${COLORS.darkGray}; line-height: 1.6; margin-bottom: 15px;">
+                \${notificationMessage.split('\\n').map(line => \`<p style="margin: 0 0 10px;">\${line}</p>\`).join('')}
+              </div>
+              
+              <div style="color: \${COLORS.gray}; font-size: 14px; border-top: 1px solid \${COLORS.lightGray}; padding-top: 15px;">
+                <p style="margin: 0;">通知時間：\${notificationDate}</p>
+              </div>
+            </div>
+
+            \${actionUrl ? \`
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="\${actionUrl}" style="\${STYLES.button}">
+                \${actionText}
+              </a>
+            </div>
+            \` : ''}
+
+            <p style="color: \${COLORS.gray}; font-size: 14px; margin-top: 25px;">
+              此為系統自動發送的通知郵件，請勿直接回覆。<br>
+              如果您認為此通知有誤或需要幫助，請聯絡我們的客戶支持團隊。
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="\${STYLES.footer}">
+            <p>© \${year} \${companyName}。保留所有權利。</p>
+            <p>如有疑問，請聯絡我們：<a href="mailto:\${supportEmail}" style="color: \${COLORS.primary}; text-decoration: none;">\${supportEmail}</a></p>
+            <p style="margin-top: 10px; font-size: 11px; color: \${COLORS.gray};">
+              您可以隨時在<a href="\${process.env.NEXTAUTH_URL || 'https://ceo-buy.com'}/settings/notifications" style="color: \${COLORS.primary}; text-decoration: none;">通知設定</a>中管理您的通知偏好。
+            </p>
           </div>
         </div>
       </body>

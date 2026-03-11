@@ -1,0 +1,63 @@
+# ============================================
+# CEO Platform - Docker Compose for Development
+# ============================================
+# 開發環境專用，簡化配置
+
+version: '3.8'
+
+services:
+  # PostgreSQL 開發資料庫
+  postgres-dev:
+    image: postgres:16-alpine
+    container_name: ceo-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ceo_platform
+      POSTGRES_USER: ceo_admin
+      POSTGRES_PASSWORD: SecureDevPass_2026!
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ceo_admin -d ceo_platform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: >
+      postgres
+      -c max_connections=50
+      -c shared_buffers=128MB
+
+  # Redis 開發緩存
+  redis-dev:
+    image: redis:7-alpine
+    container_name: ceo-redis-dev
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass DevRedisPass_2026! --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-dev-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "DevRedisPass_2026!", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  postgres-dev-data:
+    driver: local
+  redis-dev-data:
+    driver: local
+
+# ============================================
+# 使用命令:
+# 1. 啟動開發環境: docker-compose -f docker-compose.dev.yml up -d
+# 2. 查看日誌: docker-compose -f docker-compose.dev.yml logs -f
+# 3. 停止環境: docker-compose -f docker-compose.dev.yml down
+# 4. 完全清理: docker-compose -f docker-compose.dev.yml down -v
+# ============================================

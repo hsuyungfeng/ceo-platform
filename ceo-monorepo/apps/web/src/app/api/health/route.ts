@@ -1,16 +1,26 @@
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { 
+  withOptionalAuth, 
+  withAuth,
+  createSuccessResponse, 
+  createErrorResponse,
+  ErrorCode
+} from '@/lib/api-middleware';
+import { 
+  SYSTEM_ERRORS 
+} from '@/lib/constants';
 
 // 健康檢查端點
 // GET /api/health
 
-export async function GET() {
+export const GET = withOptionalAuth(async (request: NextRequest, { authData }) => {
   const startTime = Date.now();
   
   try {
     const healthChecks = {
       timestamp: new Date().toISOString(),
-      status: 'healthy',
+      status: 'healthy' as 'healthy' | 'degraded' | 'unhealthy',
       uptime: process.uptime(),
       checks: {} as Record<string, any>
     };
@@ -64,74 +74,64 @@ export async function GET() {
     const statusCode = healthChecks.status === 'healthy' ? 200 : 
                       healthChecks.status === 'degraded' ? 207 : 503;
 
-    return NextResponse.json(healthChecks, {
-      status: statusCode,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Content-Type': 'application/json'
-      }
+    return createSuccessResponse(healthChecks, undefined, statusCode, {
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
     });
 
   } catch (error) {
     // 全局錯誤處理
-    return NextResponse.json({
-      timestamp: new Date().toISOString(),
-      status: 'unhealthy',
-      error: error instanceof Error ? error.message : 'Unknown error',
-      uptime: process.uptime()
-    }, {
-      status: 503,
-      headers: {
+    console.error('健康檢查錯誤:', error);
+    return createErrorResponse(
+      ErrorCode.INTERNAL_ERROR,
+      SYSTEM_ERRORS.INTERNAL_ERROR,
+      error instanceof Error ? error.message : '未知錯誤',
+      503,
+      {
         'Cache-Control': 'no-cache, no-store, must-revalidate'
       }
-    });
+    );
   }
-}
+});
 
-// 健康檢查詳細信息（需要認證）
-export async function POST(request: Request) {
+// 健康檢查詳細信息（需要管理員認證）
+export const POST = withAuth(async (request: NextRequest, { authData }) => {
   try {
-    // 驗證管理員認證
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.substring(7);
-
-    // 簡單的 token 驗證 - 在生產環境中應使用正確的 JWT 驗證
-    const adminToken = process.env.ADMIN_HEALTH_TOKEN;
-    if (!adminToken || token !== adminToken) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 403 }
+    // 驗證管理員權限
+    if (!authData || authData.role !== 'ADMIN' && authData.role !== 'SUPER_ADMIN') {
+      return createErrorResponse(
+        ErrorCode.UNAUTHORIZED,
+        '需要管理員權限才能訪問詳細健康信息',
+        '權限不足',
+        403
       );
     }
 
     // 返回安全的詳細健康信息（不包含敏感系統信息）
     const detailedHealth = {
       timestamp: new Date().toISOString(),
-      status: 'healthy',
+      status: 'healthy' as const,
       uptime: process.uptime(),
       env: {
         NODE_ENV: process.env.NODE_ENV,
         // 不返回詳細的記憶體、CPU 或平台信息，以防止被用於 DoS 攻擊規劃
+      },
+      user: {
+        id: authData.userId,
+        role: authData.role
       }
     };
 
-    return NextResponse.json(detailedHealth, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
-      }
+    return createSuccessResponse(detailedHealth, undefined, 200, {
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
     });
 
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+    console.error('詳細健康檢查錯誤:', error);
+    return createErrorResponse(
+      ErrorCode.INTERNAL_ERROR,
+      SYSTEM_ERRORS.INTERNAL_ERROR,
+      error instanceof Error ? error.message : '未知錯誤',
+      500
     );
   }
-}
+}, { requireAdmin: true });
